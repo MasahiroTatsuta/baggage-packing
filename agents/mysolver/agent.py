@@ -12,12 +12,18 @@ class Agent:
 
     def __init__(self, module_path: str):
         self._lookahead_k = None
+        self._container_list = None
 
     def get_init_states(self, init_states: dict) -> None:
         self._lookahead_k = init_states.get('lookahead_k')
+        self._container_list = init_states.get('container_list')
 
     def optimize(self, item_list: list) -> list[int]:
-        return ordering.order_items(item_list)
+        try:
+            return ordering.build_order(item_list, self._container_list, self._lookahead_k)
+        except Exception:
+            # 探索中に何らかの例外が起きても、必ず有効な完全順列を返す最終フォールバック。
+            return ordering.order_items(item_list)
 
     def policy(self, observation: dict) -> dict:
         container_list = observation.get('container_list', [])

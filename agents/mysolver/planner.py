@@ -184,7 +184,7 @@ def _contact_bonus(container, half, world_x, world_y, world_z, obstacles):
 
 
 def _score(container, local_x, local_y, world_z, half, item, support_ratio, contact_bonus):
-    length = container['length']; width = container['width']
+    length = container['length']; width = container['width']; height = container['height']
     z_term = -world_z * 12.0
     # back_termを最優先の位置決定要因にする(奥から手前へ順に詰め、自ら搬入経路を塞がないため)。
     # support/contactのような小さな差でこれが覆らないよう、他項より大きい重みを与える。
@@ -196,7 +196,12 @@ def _score(container, local_x, local_y, world_z, half, item, support_ratio, cont
     # 底面が狭く背が高い(倒れやすい)向きを強く避ける
     base_half = max(half[0], half[1])
     stability_penalty = max(0.0, half[2] - base_half) * 20.0
-    return z_term + back_term + edge_term + support_term + contact_term + prio_term - stability_penalty
+    # cogタイブレーク: 他項がほぼ互角の候補間でのみ効く程度の小さな重みで、
+    # 「重い荷物ほど低い位置」をわずかに優先する(z_term程は支配的にしない)。
+    mass_norm = min(item.get('mass', 1.0), 15.0) / 15.0
+    height_ratio = np.clip(world_z / max(height, 1e-6), 0.0, 1.0)
+    cog_term = (1.0 - height_ratio) * mass_norm * 1.2
+    return z_term + back_term + edge_term + support_term + contact_term + prio_term - stability_penalty + cog_term
 
 
 def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline):
@@ -284,16 +289,20 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     }
 
 
-def plan(container_list: list[dict], pool_list: list[dict], time_budget: float = 5.5) -> dict | None:
-    start = time.perf_counter()
-    deadline = start + time_budget
-
+def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container,
+                  has_prioritized_container, rng=None, score_noise=0.0):
+    """
+    (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
+    enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
+    コンテナへ置く候補そのものを生成しない(placement_score維持のためのハード優先)。
+    rng/score_noise は offline の順序探索(複数リスタート)でのみ使う微小ノイズで、
+    online呼び出し(デフォルト rng=None)には一切影響しない。
+    """
     best_overall = None
-    n_pool = min(len(pool_list), MAX_POOL_ITEMS)
-
     for container in container_list:
         if time.perf_counter() > deadline:
             break
+        container_is_prioritized = container.get('is_prioritized', False)
         obstacles = _collect_obstacles(container)
         supports = _landing_supports(container)
 
@@ -301,6 +310,9 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
             if time.perf_counter() > deadline:
                 break
             item = pool_list[pool_idx]
+            if enforce_priority_container and has_prioritized_container \
+                    and item.get('is_prioritized', False) and not container_is_prioritized:
+                continue
             lwh = (item['length'], item['width'], item['height'])
 
             for orn_idx in _unique_orientations(lwh):
@@ -312,14 +324,41 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
                 if r is None:
                     continue
 
-                if best_overall is None or r['score'] > best_overall['score']:
+                score = r['score']
+                if rng is not None and score_noise > 0.0:
+                    score = score + float(rng.normal(0.0, score_noise))
+
+                if best_overall is None or score > best_overall['score']:
                     best_overall = {
-                        'score': r['score'],
+                        'score': score,
                         'local_pos': r['local_pos'],
                         'item_idx': pool_idx,
                         'container_idx': container['index'],
                         'orientation': orn_idx,
                     }
+    return best_overall
+
+
+def plan(container_list: list[dict], pool_list: list[dict], time_budget: float = 5.5,
+         max_pool_items: int | None = MAX_POOL_ITEMS, rng=None, score_noise: float = 0.0) -> dict | None:
+    """
+    max_pool_items: online(agent.policy)は既定のMAX_POOL_ITEMSで呼ぶ。offlineの順序探索
+    (ordering.build_order)は None を渡し、プール全件(=候補となる全未配置荷物)から
+    その時点で最良の1手を選べるようにする(cf. simulate.greedy_construct_order)。
+    """
+    start = time.perf_counter()
+    deadline = start + time_budget
+
+    n_pool = len(pool_list) if max_pool_items is None else min(len(pool_list), max_pool_items)
+    has_prioritized_container = any(c.get('is_prioritized', False) for c in container_list)
+
+    best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=True,
+                                 has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise)
+    if best_overall is None and has_prioritized_container and time.perf_counter() <= deadline:
+        # 優先コンテナ限定では合法手が全く無かった場合のみ、非優先コンテナも含めて再探索する
+        # (それ以上待っても優先コンテナに入らない荷物を無駄に足止めしないため)。
+        best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
+                                     has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise)
 
     if best_overall is None:
         return None

@@ -12,7 +12,14 @@ import pybullet as p
 from src.ground_handling.utils import ORNS, get_half_ext
 
 # --- 保守的な既定値 (指示書 記載値をベースに安全側へ) ---
-INCLUSION_MARGIN = -0.006      # 実際は -0.005〜0.02 程度。より厳しい(狭い)側を採用。
+# 本家 fill_score(evaluator.calculate_fill_rate) は配置後に settle_wait_step=300 の物理演算を
+# 経た「最終静止姿勢」の8角点で inclusion_margin(実際は -0.005 程度、負=厳密内包)を再チェックする。
+# 後続荷物の投入で既配置荷物がわずかに押される/沈み込むだけで、壁ギリギリ(dot≈0)の配置は
+# 数mmの沈降で簡単に外側へはみ出し fill 対象から脱落する。これを防ぐため、実margin(-0.005)より
+# 更に厳しい側へ寄せ、沈降マージンを確保する。
+# (実験的には -0.015 付近までは配置数への影響は軽微だが、-0.016 付近から特定コンテナ形状
+#  (cut corner付近)で候補が急減する崖があるため、余裕を見て崖のかなり手前に留める。)
+INCLUSION_MARGIN = -0.012      # 実際は -0.005〜0.02 程度。沈降ドリフト分の余裕を追加。
 SAFETY_MARGIN_XY = 0.022       # 実際は 0.015 程度。横方向は少し余裕を持たせる。
 Z_TOUCH_EPS = -0.0015          # 上下方向は「接触」を許容(margin<0で厳密な貫通のみ検出)
 START_Z = 0.08                 # 非直置き時の搬入時浮上量

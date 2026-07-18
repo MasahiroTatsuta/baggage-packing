@@ -1,33 +1,159 @@
 """
 optimize() 用の積付順序決定。
 
-以前は「優先荷物を最優先」で並べていたが、それだと中型の優先荷物が
-先に床の一部を断片的に占有してしまい、後から来る大型荷物の搬入経路
-(コンテナ開口部の限られたX範囲を通ってY方向へ押し込む)を塞いでしまい、
-早期に置き場所が尽きる問題があった。
+パターンA(look_ahead=1)では online 側に「どの荷物を選ぶか」の自由度が無く、置いた結果
+(置けた個数・充填体積)は事実上この順序だけで決まる。そのため単純なソートではなく、
+simulate.py の自前シミュレータ(pybullet不使用・planner.pyと同一の幾何/合法性判定)で
+実際に「その順序で詰めたら何個置けるか」を検証しながら、より良い順序を探索する。
 
-現在の planner.py は「優先(ソフト)荷物の上に非優先(非ソフト)荷物を
-乗せない」というハード制約を候補生成時に強制するため、置く順番に
-関わらず下敷き(placement/soft_item スコアの減点)は発生しない。
-そのため順序は純粋に「詰めやすさ」を優先してよく、大きく重いものを
-土台(下段)に先に置き、ソフト・小物を後段(上段・隙間埋め)に回す。
+戦略:
+  1. まず決定的ヒューリスティック順(体積・質量ベースのソート)を1つ用意する(常に安全な
+     フォールバックであり、探索が万一何も改善できなくてもこれを返せる)。
+  2. planner.plan を「その時点の未配置荷物」をプールとして呼ぶ貪欲構築
+     (simulate.greedy_construct_order)を、プール幅(window)を変えながら複数回行う。
+     lookahead=1では、この構築順が online 実行の結果とほぼ一致する(pool内に他候補が
+     無いだけで同じ探索・同じ位置を返すため)。
+     実験的には「毎回“残り全件”から最良の1手を選ぶ(window無制限)」よりも、
+     「元のストリーム順で見えている手前の数十件だけから選ぶ」方が良い順序になりやすい
+     (無制限だと単発最適を食い潰し、後段の荷物の置き場所を却って狭めてしまう一種の
+     視野依存トンネルビジョンが起きるため)。そのため window 幅も探索対象にする。
+  3. 時間が残っていれば、tie-break をランダム化した貪欲構築を繰り返しリスタートし、
+     simulate_order (lookahead_k 込みで online と同じ条件) で評価した「配置数(→体積)」が
+     一番良いものを採用する。
+  4. 180s のタイムアウト(→デフォルト順)は絶対に踏まないよう、time_budget に対して
+     十分なマージンを取って必ず打ち切る。
 """
+import time
+
+import numpy as np
+
+from . import simulate
+
+# optimize() 全体の壁時計制限(180s)に対し、後片付け・シリアライズのオーバーヘッド分の
+# マージンを差し引いた安全な内側の締切。
+DEFAULT_TIME_BUDGET = 165.0
+# 1回の貪欲構築の1ステップ(planner.plan 1呼び出し)に許す上限。
+PER_STEP_TIME_BUDGET = 3.0
+# simulate_order による検証(online と同じ lookahead_k プールでの再現)に許す上限。
+MAX_VALIDATE_SLICE = 12.0
+# 最終的な締切ぎりぎりまで新しいリスタートを始めないための安全マージン。
+FINAL_MARGIN = 6.0
+# 貪欲構築の1回あたりの最低保証時間。実行環境の負荷変動(CPU競合等)で1ステップが
+# 想定より遅くなっても、window探索の各候補が「時間切れによる尻切れ」で不当に低評価
+# されないための下限(=最悪ケースでも構築が自然完了(合法手が尽きる)まで待てるようにする)。
+MIN_CONSTRUCT_SLICE = 20.0
+# 貪欲構築時にプールとして見せる「window(手前から何件か)」の候補。
+# None は無制限(残り全件)。
+WINDOW_CANDIDATES = [15, 20, 25, 30, None]
 
 
 def order_items(item_list: list[dict]) -> list[int]:
+    """決定的ヒューリスティック順(探索の初期シード兼、最終フォールバック)。
+
+    大きく重いものを土台として先に、ソフト・小物は後段(隙間埋め)に回す。
+    planner.py が「非優先(非ソフト)荷物を優先(ソフト)荷物の上に乗せない」というハード制約を
+    候補生成時に強制するため、順序に関わらず下敷きは発生しない。そのため純粋に
+    「詰めやすさ」を優先してよい。
+    """
     def volume_of(item: dict) -> float:
         return item.get('volume', item['length'] * item['width'] * item['height'])
 
     def sort_key(item: dict):
         return (
-            1 if item.get('is_soft', False) else 0,             # ソフトは体積が大きくても後段(隙間埋め)に回す。
-                                                                  # 先に置くと(潰れにくいぶん)床の要所を早期に
-                                                                  # 占有してしまい、後続の大型荷物の搬入経路を
-                                                                  # 塞いでしまうため。
-            -volume_of(item),                                   # 体積が大きいものを土台として先に
-            -item.get('mass', 0.0),                             # 同体積なら重いものを先に(cog/stability上有利)
-            0 if item.get('is_prioritized', False) else 1,      # 同条件なら優先荷物をわずかに先に(専用コンテナが埋まる前に配置)
+            1 if item.get('is_soft', False) else 0,
+            -volume_of(item),
+            -item.get('mass', 0.0),
+            0 if item.get('is_prioritized', False) else 1,
         )
 
     sorted_items = sorted(item_list, key=sort_key)
     return [item['index'] for item in sorted_items]
+
+
+def _better(candidate: tuple[int, float], current: tuple[int, float]) -> bool:
+    """(配置数, 配置体積) の辞書式比較。配置数を最優先、同数なら体積が大きい方を優先。"""
+    return candidate[0] > current[0] or (candidate[0] == current[0] and candidate[1] > current[1])
+
+
+def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
+                 time_budget: float = DEFAULT_TIME_BUDGET) -> list[int]:
+    start = time.perf_counter()
+    deadline = start + time_budget
+
+    heuristic_order = order_items(item_list)
+
+    if not container_list or not item_list:
+        return heuristic_order
+    k = max(1, int(lookahead_k or 1))
+
+    items_by_index = {item['index']: item for item in item_list}
+    best_order = heuristic_order
+    best_score = (-1, -1.0)
+
+    def validate(order: list[int]) -> tuple[int, float]:
+        now = time.perf_counter()
+        if now > deadline:
+            return (-1, -1.0)
+        vdeadline = min(deadline, now + MAX_VALIDATE_SLICE)
+        placed_ids, placed_volume = simulate.simulate_order(
+            container_list, items_by_index, order, k, vdeadline)
+        return (len(placed_ids), placed_volume)
+
+    try:
+        score = validate(heuristic_order)
+        if _better(score, best_score):
+            best_order, best_score = heuristic_order, score
+    except Exception:
+        pass
+
+    rng = np.random.default_rng(0)
+    all_indices = set(items_by_index.keys())
+
+    def try_construct(window, use_noise, slice_budget):
+        nonlocal best_order, best_score
+        if slice_budget <= 0:
+            return
+        slice_deadline = time.perf_counter() + slice_budget
+        try:
+            order = simulate.greedy_construct_order(
+                container_list, item_list, slice_deadline,
+                per_step_time_budget=PER_STEP_TIME_BUDGET,
+                rng=rng if use_noise else None,
+                score_noise=0.35 if use_noise else 0.0,
+                shuffle_ties=use_noise,
+                window=window,
+            )
+            if set(order) == all_indices:
+                score = validate(order)
+                if _better(score, best_score):
+                    best_order, best_score = order, score
+        except Exception:
+            pass
+
+    # フェーズ1: window幅を変えた決定的(ノイズ無し)貪欲構築を一通り試す。
+    # 各候補には「残り時間 ÷ 残り候補数」を均等配分する(先の候補が早く自然終了すれば、
+    # 後の候補により多くの時間が回る)。CPU競合等で1ステップが遅くなっても、構築が
+    # 「合法手が尽きる」まで自然完了できるだけの最低時間(MIN_CONSTRUCT_SLICE)は必ず確保し、
+    # 尻切れによる不当な低評価(=品質比較にならない)を避ける。
+    pending_windows = list(WINDOW_CANDIDATES)
+    while pending_windows:
+        now = time.perf_counter()
+        remaining = deadline - FINAL_MARGIN - now
+        if remaining < MIN_CONSTRUCT_SLICE:
+            break
+        window = pending_windows.pop(0)
+        slice_budget = max(MIN_CONSTRUCT_SLICE, remaining / (len(pending_windows) + 1))
+        slice_budget = min(slice_budget, remaining)
+        try_construct(window, use_noise=False, slice_budget=slice_budget)
+
+    # フェーズ2: 残り時間でランダム化(shuffle+noise)リスタートを繰り返し、
+    # window もランダムに振って多様性を確保する。
+    while True:
+        now = time.perf_counter()
+        remaining = deadline - FINAL_MARGIN - now
+        if remaining < MIN_CONSTRUCT_SLICE:
+            break
+        window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
+        try_construct(window, use_noise=True, slice_budget=min(remaining, MIN_CONSTRUCT_SLICE * 2))
+
+    return best_order
