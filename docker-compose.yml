@@ -1,0 +1,9 @@
+services:
+  dev1:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile
+    container_name: gh_env
+    volumes:
+      - .:/workspace
+    tty: true

@@ -1,0 +1,156 @@
+pybullet build time: Jul 18 2026 06:12:12
+
+--- 000 ---
+
+pybullet build time: Jul 18 2026 06:12:12
+[TimedAgentRunner] (get_init_states) success: 0.285s, 10.0
+Perform Optimization!
+[TimedAgentRunner] (optimize) success: 0.000s, 180.0
+env: 41, 1
+[TimedAgentRunner] (policy) success: 0.005s, 8.0
+transport item 8
+place item 8
+env : 41, 1(elapsed time 0.025 sec)
+[TimedAgentRunner] (policy) success: 0.016s, 8.0
+transport item 13
+place item 13
+env : 41, 1(elapsed time 0.051 sec)
+[TimedAgentRunner] (policy) success: 0.030s, 8.0
+transport item 30
+place item 30
+env : 41, 1(elapsed time 0.031 sec)
+[TimedAgentRunner] (policy) success: 0.059s, 8.0
+transport item 14
+place item 14
+env : 41, 1(elapsed time 0.071 sec)
+[TimedAgentRunner] (policy) success: 0.027s, 8.0
+transport item 3
+place item 3
+env : 41, 1(elapsed time 0.092 sec)
+[TimedAgentRunner] (policy) success: 0.055s, 8.0
+transport item 17
+place item 17
+env : 41, 1(elapsed time 0.085 sec)
+[TimedAgentRunner] (policy) success: 0.033s, 8.0
+transport item 21
+place item 21
+env : 41, 1(elapsed time 0.086 sec)
+[TimedAgentRunner] (policy) success: 0.037s, 8.0
+not included. [2.980232310934028e-09, -0.585, -1.2600000029802323, -0.585, -0.11404206761996222, -0.44499999999999995, -0.4049999999999999]
+env : 41, 1(elapsed time 0.002 sec)
+item 8 not inside (hit boundary plane), [ 1.68018347e-05 -8.94128121e-02 -1.53001680e+00 -1.83058719e+00
+ -9.51902251e-01 -1.35273580e+00 -5.72642028e-02]
+item 13 not inside (hit boundary plane), [ 9.27850897e-06 -8.52667372e-01 -1.53000928e+00 -1.06733263e+00
+ -4.38487241e-01 -1.35268457e+00 -5.73154350e-02]
+item 30 not inside (hit boundary plane), [ 9.98524307e-06 -3.16666937e-02 -1.53000999e+00 -1.88833331e+00
+ -9.90751538e-01 -8.24285711e-01 -5.85714289e-01]
+item 14 not inside (hit boundary plane), [ 0.02483337 -0.85283812 -1.55483337 -1.06716188 -0.42000404 -0.79927391
+ -0.61072609]
+item 3 not inside (hit boundary plane), [ 1.84538255e-05 -4.06246331e-02 -1.53001845e+00 -1.87937537e+00
+ -9.84719510e-01 -8.50248579e-02 -1.32497514e+00]
+item 17 not inside (hit boundary plane), [ 8.31508127e-06 -1.45963222e+00 -1.53000832e+00 -4.60367780e-01
+ -3.01992133e-02 -3.54827219e-01 -1.05517278e+00]
+
+  results
+    evaluation {'fill_score': 2.8300643677426565, 'num_placed_items': 0.17073170731707318}
+    message ok
+    status success
+    place_states {'is_included': False, 'is_valid': False, 'is_placed_safe': False}
+    time_results {'optimization': 0.00038493700049002655, 'policy': 0.05933634099983465}
+close env.
+closed runner.
+
+--- 001 ---
+
+pybullet build time: Jul 18 2026 06:12:12
+[TimedAgentRunner] (get_init_states) success: 0.245s, 10.0
+env: 42, 10
+[TimedAgentRunner] (policy) success: 0.124s, 10.0
+transport item 0
+place item 0
+env : 42, 10(elapsed time 0.041 sec)
+[TimedAgentRunner] (policy) success: 0.137s, 10.0
+transport item 7
+place item 7
+env : 42, 10(elapsed time 0.025 sec)
+[TimedAgentRunner] (policy) success: 0.099s, 10.0
+transport item 8
+place item 8
+env : 42, 10(elapsed time 0.031 sec)
+[TimedAgentRunner] (policy) success: 0.113s, 10.0
+transport item 9
+place item 9
+env : 42, 10(elapsed time 0.048 sec)
+[TimedAgentRunner] (policy) success: 0.144s, 10.0
+transport item 1
+place item 1
+env : 42, 10(elapsed time 0.06 sec)
+[TimedAgentRunner] (policy) success: 0.252s, 10.0
+transport item 3
+place item 3
+env : 42, 10(elapsed time 0.186 sec)
+[TimedAgentRunner] (policy) success: 1.114s, 10.0
+transport item 4
+place item 4
+env : 42, 10(elapsed time 0.166 sec)
+[TimedAgentRunner] (policy) success: 0.679s, 10.0
+transport item 11
+place item 11
+env : 42, 10(elapsed time 0.194 sec)
+[TimedAgentRunner] (policy) success: 1.455s, 10.0
+transport item 12
+place item 12
+env : 42, 10(elapsed time 0.285 sec)
+[TimedAgentRunner] (policy) success: 0.699s, 10.0
+transport item 13
+place item 13
+env : 42, 10(elapsed time 0.287 sec)
+[TimedAgentRunner] (policy) success: 0.799s, 10.0
+transport item 14
+place item 14
+env : 42, 10(elapsed time 0.21 sec)
+[TimedAgentRunner] (policy) success: 0.371s, 10.0
+transport item 17
+place item 17
+env : 42, 10(elapsed time 0.23 sec)
+[TimedAgentRunner] (policy) success: 0.325s, 10.0
+transport item 19
+place item 19
+env : 42, 10(elapsed time 0.227 sec)
+[TimedAgentRunner] (policy) success: 0.347s, 10.0
+transport item 22
+place item 22
+env : 42, 10(elapsed time 0.26 sec)
+[TimedAgentRunner] (policy) success: 0.346s, 10.0
+transport item 21
+place item 21
+env : 42, 10(elapsed time 0.341 sec)
+[TimedAgentRunner] (policy) success: 0.640s, 10.0
+not included. [2.9802322831784522e-09, -0.625, -1.2700000029802323, -0.625, -0.15347980063300298, -0.535, -0.485]
+env : 42, 10(elapsed time 0.002 sec)
+item 0 not inside (hit boundary plane), [ 0.0156551  -0.08052244 -1.5356551  -1.81947756 -0.95558072 -1.46297564
+ -0.00702436]
+item 7 not inside (hit boundary plane), [ 0.01195542 -0.84277868 -1.53195542 -1.05722132 -0.43911385 -1.46357226
+ -0.00642774]
+item 8 not inside (hit boundary plane), [ 0.0151351  -0.36277574 -1.5351351  -1.53722426 -0.76371762 -1.08500053
+ -0.38499947]
+item 9 not inside (hit boundary plane), [ 0.01133117 -0.84277528 -1.53133117 -1.05722472 -0.43957324 -1.0407178
+ -0.4292822 ]
+item 1 not inside (hit boundary plane), [-1.24728312e-05 -8.92503706e-01 -1.51998753e+00 -1.00749629e+00
+ -4.14008669e-01 -6.41227701e-01 -8.28772299e-01]
+item 3 not inside (hit boundary plane), [ 3.75120728e-05 -8.24040498e-01 -1.52003751e+00 -1.07595950e+00
+ -4.60602631e-01 -6.09720828e-01 -8.60279172e-01]
+item 22 not inside (hit boundary plane), [ 0.00593291 -0.06277942 -1.52593291 -1.83722058 -0.97478402 -0.38142861
+ -1.08857139]
+
+  results
+    evaluation {'fill_score': 10.434267081665928, 'num_placed_items': 0.35714285714285715}
+    message ok
+    status success
+    place_states {'is_included': False, 'is_valid': False, 'is_placed_safe': False}
+    time_results {'optimization': 0, 'policy': 1.454592223999498}
+close env.
+closed runner.
+11.574297189712524
+argv[0]=
+argv[0]=
