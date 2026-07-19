@@ -46,7 +46,12 @@ class Agent:
                 action = None
 
         if action is None:
-            # 合法手が見つからない場合の最終フォールバック(それ以上物理的に置けない状況を想定)
+            # 合法手が見つからない場合の最終フォールバック。
+            # planner.plan は通常探索が全滅した場合に密グリッドでの最終リトライまで
+            # 内部で行った上でNoneを返す(Phase7)ため、ここに到達するのは「本当にどの
+            # 荷物もどの向き・位置にも置けない」場合に限られる。この場合どんな行動を
+            # 返しても is_included/is_valid のいずれかで失敗しエピソードは終了する
+            # (=残り荷物は置けない状況であり、行動の選び方で結果は変わらない)。
             container = container_list[0] if container_list else None
             item = pool_list[0] if pool_list else None
             if container is not None and item is not None:

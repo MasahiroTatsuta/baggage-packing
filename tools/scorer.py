@@ -243,6 +243,9 @@ class Scorer:
         """5指標 + num_placed_items をまとめて算出する"""
         num_packed_items = sum(len(c.packed_items) for c in containers)
         packed_items_percent = num_packed_items / total_items if total_items else 0.0
+        packed_volume = sum(item.length * item.width * item.height
+                             for c in containers for item in c.packed_items)
+        container_volume = sum(getattr(c, 'volume', 0.0) for c in containers)
 
         fill_score, num_out_items = self.calculate_fill_score(containers)
         fill_counted_ratio = ((num_packed_items - num_out_items) / num_packed_items
@@ -261,4 +264,67 @@ class Scorer:
             'soft_item_score': soft_item_score,
             'num_placed_items': packed_items_percent,
             'fill_counted_ratio': fill_counted_ratio,
+            'num_placed_items_abs': num_packed_items,
+            'total_items': total_items,
+            'packed_volume': packed_volume,
+            'container_volume': container_volume,
         }
+
+
+# ==========================================================================
+# 足切り(cutoff)感度分析
+#
+# README「評価指標」節: 『手荷物を一定数以上コンテナに積載できていないと充填率スコア以外は
+# 0となる』。閾値そのものは非公開なので、複数の仮説(個数の絶対値/総荷物数に対する比率/
+# 積載体積のコンテナ容積に対する比率)を並べて、「もしこの閾値だったら現在のシーンは
+# 足切りを超えているか、超えている場合/超えていない場合で合成スコアはどう変わるか」を
+# 可視化するための感度分析ユーティリティ。どの閾値が正しいかは分からないので、Phase7の
+# 意思決定(個数を優先すべきか)を裏付けるための「仮定を並べたときの傾向」を見るのが目的。
+# ==========================================================================
+METRIC_KEYS = ['fill_score', 'cog_score', 'stability_score', 'placement_score', 'soft_item_score']
+_CUTOFF_METRIC_KEYS = ['cog_score', 'stability_score', 'placement_score', 'soft_item_score']
+
+# (表示名, 判定関数(num_packed, total_items, packed_volume, container_volume) -> bool)
+CUTOFF_CANDIDATES: list[tuple[str, "callable"]] = [
+    ('count>=10', lambda n, t, pv, cv: n >= 10),
+    ('count>=15', lambda n, t, pv, cv: n >= 15),
+    ('count>=20', lambda n, t, pv, cv: n >= 20),
+    ('count>=30%total', lambda n, t, pv, cv: t > 0 and n >= 0.30 * t),
+    ('count>=50%total', lambda n, t, pv, cv: t > 0 and n >= 0.50 * t),
+    ('volume>=30%container', lambda n, t, pv, cv: cv > 0 and pv >= 0.30 * cv),
+    ('volume>=50%container', lambda n, t, pv, cv: cv > 0 and pv >= 0.50 * cv),
+]
+
+
+def composite_score(metrics: dict[str, float]) -> float:
+    """5指標の単純平均(本番の重みは非公開なので代用の合成スコア)"""
+    return sum(metrics[k] for k in METRIC_KEYS) / len(METRIC_KEYS)
+
+
+def apply_cutoff(metrics: dict[str, float], cleared: bool) -> dict[str, float]:
+    """cleared=False(足切り未達)なら fill_score 以外を0にした指標セットを返す"""
+    if cleared:
+        return dict(metrics)
+    out = dict(metrics)
+    for key in _CUTOFF_METRIC_KEYS:
+        out[key] = 0.0
+    return out
+
+
+def cutoff_sensitivity(metrics: dict[str, float]) -> list[dict]:
+    """
+    metrics: Scorer.evaluate() の戻り値(num_placed_items_abs/total_items/packed_volume/
+    container_volume を含む必要がある)。
+    戻り値: 各閾値候補について {threshold, cleared, composite} の行のリスト。
+    """
+    n = metrics.get('num_placed_items_abs', 0)
+    t = metrics.get('total_items', 0)
+    pv = metrics.get('packed_volume', 0.0)
+    cv = metrics.get('container_volume', 0.0)
+
+    rows = []
+    for name, fn in CUTOFF_CANDIDATES:
+        cleared = bool(fn(n, t, pv, cv))
+        adjusted = apply_cutoff(metrics, cleared)
+        rows.append({'threshold': name, 'cleared': cleared, 'composite': composite_score(adjusted)})
+    return rows

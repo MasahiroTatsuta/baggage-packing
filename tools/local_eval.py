@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.ground_handling.agent_factory import AgentFactory
 from src.ground_handling.env import GroundHandlingEnv
 from src.ground_handling.runner import TimedAgentRunner
-from tools.scorer import Scorer
+from tools.scorer import Scorer, CUTOFF_CANDIDATES, cutoff_sensitivity, composite_score
 
 METRIC_KEYS = ['fill_score', 'cog_score', 'stability_score', 'placement_score', 'soft_item_score']
 
@@ -118,8 +118,8 @@ def run_one_scene(task_config: dict, module_path: str, agent_module: str, render
 
 
 def print_table(rows: list[dict]):
-    headers = ['scene', 'fill', 'cog', 'stability', 'placement', 'soft', 'placed%', 'fill_cnt%', 'opt[s]', 'policy[s]', 'status']
-    widths = [26, 7, 7, 9, 9, 7, 8, 9, 7, 9, 42]
+    headers = ['scene', 'fill', 'cog', 'stability', 'placement', 'soft', 'placed', 'placed%', 'fill_cnt%', 'opt[s]', 'policy[s]', 'status']
+    widths = [26, 7, 7, 9, 9, 7, 11, 8, 9, 7, 9, 42]
 
     def fmt(values):
         return ' | '.join(str(v).ljust(w)[:w] for v, w in zip(values, widths))
@@ -129,18 +129,72 @@ def print_table(rows: list[dict]):
     for row in rows:
         m = row['metrics']
         if m is None:
-            values = [row['scene'], '-', '-', '-', '-', '-', '-', '-',
+            values = [row['scene'], '-', '-', '-', '-', '-', '-', '-', '-',
                       f"{row['optimize_time']:.2f}", f"{row['policy_time']:.2f}", row['status']]
         else:
             values = [
                 row['scene'],
                 f"{m['fill_score']:.2f}", f"{m['cog_score']:.2f}", f"{m['stability_score']:.2f}",
                 f"{m['placement_score']:.2f}", f"{m['soft_item_score']:.2f}",
+                f"{m.get('num_placed_items_abs', 0)}/{m.get('total_items', 0)}",
                 f"{m['num_placed_items'] * 100:.1f}",
                 f"{m.get('fill_counted_ratio', 1.0) * 100:.1f}",
                 f"{row['optimize_time']:.2f}", f"{row['policy_time']:.2f}", row['status'],
             ]
         print(fmt(values))
+
+
+def print_cutoff_sensitivity(rows: list[dict]):
+    """
+    シーン x 足切り閾値候補 のマトリクスを表示する。
+    仮に「この閾値だった場合」に各シーンが足切りを超えるか(O/X)と、
+    そのときの合成スコア(5指標単純平均、cleared=Falseならfill以外0扱い)を出す。
+    どの閾値が本番の正解かは分からないため、複数仮説を横並びで見て
+    「この辺りより下は危険」という傾向を掴むためのもの。
+    """
+    scored = [r for r in rows if r['metrics'] is not None]
+    if not scored:
+        return
+    threshold_names = [name for name, _ in CUTOFF_CANDIDATES]
+
+    name_w = 26
+    col_w = 15
+    header = 'scene'.ljust(name_w) + ' | ' + ' | '.join(n.ljust(col_w) for n in threshold_names)
+    print(header)
+    print('-' * len(header))
+
+    per_threshold_cleared = {name: 0 for name in threshold_names}
+    per_threshold_composite = {name: [] for name in threshold_names}
+
+    for row in scored:
+        sens = cutoff_sensitivity(row['metrics'])
+        cells = []
+        for r in sens:
+            mark = 'O' if r['cleared'] else 'X'
+            cells.append(f"{mark} {r['composite']:5.1f}".ljust(col_w))
+            if r['cleared']:
+                per_threshold_cleared[r['threshold']] += 1
+            per_threshold_composite[r['threshold']].append(r['composite'])
+        print(row['scene'].ljust(name_w)[:name_w] + ' | ' + ' | '.join(cells))
+
+    print('-' * len(header))
+    n_scenes = len(scored)
+    cleared_row = '突破シーン数'.ljust(name_w) + ' | ' + ' | '.join(
+        f"{per_threshold_cleared[n]}/{n_scenes}".ljust(col_w) for n in threshold_names)
+    print(cleared_row)
+    avg_row = '合成スコア平均'.ljust(name_w) + ' | ' + ' | '.join(
+        f"{sum(per_threshold_composite[n]) / len(per_threshold_composite[n]):5.1f}".ljust(col_w)
+        for n in threshold_names)
+    print(avg_row)
+
+    # 参考: 足切りを一切考慮しない(全シーンclearedと仮定した)単純5指標平均
+    naive_avg = sum(composite_score(row['metrics']) for row in scored) / n_scenes
+    print(f'\n(参考) 足切りを考慮しない場合の合成スコア平均(全シーンclearedと仮定): {naive_avg:5.1f}')
+
+    placed_counts = [(row['scene'], row['metrics'].get('num_placed_items_abs', 0),
+                       row['metrics'].get('total_items', 0)) for row in scored]
+    worst = min(placed_counts, key=lambda x: x[1])
+    print(f'最下位シーンの積載個数: {worst[0]} -> {worst[1]}/{worst[2]} 個')
 
 
 def main():
@@ -167,6 +221,9 @@ def main():
 
     print('\n=== シーン別結果 ===')
     print_table(all_rows)
+
+    print('\n=== 足切り閾値 感度分析(仮説ごとの突破可否・合成スコア) ===')
+    print_cutoff_sensitivity(all_rows)
 
     scored_rows = [r for r in all_rows if r['metrics'] is not None]
     if scored_rows:

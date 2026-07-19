@@ -43,14 +43,14 @@ def _unique_orientations(lwh):
     return list(seen.values())
 
 
-def _grid_xy(container, nx=31, ny=23):
+def _grid_xy(container, nx=31, ny=23, density: int = 1):
     length = container['length']; width = container['width']
     x_lo = -length / 2.0 + GRID_MARGIN
     x_hi = length / 2.0 - GRID_MARGIN
     y_lo = -width / 2.0 + GRID_MARGIN
     y_hi = width / 2.0 - GRID_MARGIN
-    xs = np.linspace(x_lo, x_hi, nx)
-    ys = np.linspace(y_lo, y_hi, ny)
+    xs = np.linspace(x_lo, x_hi, nx * density)
+    ys = np.linspace(y_lo, y_hi, ny * density)
     xx, yy = np.meshgrid(xs, ys, indexing='ij')
     return xx.ravel(), yy.ravel()
 
@@ -120,8 +120,8 @@ def _extreme_points(container, half, obstacles):
     return points
 
 
-def _candidate_xy(container, half, obstacles):
-    grid_x, grid_y = _grid_xy(container)
+def _candidate_xy(container, half, obstacles, grid_density: int = 1):
+    grid_x, grid_y = _grid_xy(container, density=grid_density)
     pts = set(zip(np.round(grid_x, 5).tolist(), np.round(grid_y, 5).tolist()))
     pts |= _extreme_points(container, half, obstacles)
     if not pts:
@@ -356,7 +356,7 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
 
 
 def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container,
-                  has_prioritized_container, rng=None, score_noise=0.0, stats=None):
+                  has_prioritized_container, rng=None, score_noise=0.0, stats=None, grid_density: int = 1):
     """
     (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
     enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
@@ -364,6 +364,9 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
     rng/score_noise は offline の順序探索(複数リスタート)でのみ使う微小ノイズで、
     online呼び出し(デフォルト rng=None)には一切影響しない。
     stats: tools/diagnose_stall.py 専用の診断カウンタ(Noneなら何もしない)。
+    grid_density: 候補XYグリッドの密度倍率。通常1。plan()が通常探索で全滅した場合のみ、
+    残り時間予算内で密度を上げた最終リトライに使う(Phase7: 「合法手なし」と誤って
+    諦める頻度を減らし、agent.pyの無検証フォールバック=即死へ落ちる回数を減らすため)。
     """
     best_overall = None
     for container in container_list:
@@ -386,7 +389,7 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
                 if time.perf_counter() > deadline:
                     break
                 half = geo.half_extent(lwh, orn_idx)
-                candidate_xy = _candidate_xy(container, half, obstacles)
+                candidate_xy = _candidate_xy(container, half, obstacles, grid_density=grid_density)
                 r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline, stats=stats)
                 if r is None:
                     continue
@@ -436,6 +439,19 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
         best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
                                      stats=stats)
+
+    if best_overall is None and time.perf_counter() <= deadline:
+        # Phase7: 通常密度のグリッド+Extreme Pointで合法候補が1つも無かった場合の最終リトライ。
+        # 「本当に空間的行き詰まり」なのか「粗いグリッドが偶然、荷物が収まる細い隙間を
+        # 拾えなかっただけ」なのかを区別せず一律諦めると、agent.py側は合法性チェックを
+        # 一切行わない無検証フォールバックに落ちてsudden death(即座にエピソード終了、
+        # 残り全荷物を失う)になる。同じ margin(=real validatorに対して安全側)のまま
+        # グリッド密度だけを上げ、残り時間予算内で「本当に置ける場所が無いか」をもう一段
+        # 丁寧に探す。時間予算(deadline)は呼び出し元が渡した time_budget のままで、
+        # 新たに延長はしない(policy_timeout=8sに対する安全マージンを保つため)。
+        best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
+                                     has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
+                                     stats=stats, grid_density=3)
 
     if best_overall is None:
         return None
