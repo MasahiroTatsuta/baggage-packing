@@ -46,13 +46,18 @@ def _place(container: dict, item: dict, action: dict) -> dict:
 
 
 def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], order: list[int],
-                    lookahead_k: int, deadline: float, per_step_time_budget: float = 0.35
+                    lookahead_k: int, deadline: float, per_step_time_budget: float = 0.7
                     ) -> tuple[list[int], float, float]:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
     実際の policy() 呼び出しと同じ既定(max_pool_items=既定値)で呼ぶことで、
     「このorderを実機に渡したら何個置けるか」の妥当な見積もりになる。
+
+    per_step_time_budget=0.7: Phase8で planner.BASE_GRID_DENSITY を1→2に上げたことに
+    合わせて引き上げた値(旧値0.35は、pool=MAX_POOL_ITEMS・密度1の1手評価に要する実測時間
+    (約0.35s)に由来する較正値だったため、密度を上げた分だけ比例して増やし、lookahead_k>1
+    のシーン(pool>1)でここが毎回途中打ち切りになり評価が不正確になるのを防ぐ)。
 
     戻り値: (配置できた item index のリスト(配置順), 配置できた体積の合計,
              risk調整済み体積の合計)。

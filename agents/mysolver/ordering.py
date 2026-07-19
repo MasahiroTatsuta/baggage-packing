@@ -78,26 +78,16 @@ def order_items(item_list: list[dict]) -> list[int]:
     return [item['index'] for item in sorted_items]
 
 
-# Phase7: 「足切り突破シーン数の最大化」を最優先目標にするための二段構え目的関数。
+# Phase8: 目的関数を体積(risk調整済みfill)優先に戻す。
 #
-# README「評価指標」節: 手荷物を一定数以上コンテナに積載できていないと fill_score 以外の
-# 4指標が0になる(足切り)。本番の閾値は非公開だが、tools/scorer.py の cutoff_sensitivity
-# (感度分析: 絶対個数10/15/20、総荷物数比30%/50%、体積比30%/50%)のうち、いずれの仮説でも
-# 「配置個数が少なすぎるシーンは4指標を丸ごと失う」という結論は変わらない。
-# Phase6までは risk調整済み体積(fill寄り)を主指標・配置数をタイブレークにしていたが、
-# これは「fillを僅かに上げるために配置個数を犠牲にする」順序を積極的に選好してしまい、
-# 足切りぎりぎり/未満のシーンをさらに悪化させる向きに働く。
-# Phase7では「まず足切り相当の個数を確保し、その後で体積(fillへの寄与)を最適化する」
-# 二段構えに変更する: スコアを (min(配置数, ASSUMED_CUTOFF_TARGET), risk調整済み体積, 配置数)
-# の辞書式(タプル)比較にする。
-#   - 配置数が ASSUMED_CUTOFF_TARGET 未満のシーンでは、体積差より配置数の増加を常に優先する
-#     (=足切り未達を最優先で救う)。
-#   - ASSUMED_CUTOFF_TARGET 以上を確保できたシーンでは、それ以上個数を積み増すより
-#     体積(fillへの寄与)を優先する(=無闇に個数だけ稼いで質を落とさない)。
-#   - 体積も同点なら配置数が多い方を採用する(最終タイブレーク)。
-# ASSUMED_CUTOFF_TARGET 自体は非公開閾値の代用の"安全側"な仮定であり、閾値の実値が
-# これより低くても高くても、「配置数が少ないほど優先的に救う」という単調な挙動は変わらず
-# 安全に働く(閾値の正確な値を言い当てる必要はない)。
+# Phase7で導入した「まず足切り相当の個数を確保してから体積を最適化する」二段構え
+# ((min(配置数,目標), 体積, 配置数) の辞書式比較)は、本番提出でスコアを動かさなかった
+# (足切り=個数不足仮説は棄却)。一方、提出実績とローカル平均fillは強く連動している
+# (fill 20.05→24.01点、22.77→31.26点、24.40→37.31点。fillが横ばいの回はスコアも
+# 横ばい)。回帰では score ≒ 3*fill - 36 となり、目標60点にはfill≈32が必要
+# (Phase7時点で24.4)。そのためPhase8では体積(risk調整済み)を単独の主指標に戻す。
+# ただし配置数を意図的に犠牲にする理由も無いため、体積が同点の場合のみ配置数が多い方を
+# 選ぶ弱いタイブレークとして残す(体積を上げるための積極的な個数犠牲は選好しない)。
 ASSUMED_CUTOFF_RATIO = 0.5      # 感度分析の比率仮説(30%/50%)のうち安全側の50%を採用
 ASSUMED_CUTOFF_MIN_COUNT = 10   # 感度分析の絶対個数仮説(10/15/20)のうち最も緩い10を下限に採用
 
@@ -105,9 +95,7 @@ ASSUMED_CUTOFF_MIN_COUNT = 10   # 感度分析の絶対個数仮説(10/15/20)の
 def cutoff_target(total_items: int) -> int:
     """このシーンで「足切りを確実に超えた」とみなす配置個数の仮の目標値。
 
-    総荷物数が少ないシーン(数個〜十数個)では ASSUMED_CUTOFF_RATIO*total が
-    ASSUMED_CUTOFF_MIN_COUNT を下回りうるが、絶対個数の仮説(10個以上)も無視できないため
-    max を取る。ただし目標が総荷物数を超えることはない(min で頭打ち)。
+    現在は目的関数には使わない(Phase8で体積優先に戻したため)。診断・報告用に残す。
     """
     if total_items <= 0:
         return 0
@@ -115,8 +103,8 @@ def cutoff_target(total_items: int) -> int:
     return min(target, total_items)
 
 
-def _better(candidate: tuple[int, float, int], current: tuple[int, float, int]) -> bool:
-    """(min(配置数,目標), risk調整済み体積, 配置数) の辞書式比較。"""
+def _better(candidate: tuple[float, int], current: tuple[float, int]) -> bool:
+    """(risk調整済み体積, 配置数) の辞書式比較。体積を主指標、配置数は同点タイブレークのみ。"""
     return candidate > current
 
 
@@ -142,18 +130,17 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
 
     items_by_index = {item['index']: item for item in item_list}
     best_order = heuristic_order
-    best_score = (-1, -1.0, -1)
-    target = cutoff_target(len(item_list))
+    best_score = (-1.0, -1)
 
-    def validate(order: list[int]) -> tuple[int, float, int]:
+    def validate(order: list[int]) -> tuple[float, int]:
         now = time.perf_counter()
         if now > deadline:
-            return (-1, -1.0, -1)
+            return (-1.0, -1)
         vdeadline = min(deadline, now + max_validate_slice)
         placed_ids, placed_volume, risk_adjusted_volume = simulate.simulate_order(
             container_list, items_by_index, order, k, vdeadline)
         count = len(placed_ids)
-        return (min(count, target), risk_adjusted_volume, count)
+        return (risk_adjusted_volume, count)
 
     try:
         score = validate(heuristic_order)

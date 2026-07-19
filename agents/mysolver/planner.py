@@ -25,6 +25,16 @@ from . import geometry as geo
 
 MAX_POOL_ITEMS = 20
 GRID_MARGIN = 0.02
+# Phase8: 探索グリッドの細分化。_search_best の通常探索(1手ごとに毎回呼ぶ)で使う既定密度。
+# 密度1(31x23グリッド)は粗く、荷物どうしの隙間にぴったり収まる細いXY位置をExtreme Point法
+# だけでは拾いきれない場合がある。密度2は計測上、online呼び出し(pool<=MAX_POOL_ITEMS=20)
+# では0.35s->0.9s程度への増加に留まり、policy_timeout(8s)・実際の呼び出し予算(5.5s)に
+# 対して十分な余裕がある(探索は deadline を自己チェックして安全に打ち切るため、万一時間が
+# 足りない状況でもクラッシュや予算超過はしない)。
+BASE_GRID_DENSITY = 2
+# Phase7由来の「合法手0件時の最終リトライ」の密度。BASE_GRID_DENSITYを底上げしたことに
+# 合わせて、通常探索よりさらに一段細かく最後の望みを探れるよう底上げする。
+RETRY_GRID_DENSITY = 4
 # 荷物どうしのExtreme Point生成に使うクリアランス。衝突判定(_apply_obstacle_filters)は
 # geo.SAFETY_MARGIN_XY(0.022)以上離れていないと「衝突」扱いにするため、これより
 # 小さいクリアランスでアンカーを作ると、生成元の荷物自身との衝突判定で毎回弾かれてしまう。
@@ -356,7 +366,8 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
 
 
 def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container,
-                  has_prioritized_container, rng=None, score_noise=0.0, stats=None, grid_density: int = 1):
+                  has_prioritized_container, rng=None, score_noise=0.0, stats=None,
+                  grid_density: int = BASE_GRID_DENSITY):
     """
     (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
     enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
@@ -364,9 +375,10 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
     rng/score_noise は offline の順序探索(複数リスタート)でのみ使う微小ノイズで、
     online呼び出し(デフォルト rng=None)には一切影響しない。
     stats: tools/diagnose_stall.py 専用の診断カウンタ(Noneなら何もしない)。
-    grid_density: 候補XYグリッドの密度倍率。通常1。plan()が通常探索で全滅した場合のみ、
-    残り時間予算内で密度を上げた最終リトライに使う(Phase7: 「合法手なし」と誤って
-    諦める頻度を減らし、agent.pyの無検証フォールバック=即死へ落ちる回数を減らすため)。
+    grid_density: 候補XYグリッドの密度倍率。既定は BASE_GRID_DENSITY。plan()が通常探索で
+    全滅した場合のみ、残り時間予算内でさらに密度を上げた最終リトライに使う(Phase7: 「合法手
+    なし」と誤って諦める頻度を減らし、agent.pyの無検証フォールバック=即死へ落ちる回数を
+    減らすため)。
     """
     best_overall = None
     for container in container_list:
@@ -451,7 +463,7 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
         # 新たに延長はしない(policy_timeout=8sに対する安全マージンを保つため)。
         best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
-                                     stats=stats, grid_density=3)
+                                     stats=stats, grid_density=RETRY_GRID_DENSITY)
 
     if best_overall is None:
         return None
