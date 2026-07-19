@@ -21,7 +21,22 @@ from src.ground_handling.utils import ORNS, get_half_ext
 #  (cut corner付近)で候補が急減する崖があるため、余裕を見て崖のかなり手前に留める。)
 INCLUSION_MARGIN = -0.012      # 実際は -0.005〜0.02 程度。沈降ドリフト分の余裕を追加。
 SAFETY_MARGIN_XY = 0.022       # 実際は 0.015 程度。横方向は少し余裕を持たせる。
-Z_TOUCH_EPS = -0.0015          # 上下方向は「接触」を許容(margin<0で厳密な貫通のみ検出)
+Z_TOUCH_EPS = -0.0015          # 「最終着地位置」専用。支持面へのz方向の厳密接触(隙間ゼロ)を
+                                # 誤って衝突扱いしないための負マージン(margin<0で貫通のみ検出)。
+SWEEP_Z_MARGIN = 0.014         # 「搬入経路の掃引」専用。実margin(0.015)に対しZ_TOUCH_EPSは
+                                # 実質バッファ無し(むしろ負)で、掃引中に他の荷物のすぐ上を
+                                # かすめて real validator 側でのみ衝突判定される事故があった
+                                # (実測距離0.0149での搬入失敗を確認)。着地目標の直下の支持面
+                                # (隙間は必ずREST_CLEARANCE=0.016)を誤って衝突扱いしない上限は
+                                # 0.016なので、それより僅かに小さい値(実margin0.015に極力寄せる)
+                                # に設定する。
+DIRECT_SUPPORT_Z_TOL = 0.019   # 「最終着地位置」で、ある障害物が自分の直下の支持面(REST_CLEARANCE
+                                # =0.016だけ隙間を空けて乗っている対象)かどうかを判定する許容誤差。
+OBSTACLE_Z_MARGIN = 0.02       # 「最終着地位置」で、直下の支持面”以外”の障害物(横・真上の棚など)
+                                # に対して要求するz方向margin。Z_TOUCH_EPSは支持面接触専用の特例で、
+                                # それ以外にまで適用すると「棚のすぐ下に潜り込む」ような、real
+                                # safety_margin(0.015)を割り込む配置を合法と誤判定する
+                                # (実測: 棚とitemの隙間14mmでreal validator側の衝突を確認)。
 START_Z = 0.08                 # 非直置き時の搬入時浮上量
 START_MARGIN = 0.01
 CEILING_MARGIN = 0.02
@@ -29,6 +44,15 @@ REST_CLEARANCE = 0.016         # 接地/積み上げ目標zに与える内側ク
                                 # inclusion_marginが負のため、境界に厳密接触(dot=0)する
                                 # 目標だと内包判定に落ちる。displacement_threshold(数十cm)は
                                 # 十分大きいため、この程度の浮きは沈み込みで解消される。
+
+# --- fill算出時のリスク評価用(Phase6: sim-to-realギャップ対策) ---
+# 本家 evaluator の inclusion_margin(実際の値。configでは -0.005 が使われる)。
+# INCLUSION_MARGIN(-0.012)より緩いため、配置時点でのslack(inclusion_slack_batchの値)が
+# これより十分小さければ、多少の沈降ドリフトがあってもfill集計に残る可能性が高いと判断する。
+REAL_INCLUSION_MARGIN = -0.005
+# real margin からさらにこれだけ余裕(slackがREAL_INCLUSION_MARGIN-SAFE_SLACK以下)があれば
+# 「安全」、real marginぎりぎり(slack>=REAL_INCLUSION_MARGIN)なら「危険」とみなす連続評価の幅。
+SAFE_SLACK = 0.02
 
 
 def local_to_world(container: dict, local_pos) -> np.ndarray:
@@ -45,10 +69,12 @@ def half_extent(lwh, orn_idx: int) -> np.ndarray:
     return np.array(get_half_ext([lwh[0], lwh[1], lwh[2]], orn_idx), dtype=np.float64)
 
 
-def check_inclusion_batch(container: dict, half: np.ndarray, world_pos: np.ndarray, margin: float = INCLUSION_MARGIN) -> np.ndarray:
+def inclusion_slack_batch(container: dict, half: np.ndarray, world_pos: np.ndarray) -> np.ndarray:
     """
-    world_pos: shape (N,3)。 各候補についてコンテナ内包判定(validator.check_inclusion と同式)。
-    戻り値: shape (N,) bool
+    world_pos: shape (N,3)。各候補について、全面のうち最も厳しい(壁に最も近い)
+    dot値(validator.check_inclusion と同式)を返す。小さい(より負)ほど壁からの
+    余裕が大きく、real evaluatorの厳しいinclusion_margin(-0.005程度)や配置後の
+    沈降ドリフトに対して安全であることを意味する。戻り値: shape (N,) float
     """
     n_vecs = np.array(container['n_vecs'])          # (F,3)
     points = np.array(container['points'])          # (F,3)
@@ -56,7 +82,26 @@ def check_inclusion_batch(container: dict, half: np.ndarray, world_pos: np.ndarr
     # (N,F) = sum_axis3( n_vecs[f] * (pos[n]-points[f]) )
     diff = world_pos[:, None, :] - points[None, :, :]     # (N,F,3)
     dots = np.einsum('nfc,fc->nf', diff, n_vecs) + bonus[None, :]
-    return np.all(dots <= margin, axis=1)
+    return np.max(dots, axis=1)
+
+
+def check_inclusion_batch(container: dict, half: np.ndarray, world_pos: np.ndarray, margin: float = INCLUSION_MARGIN) -> np.ndarray:
+    """
+    world_pos: shape (N,3)。 各候補についてコンテナ内包判定(validator.check_inclusion と同式)。
+    戻り値: shape (N,) bool
+    """
+    return inclusion_slack_batch(container, half, world_pos) <= margin
+
+
+def fill_risk_factor(slack):
+    """
+    inclusion_slack_batch の値(壁に最も近い面のdot値)を [0,1] のfill期待係数に変換する。
+    slack <= REAL_INCLUSION_MARGIN - SAFE_SLACK (壁から十分離れている) -> 1.0 (満額)
+    slack >= REAL_INCLUSION_MARGIN (real evaluatorの基準ですら際どい) -> 0.0 (沈降ドリフトで
+    fill集計から漏れる可能性が高いとみなし、offline探索の目的関数・online配置スコアの両方で
+    このような際どい配置を割り引く)。線形補間。
+    """
+    return np.clip((REAL_INCLUSION_MARGIN - slack) / SAFE_SLACK, 0.0, 1.0)
 
 
 def quat_abs_rotmat(orn) -> np.ndarray:
@@ -77,7 +122,8 @@ def small_shelf_aabb(container: dict):
     length = container['length']; width = container['width']; height = container['height']
     thickness = container['thickness']; cut_x = container['cut_x']
     ox = container['center'][0]
-    center = np.array([-length / 2.0 + cut_x / 2.0 + thickness + ox, 0.0, height / 2.0 + thickness / 2.0])
+    buffer = container.get('buffer', 0.0)
+    center = np.array([-length / 2.0 + cut_x / 2.0 + thickness + ox, 0.0, height / 2.0 + thickness / 2.0 + buffer])
     half = np.array([cut_x / 2.0, width / 2.0 - thickness, thickness / 2.0])
     return center, half
 
@@ -86,7 +132,8 @@ def big_shelf_aabb(container: dict):
     length = container['length']; width = container['width']; height = container['height']
     thickness = container['thickness']
     ox = container['center'][0]
-    center = np.array([ox, width / 4.0, height / 2.0 + thickness / 2.0])
+    buffer = container.get('buffer', 0.0)
+    center = np.array([ox, width / 4.0, height / 2.0 + thickness / 2.0 + buffer])
     half = np.array([length / 2.0 - thickness / 2.0, width / 4.0 - thickness, thickness / 2.0])
     return center, half
 
@@ -109,17 +156,21 @@ def packed_obstacles(container: dict):
 
 
 def box_overlap_batch(min1: np.ndarray, max1: np.ndarray, center2: np.ndarray, half2: np.ndarray,
-                       margin_xy: float = SAFETY_MARGIN_XY, margin_z: float = Z_TOUCH_EPS) -> np.ndarray:
+                       margin_xy: float = SAFETY_MARGIN_XY, margin_z=Z_TOUCH_EPS) -> np.ndarray:
     """
     min1, max1: shape (N,3) 候補側(点 or 掃引区間)のAABB範囲。
     center2, half2: shape (3,) 障害物1個のAABB。
+    margin_z: スカラー、または候補ごとに変えたい場合は shape (N,) の配列
+    (例: 「この障害物が自分の直下の支持面かどうか」で許容誤差を変える場合)。
     戻り値: shape (N,) bool。True=衝突(margin込みで重なる)。
     """
-    margin = np.array([margin_xy, margin_xy, margin_z])
     min2 = center2 - half2
     max2 = center2 + half2
-    sep = (max1 + margin[None, :] <= min2[None, :]) | (max2[None, :] + margin[None, :] <= min1)
-    separated_any_axis = np.any(sep, axis=1)
+    margin_z_arr = np.asarray(margin_z)
+    sep_x = (max1[:, 0] + margin_xy <= min2[0]) | (max2[0] + margin_xy <= min1[:, 0])
+    sep_y = (max1[:, 1] + margin_xy <= min2[1]) | (max2[1] + margin_xy <= min1[:, 1])
+    sep_z = (max1[:, 2] + margin_z_arr <= min2[2]) | (max2[2] + margin_z_arr <= min1[:, 2])
+    separated_any_axis = sep_x | sep_y | sep_z
     return ~separated_any_axis
 
 

@@ -18,7 +18,8 @@ simulate.py の自前シミュレータ(pybullet不使用・planner.pyと同一�
      (無制限だと単発最適を食い潰し、後段の荷物の置き場所を却って狭めてしまう一種の
      視野依存トンネルビジョンが起きるため)。そのため window 幅も探索対象にする。
   3. 時間が残っていれば、tie-break をランダム化した貪欲構築を繰り返しリスタートし、
-     simulate_order (lookahead_k 込みで online と同じ条件) で評価した「配置数(→体積)」が
+     simulate_order (lookahead_k 込みで online と同じ条件) で評価した「risk調整済み配置体積」
+     (壁ぎわで沈降ドリフトによりfill集計から漏れやすい配置を割り引いた体積)が
      一番良いものを採用する。
   4. 180s のタイムアウト(→デフォルト順)は絶対に踏まないよう、time_budget に対して
      十分なマージンを取って必ず打ち切る。
@@ -29,9 +30,16 @@ import numpy as np
 
 from . import simulate
 
-# optimize() 全体の壁時計制限(180s)に対し、後片付け・シリアライズのオーバーヘッド分の
-# マージンを差し引いた安全な内側の締切。
-DEFAULT_TIME_BUDGET = 165.0
+# optimize() 全体の壁時計制限(180s)に対する、実際に使う探索時間予算。
+# Phase6: 15/30/60/120/165秒でスイープ計測した結果、影シミュレータ上のrisk調整済み体積を
+# 目的関数にしても(→ordering._better参照)fillは予算に対して単調には改善せず、
+# 30秒付近をピークに120秒まで悪化し165秒でわずかに持ち直す、という非単調な挙動が残った
+# (sample_config::000, gen_shelf_patternAで確認。探索を伸ばすほど、影シミュレータ上は
+# 良く見えるが実物理の沈降・回転までは再現できない配置を選びやすくなるsim-to-realギャップが
+# 完全には消えないため)。指示書の方針(単調にできない場合は安全側で固定予算を採用してよい)に
+# 従い、170s上限に対して余裕を持たせつつ実測ピークの30秒を採用する
+# (180sタイムアウトへの安全マージンは別途 optimize_time_budget 呼び出し側で確保する)。
+DEFAULT_TIME_BUDGET = 30.0
 # 1回の貪欲構築の1ステップ(planner.plan 1呼び出し)に許す上限。
 PER_STEP_TIME_BUDGET = 3.0
 # simulate_order による検証(online と同じ lookahead_k プールでの再現)に許す上限。
@@ -70,8 +78,15 @@ def order_items(item_list: list[dict]) -> list[int]:
     return [item['index'] for item in sorted_items]
 
 
-def _better(candidate: tuple[int, float], current: tuple[int, float]) -> bool:
-    """(配置数, 配置体積) の辞書式比較。配置数を最優先、同数なら体積が大きい方を優先。"""
+def _better(candidate: tuple[float, int], current: tuple[float, int]) -> bool:
+    """(risk調整済み配置体積, 配置数) の辞書式比較。
+
+    本家fill_scoreは体積ベースであり「置けた個数」そのものは評価指標ではないため、
+    Phase6でrisk調整済み体積を主指標に変更した(個数を主指標にすると、影シミュレータ上の
+    個数を最大化するが実機の沈降ドリフトでfill集計から漏れやすい壁ぎわ配置を選好してしまい、
+    探索時間を延ばすほど実際のfillが悪化するsim-to-realギャップの原因になっていた)。
+    配置数は同体積の場合のみのタイブレークとして残す。
+    """
     return candidate[0] > current[0] or (candidate[0] == current[0] and candidate[1] > current[1])
 
 
@@ -79,6 +94,15 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                  time_budget: float = DEFAULT_TIME_BUDGET) -> list[int]:
     start = time.perf_counter()
     deadline = start + time_budget
+
+    # time_budget を短く指定した開発時(local_evalの--optimize-budget等)でも、
+    # 定数を固定のままだと「残り時間 < MIN_CONSTRUCT_SLICE」で即打ち切りになり、
+    # 貪欲構築が一度も走らずヒューリスティック順のままになってしまう。
+    # 本番相当(165s+)では従来の定数と一致するよう min() で頭打ちにしつつ、
+    # 短い time_budget では予算に比例させて必ず何回かは構築が回るようにする。
+    min_construct_slice = min(MIN_CONSTRUCT_SLICE, max(1.0, time_budget * 0.15))
+    final_margin = min(FINAL_MARGIN, max(0.2, time_budget * 0.05))
+    max_validate_slice = min(MAX_VALIDATE_SLICE, max(0.5, time_budget * 0.3))
 
     heuristic_order = order_items(item_list)
 
@@ -88,16 +112,16 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
 
     items_by_index = {item['index']: item for item in item_list}
     best_order = heuristic_order
-    best_score = (-1, -1.0)
+    best_score = (-1.0, -1)
 
-    def validate(order: list[int]) -> tuple[int, float]:
+    def validate(order: list[int]) -> tuple[float, int]:
         now = time.perf_counter()
         if now > deadline:
-            return (-1, -1.0)
-        vdeadline = min(deadline, now + MAX_VALIDATE_SLICE)
-        placed_ids, placed_volume = simulate.simulate_order(
+            return (-1.0, -1)
+        vdeadline = min(deadline, now + max_validate_slice)
+        placed_ids, placed_volume, risk_adjusted_volume = simulate.simulate_order(
             container_list, items_by_index, order, k, vdeadline)
-        return (len(placed_ids), placed_volume)
+        return (risk_adjusted_volume, len(placed_ids))
 
     try:
         score = validate(heuristic_order)
@@ -138,11 +162,11 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     pending_windows = list(WINDOW_CANDIDATES)
     while pending_windows:
         now = time.perf_counter()
-        remaining = deadline - FINAL_MARGIN - now
-        if remaining < MIN_CONSTRUCT_SLICE:
+        remaining = deadline - final_margin - now
+        if remaining < min_construct_slice:
             break
         window = pending_windows.pop(0)
-        slice_budget = max(MIN_CONSTRUCT_SLICE, remaining / (len(pending_windows) + 1))
+        slice_budget = max(min_construct_slice, remaining / (len(pending_windows) + 1))
         slice_budget = min(slice_budget, remaining)
         try_construct(window, use_noise=False, slice_budget=slice_budget)
 
@@ -150,10 +174,10 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # window もランダムに振って多様性を確保する。
     while True:
         now = time.perf_counter()
-        remaining = deadline - FINAL_MARGIN - now
-        if remaining < MIN_CONSTRUCT_SLICE:
+        remaining = deadline - final_margin - now
+        if remaining < min_construct_slice:
             break
         window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
-        try_construct(window, use_noise=True, slice_budget=min(remaining, MIN_CONSTRUCT_SLICE * 2))
+        try_construct(window, use_noise=True, slice_budget=min(remaining, min_construct_slice * 2))
 
     return best_order

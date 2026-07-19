@@ -35,9 +35,10 @@ class Scorer:
     # ------------------------------------------------------------------
     # fill_score : 本家ロジックをそのまま再利用
     # ------------------------------------------------------------------
-    def calculate_fill_score(self, containers: list[Container]) -> float:
-        fill_score, _ = self._fill_evaluator.calculate_fill_rate(containers)
-        return fill_score
+    def calculate_fill_score(self, containers: list[Container]) -> tuple[float, int]:
+        """戻り値: (fill_score, fill集計から漏れた(境界超え)荷物数)"""
+        fill_score, out_items = self._fill_evaluator.calculate_fill_rate(containers)
+        return fill_score, len(out_items)
 
     # ------------------------------------------------------------------
     # cog_score : 質量加重重心の高さ(低いほど高スコア)
@@ -243,7 +244,9 @@ class Scorer:
         num_packed_items = sum(len(c.packed_items) for c in containers)
         packed_items_percent = num_packed_items / total_items if total_items else 0.0
 
-        fill_score = self.calculate_fill_score(containers)
+        fill_score, num_out_items = self.calculate_fill_score(containers)
+        fill_counted_ratio = ((num_packed_items - num_out_items) / num_packed_items
+                               if num_packed_items else 1.0)
         placement_score = self.calculate_placement_score(containers)
         soft_item_score = self.calculate_soft_item_score(containers)
         cog_score = self.calculate_cog_score(containers)
@@ -257,4 +260,5 @@ class Scorer:
             'placement_score': placement_score,
             'soft_item_score': soft_item_score,
             'num_placed_items': packed_items_percent,
+            'fill_counted_ratio': fill_counted_ratio,
         }

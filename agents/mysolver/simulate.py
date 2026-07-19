@@ -17,6 +17,7 @@ import time
 
 import pybullet as p
 
+from . import geometry as geo
 from . import planner
 from src.ground_handling.utils import ORNS
 
@@ -46,14 +47,20 @@ def _place(container: dict, item: dict, action: dict) -> dict:
 
 def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], order: list[int],
                     lookahead_k: int, deadline: float, per_step_time_budget: float = 0.35
-                    ) -> tuple[list[int], float]:
+                    ) -> tuple[list[int], float, float]:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
     実際の policy() 呼び出しと同じ既定(max_pool_items=既定値)で呼ぶことで、
     「このorderを実機に渡したら何個置けるか」の妥当な見積もりになる。
 
-    戻り値: (配置できた item index のリスト(配置順), 配置できた体積の合計)
+    戻り値: (配置できた item index のリスト(配置順), 配置できた体積の合計,
+             risk調整済み体積の合計)。
+    risk調整済み体積は、各配置の壁からの余裕(geo.inclusion_slack_batch)を
+    geo.fill_risk_factor で [0,1] に変換し体積に掛けたものの総和。real evaluator の
+    厳しいinclusion_marginぎりぎりで壁ぎわに配置された荷物は、実機の沈降ドリフトで
+    fill集計から漏れるリスクが高いとみなして割り引く(Phase6: sim-to-realギャップ対策)。
+    offline探索(ordering.build_order)はこの値を目的関数の主指標として使う。
     """
     containers = clone_containers(container_list)
     idx_iter = iter(order)
@@ -69,23 +76,27 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     refill()
     placed_ids: list[int] = []
     placed_volume = 0.0
+    risk_adjusted_volume = 0.0
 
     while pool:
         now = time.perf_counter()
         if now > deadline:
             break
         budget = min(per_step_time_budget, max(0.02, deadline - now))
-        action = planner.plan(containers, pool, time_budget=budget)
+        info: dict = {}
+        action = planner.plan(containers, pool, time_budget=budget, info=info)
         if action is None:
             break
         item = pool.pop(action['item_idx'])
         container = containers[action['container_idx']]
         container['packed_items'].append(_place(container, item, action))
         placed_ids.append(item['index'])
-        placed_volume += item['length'] * item['width'] * item['height']
+        item_volume = item['length'] * item['width'] * item['height']
+        placed_volume += item_volume
+        risk_adjusted_volume += item_volume * geo.fill_risk_factor(info.get('slack', geo.REAL_INCLUSION_MARGIN))
         refill()
 
-    return placed_ids, placed_volume
+    return placed_ids, placed_volume, risk_adjusted_volume
 
 
 def greedy_construct_order(container_list: list[dict], item_list: list[dict], deadline: float,

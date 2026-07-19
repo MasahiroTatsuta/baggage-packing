@@ -1,7 +1,14 @@
+import os
+
 import numpy as np
 
 from . import ordering
 from . import planner
+
+# 開発中の反復を速くするための環境変数。未設定なら本番想定の ordering.DEFAULT_TIME_BUDGET
+# (165s、180sタイムアウトに対する安全マージン込み)を使う。最終計測時は未設定のまま
+# (=170s相当のフル予算)で回すこと。
+OPTIMIZE_BUDGET_ENV = 'MYSOLVER_OPTIMIZE_BUDGET'
 
 
 class Agent:
@@ -20,7 +27,9 @@ class Agent:
 
     def optimize(self, item_list: list) -> list[int]:
         try:
-            return ordering.build_order(item_list, self._container_list, self._lookahead_k)
+            budget_str = os.environ.get(OPTIMIZE_BUDGET_ENV)
+            budget = float(budget_str) if budget_str else ordering.DEFAULT_TIME_BUDGET
+            return ordering.build_order(item_list, self._container_list, self._lookahead_k, time_budget=budget)
         except Exception:
             # 探索中に何らかの例外が起きても、必ず有効な完全順列を返す最終フォールバック。
             return ordering.order_items(item_list)

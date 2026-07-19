@@ -38,6 +38,10 @@ def parse_args():
     parser.add_argument('--module-path', default='agents/base/', help='エージェントモジュールのパス(末尾/込み)')
     parser.add_argument('--render-mode', default=None, help='human or None')
     parser.add_argument('--verbose', action='store_true', help='envの詳細ログを出す')
+    parser.add_argument('--optimize-budget', type=float, default=None,
+                         help='mysolver agent.optimize() の探索時間予算[s]を上書きする'
+                              '(MYSOLVER_OPTIMIZE_BUDGET環境変数経由)。開発中は例えば15を指定して高速反復し、'
+                              '最終計測は未指定(本番相当のordering.DEFAULT_TIME_BUDGET=165s)で行うこと。')
     return parser.parse_args()
 
 
@@ -114,8 +118,8 @@ def run_one_scene(task_config: dict, module_path: str, agent_module: str, render
 
 
 def print_table(rows: list[dict]):
-    headers = ['scene', 'fill', 'cog', 'stability', 'placement', 'soft', 'placed%', 'opt[s]', 'policy[s]', 'status']
-    widths = [26, 7, 7, 9, 9, 7, 8, 7, 9, 42]
+    headers = ['scene', 'fill', 'cog', 'stability', 'placement', 'soft', 'placed%', 'fill_cnt%', 'opt[s]', 'policy[s]', 'status']
+    widths = [26, 7, 7, 9, 9, 7, 8, 9, 7, 9, 42]
 
     def fmt(values):
         return ' | '.join(str(v).ljust(w)[:w] for v, w in zip(values, widths))
@@ -125,7 +129,7 @@ def print_table(rows: list[dict]):
     for row in rows:
         m = row['metrics']
         if m is None:
-            values = [row['scene'], '-', '-', '-', '-', '-', '-',
+            values = [row['scene'], '-', '-', '-', '-', '-', '-', '-',
                       f"{row['optimize_time']:.2f}", f"{row['policy_time']:.2f}", row['status']]
         else:
             values = [
@@ -133,6 +137,7 @@ def print_table(rows: list[dict]):
                 f"{m['fill_score']:.2f}", f"{m['cog_score']:.2f}", f"{m['stability_score']:.2f}",
                 f"{m['placement_score']:.2f}", f"{m['soft_item_score']:.2f}",
                 f"{m['num_placed_items'] * 100:.1f}",
+                f"{m.get('fill_counted_ratio', 1.0) * 100:.1f}",
                 f"{row['optimize_time']:.2f}", f"{row['policy_time']:.2f}", row['status'],
             ]
         print(fmt(values))
@@ -140,6 +145,9 @@ def print_table(rows: list[dict]):
 
 def main():
     args = parse_args()
+    if args.optimize_budget is not None:
+        os.environ['MYSOLVER_OPTIMIZE_BUDGET'] = str(args.optimize_budget)
+        print(f'[local_eval] MYSOLVER_OPTIMIZE_BUDGET={args.optimize_budget}s (開発用の短縮予算)')
     module_path = args.module_path
     agent_module = '.'.join(module_path.split('/')) + 'agent'  # scripts/run_test.pyと同じ組み立て方
 
@@ -168,6 +176,8 @@ def main():
             print(f'{key:16s}: {avg:.2f}')
         avg_placed = sum(r['metrics']['num_placed_items'] for r in scored_rows) / len(scored_rows)
         print(f'{"num_placed_items":16s}: {avg_placed * 100:.1f}%')
+        avg_fill_counted = sum(r['metrics'].get('fill_counted_ratio', 1.0) for r in scored_rows) / len(scored_rows)
+        print(f'{"fill_counted_ratio":16s}: {avg_fill_counted * 100:.1f}%')
         print(f'(scored {len(scored_rows)}/{len(all_rows)} scenes)')
     else:
         print('\nすべてのシーンでエラーが発生したため平均は計算できません。')
