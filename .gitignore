@@ -4,3 +4,4 @@ __pycache__/
 results/
 *.zip
 *.so
+_hist/
