@@ -55,6 +55,76 @@ MIN_CONSTRUCT_SLICE = 20.0
 WINDOW_CANDIDATES = [15, 20, 25, 30, None]
 
 
+def _volume_of(item: dict) -> float:
+    return item.get('volume', item['length'] * item['width'] * item['height'])
+
+
+# Phase9: 単一の決定的順序(体積優先)だけでは局所解に落ちる(gen_sizevariety_patternCで
+# 未配置44個中28個は順序さえ変えれば置けていた実測から確認)。そのため「詰めやすさ」の
+# 仮説が異なる複数戦略で候補順序を作り、実際にシミュレートしたfillで比較して選ぶ
+# (単一ヒューリスティックへの依存・そのヒューリスティックがハマる回帰を防ぐ)。
+# 各戦略とも is_soft を最後段・is_prioritized を先頭寄りにする制約は共通(下敷き防止・優先度)で、
+# 変えるのは「同条件内で何を先に置くか」の一次キーのみ。
+def _strategy_volume_desc(item_list: list[dict]) -> list[dict]:
+    """体積優先: 大きく重いものを土台として先に置く(従来のorder_items相当)。"""
+    def key(item: dict):
+        return (
+            1 if item.get('is_soft', False) else 0,
+            -_volume_of(item),
+            -item.get('mass', 0.0),
+            0 if item.get('is_prioritized', False) else 1,
+        )
+    return sorted(item_list, key=key)
+
+
+def _strategy_count_first(item_list: list[dict]) -> list[dict]:
+    """個数優先: 小さい荷物から先に確保し、置ける個数そのものを早期に積み増す。"""
+    def key(item: dict):
+        return (
+            1 if item.get('is_soft', False) else 0,
+            _volume_of(item),
+            item.get('mass', 0.0),
+            0 if item.get('is_prioritized', False) else 1,
+        )
+    return sorted(item_list, key=key)
+
+
+def _strategy_big_first(item_list: list[dict]) -> list[dict]:
+    """大物優先: 単一寸法が最も大きい(=後回しにするほど置き場所を選ぶ)荷物から先に確保する。"""
+    def max_dim(item: dict) -> float:
+        return max(item['length'], item['width'], item['height'])
+
+    def key(item: dict):
+        return (
+            1 if item.get('is_soft', False) else 0,
+            -max_dim(item),
+            -_volume_of(item),
+            0 if item.get('is_prioritized', False) else 1,
+        )
+    return sorted(item_list, key=key)
+
+
+def _strategy_layer_first(item_list: list[dict]) -> list[dict]:
+    """層優先: 低く・底面が広い荷物から並べ、各層内で下から上へ積みやすい面を先に作る。"""
+    def footprint(item: dict) -> float:
+        return item['length'] * item['width']
+
+    def key(item: dict):
+        return (
+            1 if item.get('is_soft', False) else 0,
+            item['height'],
+            -footprint(item),
+            0 if item.get('is_prioritized', False) else 1,
+        )
+    return sorted(item_list, key=key)
+
+
+# フェーズ1で必ずWINDOW_CANDIDATES全通りを試す「基準」戦略(従来Phase6-8で調整されてきたのは
+# これ単独のため、まずこれを従来通り手厚く探索し回帰しないようにする)。他戦略はフェーズ2の
+# ランダムリスタートでのみ種として使い、フェーズ1の時間配分は一切変えない。
+STRATEGIES = [_strategy_volume_desc, _strategy_count_first, _strategy_big_first, _strategy_layer_first]
+
+
 def order_items(item_list: list[dict]) -> list[int]:
     """決定的ヒューリスティック順(探索の初期シード兼、最終フォールバック)。
 
@@ -63,18 +133,7 @@ def order_items(item_list: list[dict]) -> list[int]:
     候補生成時に強制するため、順序に関わらず下敷きは発生しない。そのため純粋に
     「詰めやすさ」を優先してよい。
     """
-    def volume_of(item: dict) -> float:
-        return item.get('volume', item['length'] * item['width'] * item['height'])
-
-    def sort_key(item: dict):
-        return (
-            1 if item.get('is_soft', False) else 0,
-            -volume_of(item),
-            -item.get('mass', 0.0),
-            0 if item.get('is_prioritized', False) else 1,
-        )
-
-    sorted_items = sorted(item_list, key=sort_key)
+    sorted_items = _strategy_volume_desc(item_list)
     return [item['index'] for item in sorted_items]
 
 
@@ -149,17 +208,24 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     except Exception:
         pass
 
+    # Phase9: 体積優先1本の決定的順序だけに頼ると局所解に落ちて回帰しうる(実測: 未配置44個中
+    # 28個は順序を変えれば置けていた)。仮説の異なる複数戦略それぞれの並び順を、貪欲構築の
+    # 「種」として後段のtry_constructに渡す(構築を挟まない素の順序をここで直接validateすると、
+    # max_validate_slice分の時間を戦略数だけ倍取りしてしまい、本来の主眼である貪欲構築+
+    # window探索フェーズの時間を圧迫してしまうため、素の順序自体はここでは評価しない)。
+    strategy_orders = [(fn.__name__, fn(item_list)) for fn in STRATEGIES]
+
     rng = np.random.default_rng(0)
     all_indices = set(items_by_index.keys())
 
-    def try_construct(window, use_noise, slice_budget):
+    def try_construct(seed_items, window, use_noise, slice_budget):
         nonlocal best_order, best_score
         if slice_budget <= 0:
             return
         slice_deadline = time.perf_counter() + slice_budget
         try:
             order = simulate.greedy_construct_order(
-                container_list, item_list, slice_deadline,
+                container_list, seed_items, slice_deadline,
                 per_step_time_budget=PER_STEP_TIME_BUDGET,
                 rng=rng if use_noise else None,
                 score_noise=0.35 if use_noise else 0.0,
@@ -173,11 +239,15 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         except Exception:
             pass
 
-    # フェーズ1: window幅を変えた決定的(ノイズ無し)貪欲構築を一通り試す。
+    # フェーズ1: window幅を変えた決定的(ノイズ無し)貪欲構築を一通り試す(体積優先のみ)。
+    # これはPhase6-8で個別に調整されてきた基準戦略・基準配分そのものであり、他戦略を混ぜて
+    # 時間配分を変えると(戦略数倍に時間を奪われ、結果としてこのフェーズ自体が薄まる)回帰する
+    # ことをPhase9の実験で確認したため、ここは従来通り体積優先1本のみで手厚く行う。
     # 各候補には「残り時間 ÷ 残り候補数」を均等配分する(先の候補が早く自然終了すれば、
     # 後の候補により多くの時間が回る)。CPU競合等で1ステップが遅くなっても、構築が
     # 「合法手が尽きる」まで自然完了できるだけの最低時間(MIN_CONSTRUCT_SLICE)は必ず確保し、
     # 尻切れによる不当な低評価(=品質比較にならない)を避ける。
+    default_items = strategy_orders[0][1]
     pending_windows = list(WINDOW_CANDIDATES)
     while pending_windows:
         now = time.perf_counter()
@@ -187,16 +257,17 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         window = pending_windows.pop(0)
         slice_budget = max(min_construct_slice, remaining / (len(pending_windows) + 1))
         slice_budget = min(slice_budget, remaining)
-        try_construct(window, use_noise=False, slice_budget=slice_budget)
+        try_construct(default_items, window, use_noise=False, slice_budget=slice_budget)
 
     # フェーズ2: 残り時間でランダム化(shuffle+noise)リスタートを繰り返し、
-    # window もランダムに振って多様性を確保する。
+    # window と戦略の両方をランダムに振って多様性を確保する(単一戦略への依存を避ける)。
     while True:
         now = time.perf_counter()
         remaining = deadline - final_margin - now
         if remaining < min_construct_slice:
             break
         window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
-        try_construct(window, use_noise=True, slice_budget=min(remaining, min_construct_slice * 2))
+        _, seed_items = strategy_orders[int(rng.integers(0, len(strategy_orders)))]
+        try_construct(seed_items, window, use_noise=True, slice_budget=min(remaining, min_construct_slice * 2))
 
     return best_order

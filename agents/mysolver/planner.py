@@ -35,6 +35,16 @@ BASE_GRID_DENSITY = 2
 # Phase7由来の「合法手0件時の最終リトライ」の密度。BASE_GRID_DENSITYを底上げしたことに
 # 合わせて、通常探索よりさらに一段細かく最後の望みを探れるよう底上げする。
 RETRY_GRID_DENSITY = 4
+# Phase9: 「奥から手前への層規律」を back_term の重みではなく探索の構造そのものとして担保する。
+# コンテナをY方向(手前=-width/2 〜 奥=+width/2)に n_y_slices 個の層へ分割し、まず「奥側から
+# level+1 個分の層」だけを合法候補の対象にする。その層内でpool全件×全orientationを試し、
+# 1つでも合法候補があればそれで確定し、それより手前の層は一切開放しない(=手前を空けておく)。
+# 奥側の層に本当に置ける手が無くなった場合にのみ、次の層(1つ手前)を開放してリトライする。
+# 最終level(=n_y_slices-1)は全開放(従来の全域探索と同じ)なので、真に空間的行き詰まりの場合の
+# 挙動(Noneを返す)は変えない。back_termの重みを崖のある値まで上げずとも、搬入経路と衝突しうる
+# 「奥がまだ空いているのに手前を先に埋める」配置そのものを生成しなくなる。
+Y_SLICE_COUNT = 2
+Y_SLICE_EPS = 0.01
 # 荷物どうしのExtreme Point生成に使うクリアランス。衝突判定(_apply_obstacle_filters)は
 # geo.SAFETY_MARGIN_XY(0.022)以上離れていないと「衝突」扱いにするため、これより
 # 小さいクリアランスでアンカーを作ると、生成元の荷物自身との衝突判定で毎回弾かれてしまう。
@@ -42,6 +52,14 @@ RETRY_GRID_DENSITY = 4
 EP_ITEM_CLEARANCE = geo.SAFETY_MARGIN_XY + 0.006
 CONTACT_EPS = 0.03          # 壁・他の荷物への「接触」とみなす隙間の許容値(EP_ITEM_CLEARANCEより広く取る)
 MIN_SUPPORT_RATIO = 0.9     # 荷物の底面がこれだけ支持面に乗っていれば安定とみなす
+# Phase9: 層規律導入により、非優先荷物が優先荷物のすぐ側面に密接して置かれやすくなった結果、
+# 揺れ試験(stability_score算出)時の沈み込み・傾きで優先荷物の上に非優先荷物が乗り上げてしまい
+# placement_scoreを損なう実例が確認された(候補生成時は「優先荷物の上を着地面にしない」を
+# 徹底しているが、真横に隙間なく置かれた場合の物理的な傾き・接触までは防げない)。
+# 優先荷物のAABBの周囲に追加のクリアランスを設け、非優先荷物がそのすぐ側面に密着する候補
+# そのものを作らないことで、置く順序や重み調整に頼らずハード制約として回避する。
+PRIORITY_CLEARANCE_XY = 0.05
+PRIORITY_CLEARANCE_Z = 0.05
 
 
 def _unique_orientations(lwh):
@@ -287,6 +305,17 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     slack = geo.inclusion_slack_batch(container, half, world_pos)
     incl = slack <= geo.INCLUSION_MARGIN
     base_legal = incl & valid_h
+
+    if not item_is_prioritized:
+        min_final = world_pos - half[None, :]
+        max_final = world_pos + half[None, :]
+        for center, oh, sup_prioritized, _ in supports:
+            if not sup_prioritized:
+                continue
+            too_close = geo.box_overlap_batch(min_final, max_final, center, oh,
+                                               margin_xy=PRIORITY_CLEARANCE_XY, margin_z=PRIORITY_CLEARANCE_Z)
+            base_legal = base_legal & ~too_close
+
     if not np.any(base_legal):
         if stats is not None:
             if not np.any(incl):
@@ -365,9 +394,33 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     }
 
 
+def _y_slice_bounds(container, n_slices: int):
+    """奥(+width/2)から手前(-width/2)へ向けて、levelごとに開放するy下限(手前側の境界)。
+
+    level=0 が最も奥側だけを開放した最狭状態、level=n_slices-1 は全開放(従来と同じ全域)。
+    """
+    width = container['width']
+    step = width / max(n_slices, 1)
+    bounds = []
+    for level in range(n_slices):
+        if level >= n_slices - 1:
+            bounds.append(-width / 2.0 - 1.0)  # 全開放。境界の浮動小数誤差を避け十分大きく余裕を取る
+        else:
+            bounds.append(width / 2.0 - (level + 1) * step)
+    return bounds
+
+
+def _apply_y_slice_filter(candidate_xy, half_y, y_active_lo):
+    """候補のうち、手前側の端(local_y - half_y)がy_active_lo以上(=開放層内)のものだけを残す。"""
+    if candidate_xy.shape[0] == 0:
+        return candidate_xy
+    keep = (candidate_xy[:, 1] - half_y) >= (y_active_lo - Y_SLICE_EPS)
+    return candidate_xy[keep]
+
+
 def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container,
                   has_prioritized_container, rng=None, score_noise=0.0, stats=None,
-                  grid_density: int = BASE_GRID_DENSITY):
+                  grid_density: int = BASE_GRID_DENSITY, n_y_slices: int = Y_SLICE_COUNT):
     """
     (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
     enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
@@ -379,6 +432,9 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
     全滅した場合のみ、残り時間予算内でさらに密度を上げた最終リトライに使う(Phase7: 「合法手
     なし」と誤って諦める頻度を減らし、agent.pyの無検証フォールバック=即死へ落ちる回数を
     減らすため)。
+    n_y_slices: Phase9の層規律の分割数。コンテナごとに独立して「まだ奥に置けるなら手前は
+    使わない」を保証するため、コンテナのループの内側でlevelを0から昇順に試し、合法候補が
+    見つかった時点でそのコンテナの手番を確定する(それより手前の層は開放しない)。
     """
     best_overall = None
     for container in container_list:
@@ -387,38 +443,63 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
         container_is_prioritized = container.get('is_prioritized', False)
         obstacles = _collect_obstacles(container)
         supports = _landing_supports(container)
+        y_bounds = _y_slice_bounds(container, n_y_slices)
+        # (pool_idx, orn_idx) -> (half, 全域候補xy)。層のlevelを上げてもgrid/extreme point自体は
+        # 変わらないため、y絞り込みだけをlevelごとにやり直せるようキャッシュして再計算を避ける。
+        candidate_cache: dict = {}
 
-        for pool_idx in range(n_pool):
+        container_best = None
+        for level_idx, y_active_lo in enumerate(y_bounds):
             if time.perf_counter() > deadline:
                 break
-            item = pool_list[pool_idx]
-            if enforce_priority_container and has_prioritized_container \
-                    and item.get('is_prioritized', False) and not container_is_prioritized:
-                continue
-            lwh = (item['length'], item['width'], item['height'])
-
-            for orn_idx in _unique_orientations(lwh):
+            # 最終levelは全開放(従来の全域探索と同値)。y絞り込みのマスク生成・コピーは
+            # 候補配列サイズ分のコストがかかるため、無駄なオーバーヘッドを避けるため省略する
+            # (n_y_slices<=1の場合は常にここに該当し、実質従来のplanner.pyと同じ速度になる)。
+            is_fully_open = level_idx == len(y_bounds) - 1
+            level_best = None
+            for pool_idx in range(n_pool):
                 if time.perf_counter() > deadline:
                     break
-                half = geo.half_extent(lwh, orn_idx)
-                candidate_xy = _candidate_xy(container, half, obstacles, grid_density=grid_density)
-                r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline, stats=stats)
-                if r is None:
+                item = pool_list[pool_idx]
+                if enforce_priority_container and has_prioritized_container \
+                        and item.get('is_prioritized', False) and not container_is_prioritized:
                     continue
+                lwh = (item['length'], item['width'], item['height'])
 
-                score = r['score']
-                if rng is not None and score_noise > 0.0:
-                    score = score + float(rng.normal(0.0, score_noise))
+                for orn_idx in _unique_orientations(lwh):
+                    if time.perf_counter() > deadline:
+                        break
+                    cache_key = (pool_idx, orn_idx)
+                    if cache_key not in candidate_cache:
+                        half = geo.half_extent(lwh, orn_idx)
+                        full_xy = _candidate_xy(container, half, obstacles, grid_density=grid_density)
+                        candidate_cache[cache_key] = (half, full_xy)
+                    half, full_xy = candidate_cache[cache_key]
+                    candidate_xy = full_xy if is_fully_open else _apply_y_slice_filter(full_xy, half[1], y_active_lo)
+                    r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline, stats=stats)
+                    if r is None:
+                        continue
 
-                if best_overall is None or score > best_overall['score']:
-                    best_overall = {
-                        'score': score,
-                        'local_pos': r['local_pos'],
-                        'item_idx': pool_idx,
-                        'container_idx': container['index'],
-                        'orientation': orn_idx,
-                        'slack': r['slack'],
-                    }
+                    score = r['score']
+                    if rng is not None and score_noise > 0.0:
+                        score = score + float(rng.normal(0.0, score_noise))
+
+                    if level_best is None or score > level_best['score']:
+                        level_best = {
+                            'score': score,
+                            'local_pos': r['local_pos'],
+                            'item_idx': pool_idx,
+                            'container_idx': container['index'],
+                            'orientation': orn_idx,
+                            'slack': r['slack'],
+                        }
+            if level_best is not None:
+                container_best = level_best
+                break  # このコンテナは現在開放中の層内で置けるため、より手前の層は開放しない
+
+        if container_best is not None:
+            if best_overall is None or container_best['score'] > best_overall['score']:
+                best_overall = container_best
     return best_overall
 
 
