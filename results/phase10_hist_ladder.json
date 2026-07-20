@@ -1,0 +1,312 @@
+{
+  "six_scenes": [
+    "sample_config.json::000",
+    "sample_config.json::001",
+    "gen_2containers_patternB.json::001",
+    "gen_2containers_priority.json::000",
+    "gen_shelf_patternA.json::000",
+    "gen_manyitems_patternA.json::000"
+  ],
+  "agents": {
+    "phase4": {
+      "module_path": "_hist/p4/",
+      "per_scene": {
+        "sample_config.json::000": {
+          "fill_score": 24.278907585171453,
+          "cog_score": 60.01814106783093,
+          "stability_score": 98.30085632929726,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "21/41"
+        },
+        "sample_config.json::001": {
+          "fill_score": 21.260683760683758,
+          "cog_score": 63.56133492442011,
+          "stability_score": 97.21026447211159,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "22/42"
+        },
+        "gen_2containers_patternB.json::001": {
+          "fill_score": 19.951955485286366,
+          "cog_score": 65.57068261812384,
+          "stability_score": 97.81351299423879,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "39/42"
+        },
+        "gen_2containers_priority.json::000": {
+          "fill_score": 19.378703541024446,
+          "cog_score": 63.56448077173597,
+          "stability_score": 98.2908141813281,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "36/41"
+        },
+        "gen_shelf_patternA.json::000": {
+          "fill_score": 26.716134672919857,
+          "cog_score": 63.27745509862013,
+          "stability_score": 98.29253568411816,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "24/41"
+        },
+        "gen_manyitems_patternA.json::000": {
+          "fill_score": 11.59324969752751,
+          "cog_score": 69.95287873174831,
+          "stability_score": 98.53367747333989,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "13/83"
+        }
+      },
+      "six_scene_avg": {
+        "fill_score": 20.529939123768898,
+        "cog_score": 64.32416220207989,
+        "stability_score": 98.07361018907231,
+        "placement_score": 100.0,
+        "soft_item_score": 100.0
+      }
+    },
+    "phase6": {
+      "module_path": "_hist/p6/",
+      "per_scene": {
+        "sample_config.json::000": {
+          "fill_score": 21.12690467824114,
+          "cog_score": 68.11515548704318,
+          "stability_score": 97.55751465862652,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "22/41"
+        },
+        "sample_config.json::001": {
+          "fill_score": 24.969122078948665,
+          "cog_score": 60.706088174043124,
+          "stability_score": 98.38560825589087,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "25/42"
+        },
+        "gen_2containers_patternB.json::001": {
+          "fill_score": 19.649532423919307,
+          "cog_score": 66.29106916204421,
+          "stability_score": 98.4058988039761,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "40/42"
+        },
+        "gen_2containers_priority.json::000": {
+          "fill_score": 21.81570341324729,
+          "cog_score": 65.44746059347733,
+          "stability_score": 98.22770613434317,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "41/41"
+        },
+        "gen_shelf_patternA.json::000": {
+          "fill_score": 24.95615852672434,
+          "cog_score": 63.20003678591279,
+          "stability_score": 97.95160249238494,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "21/41"
+        },
+        "gen_manyitems_patternA.json::000": {
+          "fill_score": 28.676081888187003,
+          "cog_score": 57.64919385655383,
+          "stability_score": 98.11300609325015,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "19/83"
+        }
+      },
+      "six_scene_avg": {
+        "fill_score": 23.532250501544624,
+        "cog_score": 63.568167343179084,
+        "stability_score": 98.10688940641195,
+        "placement_score": 100.0,
+        "soft_item_score": 100.0
+      }
+    },
+    "phase7": {
+      "module_path": "_hist/p7/",
+      "per_scene": {
+        "sample_config.json::000": {
+          "fill_score": 23.32993758884505,
+          "cog_score": 64.13634088782642,
+          "stability_score": 98.02944460834915,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "23/41"
+        },
+        "sample_config.json::001": {
+          "fill_score": 24.969122078948665,
+          "cog_score": 60.706088174043124,
+          "stability_score": 98.38560825589087,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "25/42"
+        },
+        "gen_2containers_patternB.json::001": {
+          "fill_score": 19.649532423919307,
+          "cog_score": 66.29106916204421,
+          "stability_score": 98.4058988039761,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "40/42"
+        },
+        "gen_2containers_priority.json::000": {
+          "fill_score": 21.81570341324729,
+          "cog_score": 65.44746059347733,
+          "stability_score": 98.22770613434317,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "41/41"
+        },
+        "gen_shelf_patternA.json::000": {
+          "fill_score": 19.089360798900294,
+          "cog_score": 69.34253608995637,
+          "stability_score": 98.44071522263081,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "19/41"
+        },
+        "gen_manyitems_patternA.json::000": {
+          "fill_score": 28.676081888187003,
+          "cog_score": 57.64919385655383,
+          "stability_score": 98.11300609325015,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "19/83"
+        }
+      },
+      "six_scene_avg": {
+        "fill_score": 22.921623032007933,
+        "cog_score": 63.928781460650214,
+        "stability_score": 98.2670631864067,
+        "placement_score": 100.0,
+        "soft_item_score": 100.0
+      }
+    },
+    "phase8": {
+      "module_path": "_hist/p8/",
+      "per_scene": {
+        "sample_config.json::000": {
+          "fill_score": 26.350295085371105,
+          "cog_score": 59.195826393625126,
+          "stability_score": 98.1973252451875,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "19/41"
+        },
+        "sample_config.json::001": {
+          "fill_score": 24.134800652141692,
+          "cog_score": 55.657567078210455,
+          "stability_score": 98.41927155286433,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "25/42"
+        },
+        "gen_2containers_patternB.json::001": {
+          "fill_score": 21.58510129793728,
+          "cog_score": 65.96558268103729,
+          "stability_score": 98.45042793278796,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "41/42"
+        },
+        "gen_2containers_priority.json::000": {
+          "fill_score": 21.308463040457433,
+          "cog_score": 66.61897522586382,
+          "stability_score": 98.18693703809643,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "41/41"
+        },
+        "gen_shelf_patternA.json::000": {
+          "fill_score": 28.01432239023206,
+          "cog_score": 57.08287532098093,
+          "stability_score": 98.21037136463481,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "20/41"
+        },
+        "gen_manyitems_patternA.json::000": {
+          "fill_score": 29.880863274449354,
+          "cog_score": 59.89172482084905,
+          "stability_score": 97.97788790955343,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "21/83"
+        }
+      },
+      "six_scene_avg": {
+        "fill_score": 25.212307623431485,
+        "cog_score": 60.73542525342777,
+        "stability_score": 98.24037017385409,
+        "placement_score": 100.0,
+        "soft_item_score": 100.0
+      }
+    },
+    "phase9(current)": {
+      "module_path": "_hist/p9/",
+      "per_scene": {
+        "sample_config.json::000": {
+          "fill_score": 30.303400868884662,
+          "cog_score": 59.52063882425421,
+          "stability_score": 97.95301679371943,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "22/41"
+        },
+        "sample_config.json::001": {
+          "fill_score": 28.53799219406156,
+          "cog_score": 59.25257088817809,
+          "stability_score": 98.53490512545724,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "25/42"
+        },
+        "gen_2containers_patternB.json::001": {
+          "fill_score": 20.6049074040029,
+          "cog_score": 63.11638869645157,
+          "stability_score": 97.84410604683507,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "41/42"
+        },
+        "gen_2containers_priority.json::000": {
+          "fill_score": 21.199902370266255,
+          "cog_score": 65.8297214124099,
+          "stability_score": 98.36683447439928,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "41/41"
+        },
+        "gen_shelf_patternA.json::000": {
+          "fill_score": 29.536139524541106,
+          "cog_score": 52.61896179701618,
+          "stability_score": 98.209400256119,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "21/41"
+        },
+        "gen_manyitems_patternA.json::000": {
+          "fill_score": 36.596868112012636,
+          "cog_score": 58.20576232813557,
+          "stability_score": 97.94083911400418,
+          "placement_score": 100.0,
+          "soft_item_score": 100.0,
+          "placed": "22/83"
+        }
+      },
+      "six_scene_avg": {
+        "fill_score": 27.796535078961522,
+        "cog_score": 59.75734065774092,
+        "stability_score": 98.14151696842237,
+        "placement_score": 100.0,
+        "soft_item_score": 100.0
+      }
+    }
+  }
+}
