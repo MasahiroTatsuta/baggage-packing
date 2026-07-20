@@ -1,0 +1,71 @@
+{
+  "points": [
+    {
+      "tag": "baseline",
+      "public": 16.94,
+      "note": "95de6e1 初期ベースライン",
+      "fill_score": 22.246,
+      "cog_score": 62.671,
+      "stability_score": 97.844,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase4",
+      "public": 24.01,
+      "note": "467ae45",
+      "fill_score": 20.53,
+      "cog_score": 64.324,
+      "stability_score": 98.074,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase6",
+      "public": 31.26,
+      "note": "d145aa3",
+      "fill_score": 23.532,
+      "cog_score": 63.568,
+      "stability_score": 98.107,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase7",
+      "public": 37.31,
+      "note": "4d8a1d7 (37.65は同系の微調整提出=フィット除外)",
+      "fill_score": 22.922,
+      "cog_score": 63.929,
+      "stability_score": 98.267,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase8",
+      "public": 40.18,
+      "note": "fb8d80a  fill=25.21 アンカー一致",
+      "fill_score": 25.212,
+      "cog_score": 60.735,
+      "stability_score": 98.24,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase9",
+      "public": 42.47,
+      "note": "1ed528b  最新",
+      "fill_score": 27.797,
+      "cog_score": 59.757,
+      "stability_score": 98.142,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    }
+  ],
+  "excluded": [
+    {
+      "public": 37.65,
+      "reason": "distinctなcommitが無い微調整提出。metrics復元不可のため数値フィット除外"
+    }
+  ],
+  "note": "各点のmetricsは固定6シーン(sample_config 000/001 + gen_2containers_patternB/priority + gen_shelf + gen_manyitems)平均。各agentは提出時のネイティブoptimize予算で再計測。"
+}

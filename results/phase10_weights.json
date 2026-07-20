@@ -1,0 +1,116 @@
+{
+  "input_points": [
+    {
+      "tag": "baseline",
+      "public": 16.94,
+      "note": "95de6e1 初期ベースライン",
+      "fill_score": 22.246,
+      "cog_score": 62.671,
+      "stability_score": 97.844,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase4",
+      "public": 24.01,
+      "note": "467ae45",
+      "fill_score": 20.53,
+      "cog_score": 64.324,
+      "stability_score": 98.074,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase6",
+      "public": 31.26,
+      "note": "d145aa3",
+      "fill_score": 23.532,
+      "cog_score": 63.568,
+      "stability_score": 98.107,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase7",
+      "public": 37.31,
+      "note": "4d8a1d7 (37.65は同系の微調整提出=フィット除外)",
+      "fill_score": 22.922,
+      "cog_score": 63.929,
+      "stability_score": 98.267,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase8",
+      "public": 40.18,
+      "note": "fb8d80a  fill=25.21 アンカー一致",
+      "fill_score": 25.212,
+      "cog_score": 60.735,
+      "stability_score": 98.24,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    },
+    {
+      "tag": "phase9",
+      "public": 42.47,
+      "note": "1ed528b  最新",
+      "fill_score": 27.797,
+      "cog_score": 59.757,
+      "stability_score": 98.142,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    }
+  ],
+  "excluded_submissions": [
+    {
+      "public": 37.65,
+      "reason": "distinctなcommitが無い微調整提出。metrics復元不可のため数値フィット除外"
+    }
+  ],
+  "method": "固定6シーン平均5指標(各agentをネイティブoptimize予算で再計測)を各提出publicに突き合わせ、非負・和1制約は weight_fit.py M4 で別途探索。ここでは仮説B検証の主役 M1/M2 を保存。",
+  "fit_full_6pt": {
+    "n": 6,
+    "M1_fill_only": {
+      "a_fill": 3.09,
+      "b": -41.23,
+      "rmse": 5.651,
+      "r2": 0.614
+    },
+    "M2_fill_cog": {
+      "a_fill": 5.743,
+      "c_cog": 3.983,
+      "b": -353.04,
+      "rmse": 4.889,
+      "r2": 0.711,
+      "rmse_improve_vs_M1": 0.762,
+      "cog_1pt_public_contribution": 3.983
+    }
+  },
+  "fit_robust_5pt_no_baseline": {
+    "n": 5,
+    "M1_fill_only": {
+      "a_fill": 2.458,
+      "b": -23.94,
+      "rmse": 3.022,
+      "r2": 0.795
+    },
+    "M2_fill_cog": {
+      "a_fill": 2.804,
+      "c_cog": 0.484,
+      "b": -62.48,
+      "rmse": 3.005,
+      "r2": 0.797,
+      "rmse_improve_vs_M1": 0.017,
+      "cog_1pt_public_contribution": 0.484
+    }
+  },
+  "M4_simplex_note": "weight_fit M4(非負・和1)は stab に w=0.95 を置くが、stabは全提出で~98.1でほぼ一定のため係数は退化的アーティファクト。解釈不能。",
+  "key_findings": {
+    "fill_dominates": "publicはfillでほぼ説明可能(M1 R2=0.61[6pt]/0.80[5pt])。",
+    "cog_contribution_not_robust": "M2のcog係数はbaseline1点の有無で +3.98→+0.48 と激変。信頼できる5点ではcog寄与≈0(+0.48pt/pt, RMSE改善+0.02)。",
+    "hypothesis_B_verdict": "弱く支持されない。cog低下がpublicを有意に相殺している証拠は再構成データからは得られない(fill支配)。",
+    "slope_normalization": "local fill→public の傾きは初期3.5から最近~1へ低下したが、これは「劣化」ではなく、序盤の破綻シーン修復による超線形ゲインが尽き、fill(local)≈fill(public)の自然な~1:1転移レジームに収束したと解釈できる。",
+    "baseline_anomaly": "baselineはlocal fill=22.25とphase4(20.53)より高いのにpublic=16.94と低い。ローカル改善が本番へ転移しない典型例=仮説A(過適合/非転移)の傍証。"
+  },
+  "caveats": "n=6(有効5)、stab/place/softはほぼ一定。係数の絶対値は指標傾向の把握用で過信禁物。"
+}
