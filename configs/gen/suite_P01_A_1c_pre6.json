@@ -1,0 +1,699 @@
+{
+  "000": {
+    "containers": {
+      "spacing": 2.5,
+      "container_list": [
+        {
+          "index": 0,
+          "length": 2.0,
+          "width": 1.45,
+          "height": 1.61,
+          "thickness": 0.04,
+          "buffer": 0.0,
+          "cut_x": 0.44,
+          "cut_y": 0.4,
+          "packed_items": [
+            {
+              "index": 1000,
+              "length": 0.26,
+              "width": 0.26,
+              "height": 0.26,
+              "mass": 8.32,
+              "is_prioritized": false,
+              "is_soft": true,
+              "lateralFriction": 0.4,
+              "rollingFriction": 0.01,
+              "spinningFriction": 0.01,
+              "restitution": 0.2,
+              "belongs_to": 0,
+              "pos": [
+                -0.34,
+                0.47,
+                0.17
+              ],
+              "orn": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "contactStiffness": 2500,
+              "contactDamping": 800,
+              "linearDamping": 0.8
+            },
+            {
+              "index": 1001,
+              "length": 0.26,
+              "width": 0.26,
+              "height": 0.26,
+              "mass": 3.94,
+              "is_prioritized": false,
+              "is_soft": false,
+              "lateralFriction": 0.4,
+              "rollingFriction": 0.01,
+              "spinningFriction": 0.01,
+              "restitution": 0.2,
+              "belongs_to": 0,
+              "pos": [
+                0.0,
+                0.47,
+                0.17
+              ],
+              "orn": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "index": 1002,
+              "length": 0.26,
+              "width": 0.26,
+              "height": 0.26,
+              "mass": 6.07,
+              "is_prioritized": false,
+              "is_soft": false,
+              "lateralFriction": 0.4,
+              "rollingFriction": 0.01,
+              "spinningFriction": 0.01,
+              "restitution": 0.2,
+              "belongs_to": 0,
+              "pos": [
+                0.34,
+                0.47,
+                0.17
+              ],
+              "orn": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "index": 1003,
+              "length": 0.26,
+              "width": 0.26,
+              "height": 0.26,
+              "mass": 3.87,
+              "is_prioritized": false,
+              "is_soft": false,
+              "lateralFriction": 0.4,
+              "rollingFriction": 0.01,
+              "spinningFriction": 0.01,
+              "restitution": 0.2,
+              "belongs_to": 0,
+              "pos": [
+                0.68,
+                0.47,
+                0.17
+              ],
+              "orn": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "index": 1004,
+              "length": 0.26,
+              "width": 0.26,
+              "height": 0.26,
+              "mass": 7.28,
+              "is_prioritized": false,
+              "is_soft": false,
+              "lateralFriction": 0.4,
+              "rollingFriction": 0.01,
+              "spinningFriction": 0.01,
+              "restitution": 0.2,
+              "belongs_to": 0,
+              "pos": [
+                -0.34,
+                0.13,
+                0.17
+              ],
+              "orn": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            {
+              "index": 1005,
+              "length": 0.26,
+              "width": 0.26,
+              "height": 0.26,
+              "mass": 7.87,
+              "is_prioritized": false,
+              "is_soft": false,
+              "lateralFriction": 0.4,
+              "rollingFriction": 0.01,
+              "spinningFriction": 0.01,
+              "restitution": 0.2,
+              "belongs_to": 0,
+              "pos": [
+                0.0,
+                0.13,
+                0.17
+              ],
+              "orn": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            }
+          ],
+          "require_shelf": false,
+          "is_prioritized": false
+        }
+      ]
+    },
+    "item_stream": {
+      "item_list": [
+        {
+          "index": 0,
+          "length": 0.452,
+          "width": 0.625,
+          "height": 0.447,
+          "mass": 6.52,
+          "is_prioritized": true,
+          "is_soft": true,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2,
+          "contactStiffness": 2500,
+          "contactDamping": 800,
+          "linearDamping": 0.8
+        },
+        {
+          "index": 1,
+          "length": 0.446,
+          "width": 0.686,
+          "height": 0.279,
+          "mass": 1.0,
+          "is_prioritized": true,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 2,
+          "length": 0.86,
+          "width": 0.703,
+          "height": 0.477,
+          "mass": 4.96,
+          "is_prioritized": true,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 3,
+          "length": 0.773,
+          "width": 0.79,
+          "height": 0.438,
+          "mass": 1.91,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 4,
+          "length": 0.878,
+          "width": 0.383,
+          "height": 0.449,
+          "mass": 4.25,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 5,
+          "length": 0.82,
+          "width": 0.893,
+          "height": 0.618,
+          "mass": 9.42,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 6,
+          "length": 0.763,
+          "width": 0.734,
+          "height": 0.461,
+          "mass": 7.39,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 7,
+          "length": 0.328,
+          "width": 0.303,
+          "height": 0.478,
+          "mass": 1.0,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 8,
+          "length": 0.837,
+          "width": 0.769,
+          "height": 0.486,
+          "mass": 5.92,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 9,
+          "length": 0.306,
+          "width": 0.557,
+          "height": 0.376,
+          "mass": 8.76,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 10,
+          "length": 0.87,
+          "width": 0.592,
+          "height": 0.284,
+          "mass": 2.26,
+          "is_prioritized": true,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 11,
+          "length": 0.886,
+          "width": 0.682,
+          "height": 0.152,
+          "mass": 2.1,
+          "is_prioritized": true,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 12,
+          "length": 0.49,
+          "width": 0.713,
+          "height": 0.451,
+          "mass": 6.58,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 13,
+          "length": 0.449,
+          "width": 0.568,
+          "height": 0.387,
+          "mass": 4.14,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 14,
+          "length": 0.517,
+          "width": 0.68,
+          "height": 0.308,
+          "mass": 1.19,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 15,
+          "length": 0.514,
+          "width": 0.508,
+          "height": 0.367,
+          "mass": 1.5,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 16,
+          "length": 0.379,
+          "width": 0.41,
+          "height": 0.533,
+          "mass": 1.0,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 17,
+          "length": 0.508,
+          "width": 0.281,
+          "height": 0.453,
+          "mass": 1.0,
+          "is_prioritized": false,
+          "is_soft": true,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2,
+          "contactStiffness": 2500,
+          "contactDamping": 800,
+          "linearDamping": 0.8
+        },
+        {
+          "index": 18,
+          "length": 0.633,
+          "width": 0.542,
+          "height": 0.557,
+          "mass": 3.47,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 19,
+          "length": 0.743,
+          "width": 0.444,
+          "height": 0.281,
+          "mass": 4.1,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 20,
+          "length": 0.595,
+          "width": 0.456,
+          "height": 0.384,
+          "mass": 2.03,
+          "is_prioritized": true,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 21,
+          "length": 0.735,
+          "width": 0.337,
+          "height": 0.175,
+          "mass": 1.0,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 22,
+          "length": 0.819,
+          "width": 0.616,
+          "height": 0.539,
+          "mass": 4.81,
+          "is_prioritized": true,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 23,
+          "length": 0.794,
+          "width": 0.577,
+          "height": 0.131,
+          "mass": 1.0,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 24,
+          "length": 0.439,
+          "width": 0.839,
+          "height": 0.237,
+          "mass": 5.6,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 25,
+          "length": 0.74,
+          "width": 0.879,
+          "height": 0.191,
+          "mass": 2.93,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 26,
+          "length": 0.888,
+          "width": 0.245,
+          "height": 0.325,
+          "mass": 1.0,
+          "is_prioritized": false,
+          "is_soft": true,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2,
+          "contactStiffness": 2500,
+          "contactDamping": 800,
+          "linearDamping": 0.8
+        },
+        {
+          "index": 27,
+          "length": 0.648,
+          "width": 0.323,
+          "height": 0.24,
+          "mass": 3.88,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 28,
+          "length": 0.276,
+          "width": 0.398,
+          "height": 0.319,
+          "mass": 1.0,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 29,
+          "length": 0.325,
+          "width": 0.753,
+          "height": 0.264,
+          "mass": 6.08,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 30,
+          "length": 0.765,
+          "width": 0.359,
+          "height": 0.374,
+          "mass": 5.18,
+          "is_prioritized": true,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 31,
+          "length": 0.25,
+          "width": 0.607,
+          "height": 0.165,
+          "mass": 2.01,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 32,
+          "length": 0.297,
+          "width": 0.315,
+          "height": 0.533,
+          "mass": 5.42,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        },
+        {
+          "index": 33,
+          "length": 0.427,
+          "width": 0.611,
+          "height": 0.156,
+          "mass": 1.0,
+          "is_prioritized": false,
+          "is_soft": false,
+          "lateralFriction": 0.4,
+          "rollingFriction": 0.01,
+          "spinningFriction": 0.01,
+          "restitution": 0.2
+        }
+      ],
+      "look_ahead": 1,
+      "max_space": 1,
+      "visible_pool": []
+    },
+    "camera": {
+      "num_containers": 1,
+      "target_pos": [
+        0,
+        0,
+        0
+      ],
+      "distance": 3.0,
+      "yaw": 0,
+      "pitch": 0,
+      "roll": 0,
+      "img_width": 64,
+      "img_height": 64,
+      "fov": 60,
+      "near_val": 0.1,
+      "far_val": 10.0
+    },
+    "validator": {
+      "inclusion_margin": -0.005,
+      "start_z": 0.08,
+      "safety_margin": 0.015,
+      "ceiling_margin": 0.018,
+      "displacement_threshold": 0.3,
+      "angle_displacement_threshold": 45,
+      "settle_wait_step": 300
+    },
+    "action": {
+      "keys": {
+        "item_idx": "int",
+        "container_idx": "int",
+        "place_pos": "float",
+        "orientation": "int"
+      },
+      "pos_lim": {
+        "low": -100,
+        "high": 100
+      },
+      "orientations": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "agent": {
+      "optimize": true,
+      "init_timeout": 10.0,
+      "optimization_timeout": 180.0,
+      "policy_timeout": 8.0,
+      "allowed_methods": [
+        "get_init_states",
+        "optimize",
+        "policy"
+      ],
+      "max_mem": 12
+    },
+    "visualizer": {
+      "vis": false,
+      "camera": {
+        "yaw": 0,
+        "pitch": -20
+      }
+    }
+  }
+}
