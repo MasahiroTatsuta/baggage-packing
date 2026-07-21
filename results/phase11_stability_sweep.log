@@ -1,0 +1,26 @@
+===== setting s0 : union=0.55 span=0.6 centroid=0.15 =====
+MIN_UNION_SUPPORT_RATIO = 0.55
+MIN_SUPPORT_SPAN_RATIO = 0.6    # swept
+MAX_SUPPORT_CENTROID_OFFSET = 0.15  # swept
+  [suite_B01_1c_40_plain.json::000] fill=28.00 cog=64.63 stab=94.20 place=100.00 soft=100.00 placed=23/40 (26.3s)
+  [suite_A01_1c_40_plain.json::000] fill=24.05 cog=58.29 stab=98.48 place=100.00 soft=100.00 placed=9/40 (30.6s)
+  [suite_P06_A_1c_pre12_dense.json::000] fill=20.08 cog=74.05 stab=98.85 place=100.00 soft=100.00 placed=21/42 (29.3s)
+  [suite_C03_2c_80_prio.json::000] fill=28.97 cog=58.96 stab=98.42 place=100.00 soft=100.00 placed=25/80 (49.0s)
+===== setting s1 : union=0.70 span=0.7 centroid=0.10 =====
+MIN_UNION_SUPPORT_RATIO = 0.70
+MIN_SUPPORT_SPAN_RATIO = 0.7    # swept
+MAX_SUPPORT_CENTROID_OFFSET = 0.10  # swept
+  [suite_B01_1c_40_plain.json::000] fill=21.61 cog=66.88 stab=96.92 place=100.00 soft=100.00 placed=21/40 (17.9s)
+  [suite_A01_1c_40_plain.json::000] fill=24.05 cog=58.29 stab=98.48 place=100.00 soft=100.00 placed=9/40 (25.7s)
+  [suite_P06_A_1c_pre12_dense.json::000] fill=14.42 cog=81.24 stab=98.94 place=100.00 soft=100.00 placed=19/42 (28.1s)
+  [suite_C03_2c_80_prio.json::000] fill=28.97 cog=58.79 stab=98.31 place=100.00 soft=100.00 placed=24/80 (49.4s)
+===== setting s2 : union=0.80 span=0.8 centroid=0.08 =====
+MIN_UNION_SUPPORT_RATIO = 0.80
+MIN_SUPPORT_SPAN_RATIO = 0.8    # swept
+MAX_SUPPORT_CENTROID_OFFSET = 0.08  # swept
+  [suite_B01_1c_40_plain.json::000] fill=17.49 cog=71.79 stab=98.44 place=100.00 soft=100.00 placed=19/40 (15.6s)
+  [suite_A01_1c_40_plain.json::000] fill=24.48 cog=68.05 stab=98.11 place=100.00 soft=100.00 placed=14/40 (32.0s)
+  [suite_P06_A_1c_pre12_dense.json::000] fill=13.97 cog=77.33 stab=98.84 place=100.00 soft=100.00 placed=20/42 (32.9s)
+  [suite_C03_2c_80_prio.json::000] fill=27.00 cog=64.06 stab=98.11 place=100.00 soft=100.00 placed=21/80 (44.2s)
+SWEEP2_DONE
+RESTORED
