@@ -51,7 +51,25 @@ Y_SLICE_EPS = 0.01
 # そのため必ず SAFETY_MARGIN_XY より広めに取る。
 EP_ITEM_CLEARANCE = geo.SAFETY_MARGIN_XY + 0.006
 CONTACT_EPS = 0.03          # 壁・他の荷物への「接触」とみなす隙間の許容値(EP_ITEM_CLEARANCEより広く取る)
-MIN_SUPPORT_RATIO = 0.9     # 荷物の底面がこれだけ支持面に乗っていれば安定とみなす
+MIN_SUPPORT_RATIO = 0.9     # 荷物の底面がこれだけ支持面に乗っていれば(重心条件を問わず)安定とみなす
+# Phase11(ターゲット2): 「複数の支持面にまたがって乗る」着地の解禁。
+#
+# Phase10までの着地面判定は「単一の支持体に MIN_SUPPORT_RATIO 以上乗る」場合しか着地高さを
+# 上げなかった。そのため、既積み荷物が小さい箱の集まり(積付済み初期状態は典型的にこれ)だと
+# どの1個の上にも90%乗れず、既積み層の上面が丸ごと使えない空間になっていた
+# (実測 tools/diagnose_prepacked.py: 既積み層の上に着地できる候補XYは全体の 2.0%(P01)/
+#  7.3%(P06) しかなく、union判定にすると 6.6%/24.7% へ 2.2〜3.3倍に増える)。
+#
+# 物理的には「4個の箱の上にまたがって乗る」は完全に安定である。安定性の本質は接触面積比
+# ではなく「支持点が荷物の底面を広く・偏りなく囲んでいるか」なので、
+#   (1) 同じ高さ帯にある支持体の重なり面積の合計比 >= MIN_UNION_SUPPORT_RATIO
+#   (2) 接触領域の外接矩形が底面の各軸を MIN_SUPPORT_SPAN_RATIO 以上またぐ(=端に寄っていない)
+#   (3) 接触面積の重心が底面中心から MAX_SUPPORT_CENTROID_OFFSET(半寸法比)以内
+# の3条件で判定する((2)(3)が「角にちょこんと乗る」不安定配置を排除する)。
+MIN_UNION_SUPPORT_RATIO = 0.55
+SUPPORT_LEVEL_TOL = 0.02        # 「同じ高さ帯の支持面」とみなす上面zの許容差
+MIN_SUPPORT_SPAN_RATIO = 0.6    # 接触領域の外接矩形が底面の各軸方向をまたぐ最小割合
+MAX_SUPPORT_CENTROID_OFFSET = 0.15  # 接触面積重心の底面中心からのずれ(半寸法に対する比)
 # Phase9: 層規律導入により、非優先荷物が優先荷物のすぐ側面に密接して置かれやすくなった結果、
 # 揺れ試験(stability_score算出)時の沈み込み・傾きで優先荷物の上に非優先荷物が乗り上げてしまい
 # placement_scoreを損なう実例が確認された(候補生成時は「優先荷物の上を着地面にしない」を
@@ -285,17 +303,63 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     item_is_prioritized = item.get('is_prioritized', False)
     item_is_soft = item.get('is_soft', False)
 
-    landing_top = np.full(n, thickness)   # 床の上面をベースラインとする
-    landing_ratio = np.ones(n)
+    # --- 着地面(skyline)の決定 ---
+    # pass1: XYで少しでも重なる支持体はすべて「その上に乗るしかない」障害なので、
+    #        重なる支持体の上面の最大値が着地上面になる(重なりが無ければ床)。
+    item_area = max(4.0 * half[0] * half[1], 1e-12)
+    landing_top = np.full(n, thickness)
+    cache = []
     for center, oh, sup_prioritized, sup_soft in supports:
-        # 非優先(非ソフト)荷物が優先(ソフト)荷物の上に乗るのはハード禁止(下敷き防止)
-        if (sup_prioritized and not item_is_prioritized) or (sup_soft and not item_is_soft):
+        x_lo = np.maximum(world_x - half[0], center[0] - oh[0])
+        x_hi = np.minimum(world_x + half[0], center[0] + oh[0])
+        y_lo = np.maximum(world_y - half[1], center[1] - oh[1])
+        y_hi = np.minimum(world_y + half[1], center[1] + oh[1])
+        ow = x_hi - x_lo
+        oh_ = y_hi - y_lo
+        touch = (ow > 1e-6) & (oh_ > 1e-6)
+        if not np.any(touch):
             continue
         top = center[2] + oh[2]
-        ratio = _rect_overlap_ratio_batch(world_x, world_y, half[0], half[1], center[0], center[1], oh[0], oh[1])
-        better = (ratio >= MIN_SUPPORT_RATIO) & (top > landing_top)
-        landing_top = np.where(better, top, landing_top)
-        landing_ratio = np.where(better, ratio, landing_ratio)
+        landing_top = np.where(touch & (top > landing_top), top, landing_top)
+        forbidden = (sup_prioritized and not item_is_prioritized) or (sup_soft and not item_is_soft)
+        cache.append((top, touch, x_lo, x_hi, y_lo, y_hi, ow, oh_, forbidden))
+
+    # pass2: 着地上面と同じ高さ帯にある支持体だけを「接触している支持」として集計する。
+    on_floor = landing_top <= thickness + 1e-9
+    sum_ratio = np.zeros(n)
+    sum_area = np.zeros(n)
+    cen_x = np.zeros(n)
+    cen_y = np.zeros(n)
+    span_x_lo = np.full(n, np.inf); span_x_hi = np.full(n, -np.inf)
+    span_y_lo = np.full(n, np.inf); span_y_hi = np.full(n, -np.inf)
+    forbidden_hit = np.zeros(n, dtype=bool)
+    for top, touch, x_lo, x_hi, y_lo, y_hi, ow, oh_, forbidden in cache:
+        at_level = touch & (np.abs(top - landing_top) <= SUPPORT_LEVEL_TOL) & ~on_floor
+        if not np.any(at_level):
+            continue
+        if forbidden:
+            # 非優先(非ソフト)荷物が優先(ソフト)荷物の上に乗るのはハード禁止(下敷き防止)
+            forbidden_hit |= at_level
+            continue
+        area = np.where(at_level, ow * oh_, 0.0)
+        sum_area += area
+        sum_ratio += area / item_area
+        cen_x += area * (x_lo + x_hi) * 0.5
+        cen_y += area * (y_lo + y_hi) * 0.5
+        span_x_lo = np.where(at_level, np.minimum(span_x_lo, x_lo), span_x_lo)
+        span_x_hi = np.where(at_level, np.maximum(span_x_hi, x_hi), span_x_hi)
+        span_y_lo = np.where(at_level, np.minimum(span_y_lo, y_lo), span_y_lo)
+        span_y_hi = np.where(at_level, np.maximum(span_y_hi, y_hi), span_y_hi)
+
+    safe_area = np.maximum(sum_area, 1e-12)
+    off_x = np.abs(cen_x / safe_area - world_x) / max(half[0], 1e-9)
+    off_y = np.abs(cen_y / safe_area - world_y) / max(half[1], 1e-9)
+    span_ok = (((span_x_hi - span_x_lo) >= MIN_SUPPORT_SPAN_RATIO * 2.0 * half[0]) &
+               ((span_y_hi - span_y_lo) >= MIN_SUPPORT_SPAN_RATIO * 2.0 * half[1]))
+    balanced = span_ok & (off_x <= MAX_SUPPORT_CENTROID_OFFSET) & (off_y <= MAX_SUPPORT_CENTROID_OFFSET)
+    stacked_ok = (sum_ratio >= MIN_SUPPORT_RATIO) | ((sum_ratio >= MIN_UNION_SUPPORT_RATIO) & balanced)
+    support_ok = on_floor | (stacked_ok & ~forbidden_hit)
+    landing_ratio = np.where(on_floor, 1.0, np.minimum(sum_ratio, 1.0))
 
     world_z = landing_top + half[2] + geo.REST_CLEARANCE
     ceiling_limit = height - thickness - geo.START_MARGIN
@@ -304,7 +368,18 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
 
     slack = geo.inclusion_slack_batch(container, half, world_pos)
     incl = slack <= geo.INCLUSION_MARGIN
-    base_legal = incl & valid_h
+    base_legal = incl & valid_h & support_ok
+
+    # Phase11: fill期待値の評価は「目標点」ではなく「沈降後の静止姿勢」の slack で行う。
+    # 目標zは支持面から geo.REST_CLEARANCE(16mm)だけ浮かせた点だが、配置後の物理演算で
+    # 荷物は必ず支持面まで落ちる。本家 evaluator は静止後の8角点を inclusion_margin=-0.005 で
+    # 判定するため、床直置きの荷物は「底面が内床面と一致 -> dot≈0 > -0.005」で必ず
+    # fill集計から脱落する(実測: 既積み6個だけの初期状態の fill_score は 0.00)。
+    # 目標点の slack(=-0.016)で risk を測ると床置きを 0.55 の期待値で過大評価してしまうため、
+    # 沈降後(z を REST_CLEARANCE だけ下げた点)の slack を fill リスク評価に使う。
+    settled_pos = world_pos.copy()
+    settled_pos[:, 2] -= geo.REST_CLEARANCE
+    settled_slack = geo.inclusion_slack_batch(container, half, settled_pos)
 
     if not item_is_prioritized:
         min_final = world_pos - half[None, :]
@@ -318,7 +393,9 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
 
     if not np.any(base_legal):
         if stats is not None:
-            if not np.any(incl):
+            if not np.any(support_ok):
+                stats['fail_support'] = stats.get('fail_support', 0) + 1
+            elif not np.any(incl):
                 stats['fail_inclusion'] = stats.get('fail_inclusion', 0) + 1
             elif not np.any(valid_h):
                 stats['fail_ceiling'] = stats.get('fail_ceiling', 0) + 1
@@ -381,7 +458,7 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
         stats['success'] = stats.get('success', 0) + 1
 
     contact = _contact_bonus(container, half, world_x, world_y, world_z, obstacles)
-    scores = _score(container, local_x, local_y, world_z, half, item, landing_ratio, contact, slack)
+    scores = _score(container, local_x, local_y, world_z, half, item, landing_ratio, contact, settled_slack)
     scores = np.where(legal, scores, -np.inf)
     best_i = int(np.argmax(scores))
     if not legal[best_i]:
@@ -390,7 +467,7 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     return {
         'score': float(scores[best_i]),
         'local_pos': np.array([local_x[best_i], local_y[best_i], world_z[best_i]], dtype=np.float32),
-        'slack': float(slack[best_i]),
+        'slack': float(settled_slack[best_i]),
     }
 
 
@@ -420,11 +497,21 @@ def _apply_y_slice_filter(candidate_xy, half_y, y_active_lo):
 
 def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container,
                   has_prioritized_container, rng=None, score_noise=0.0, stats=None,
-                  grid_density: int = BASE_GRID_DENSITY, n_y_slices: int = Y_SLICE_COUNT):
+                  grid_density: int = BASE_GRID_DENSITY, n_y_slices: int = Y_SLICE_COUNT,
+                  reserve_priority_container: bool = False):
     """
     (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
     enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
     コンテナへ置く候補そのものを生成しない(placement_score維持のためのハード優先)。
+    reserve_priority_container=True の間は、その逆向きの「席取り」も行う(Phase11)。
+    ただしこちらは候補を消すのではなく、候補を2段の tier に分けて tier を score より優先する
+    ランキングにする:
+      tier 0 = 非優先荷物が非優先コンテナに入る / 優先荷物が優先コンテナに入る(望ましい)
+      tier 1 = 非優先荷物が優先コンテナに入る(優先コンテナの容積・搬入経路を潰す)
+    tier 0 の合法手が1つでもあれば必ずそちらを選び、tier 0 が皆無のときだけ tier 1 に落ちる。
+    「探索段を1つ増やす」実装にすると、探索段どうしが同じ time_budget を食い合って後段が
+    時間切れで打ち切られ、かえって合法手を取り逃す(実測: P03 で 21個→14個配置に悪化)ため、
+    同一パス内のランキングとして実装し追加コストを0にしている。
     rng/score_noise は offline の順序探索(複数リスタート)でのみ使う微小ノイズで、
     online呼び出し(デフォルト rng=None)には一切影響しない。
     stats: tools/diagnose_stall.py 専用の診断カウンタ(Noneなら何もしない)。
@@ -461,9 +548,13 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
                 if time.perf_counter() > deadline:
                     break
                 item = pool_list[pool_idx]
+                item_is_prio = item.get('is_prioritized', False)
                 if enforce_priority_container and has_prioritized_container \
-                        and item.get('is_prioritized', False) and not container_is_prioritized:
+                        and item_is_prio and not container_is_prioritized:
                     continue
+                # tier 0 が1つでもあれば tier 1 は絶対に選ばれない(席取りのハード優先)。
+                tier = 1 if (reserve_priority_container and container_is_prioritized
+                             and not item_is_prio) else 0
                 lwh = (item['length'], item['width'], item['height'])
 
                 for orn_idx in _unique_orientations(lwh):
@@ -484,8 +575,10 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
                     if rng is not None and score_noise > 0.0:
                         score = score + float(rng.normal(0.0, score_noise))
 
-                    if level_best is None or score > level_best['score']:
+                    rank = (-tier, score)
+                    if level_best is None or rank > level_best['rank']:
                         level_best = {
+                            'rank': rank,
                             'score': score,
                             'local_pos': r['local_pos'],
                             'item_idx': pool_idx,
@@ -498,7 +591,7 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
                 break  # このコンテナは現在開放中の層内で置けるため、より手前の層は開放しない
 
         if container_best is not None:
-            if best_overall is None or container_best['score'] > best_overall['score']:
+            if best_overall is None or container_best['rank'] > best_overall['rank']:
                 best_overall = container_best
     return best_overall
 
@@ -522,10 +615,22 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
 
     n_pool = len(pool_list) if max_pool_items is None else min(len(pool_list), max_pool_items)
     has_prioritized_container = any(c.get('is_prioritized', False) for c in container_list)
+    has_plain_container = any(not c.get('is_prioritized', False) for c in container_list)
 
+    # Phase11(ターゲット1): 優先コンテナの「席取り」。
+    # placement_score が減点される唯一の実測要因は「優先コンテナが満杯/搬入不能になった後に
+    # 到着した優先荷物が非優先コンテナへ回される」ケースだった(D03/P03の実測: 減点2件とも
+    # 下敷きではなく wrong-container、いずれも優先コンテナ側は fail_transport_y で合法手ゼロ)。
+    # その時点で優先コンテナには非優先荷物が先に入り込んで容積・搬入経路を潰していたため、
+    # 「非優先コンテナが1台でもあるなら、非優先荷物はそちらを使い切るまで優先コンテナに
+    # 入れない」を reserve_priority_container で担保する(_search_best の tier 参照)。
+    # tier は同一パス内のランキングなので探索コストは増えず、tier 0 の合法手が皆無なら
+    # 自動的に tier 1(=優先コンテナ)へ落ちるため「置けたはずの荷物を置けなくする」ことは
+    # 無い(=配置数・fillを構造的に減らさない)。
     best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=True,
-                                 has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
-                                 stats=stats)
+                                 has_prioritized_container=has_prioritized_container, rng=rng,
+                                 score_noise=score_noise, stats=stats,
+                                 reserve_priority_container=has_prioritized_container and has_plain_container)
     if best_overall is None and has_prioritized_container and time.perf_counter() <= deadline:
         # 優先コンテナ限定では合法手が全く無かった場合のみ、非優先コンテナも含めて再探索する
         # (それ以上待っても優先コンテナに入らない荷物を無駄に足止めしないため)。

@@ -60,7 +60,11 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     のシーン(pool>1)でここが毎回途中打ち切りになり評価が不正確になるのを防ぐ)。
 
     戻り値: (配置できた item index のリスト(配置順), 配置できた体積の合計,
-             risk調整済み体積の合計)。
+             risk調整済み体積の合計, placement違反率)。
+    placement違反率は tools/scorer.calculate_placement_score と同じ定義の
+    「優先コンテナがあるのに非優先コンテナへ入った優先手荷物の数 / 配置された優先手荷物の数」
+    (既積みの優先手荷物も分母・分子に含む)。Phase11: 順序探索がこの違反を明示的に避けられる
+    ようにするため(placement_score は離散ペナルティで、順序次第で 100 に戻せる)。
     risk調整済み体積は、各配置の壁からの余裕(geo.inclusion_slack_batch)を
     geo.fill_risk_factor で [0,1] に変換し体積に掛けたものの総和。real evaluator の
     厳しいinclusion_marginぎりぎりで壁ぎわに配置された荷物は、実機の沈降ドリフトで
@@ -68,6 +72,15 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     offline探索(ordering.build_order)はこの値を目的関数の主指標として使う。
     """
     containers = clone_containers(container_list)
+    has_prio_container = any(c.get('is_prioritized', False) for c in containers)
+    n_prio_placed = 0
+    n_prio_misrouted = 0
+    for c in containers:
+        for it in c.get('packed_items', []):
+            if it.get('is_prioritized', False):
+                n_prio_placed += 1
+                if has_prio_container and not c.get('is_prioritized', False):
+                    n_prio_misrouted += 1
     idx_iter = iter(order)
     pool: list[dict] = []
 
@@ -96,12 +109,17 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
         container = containers[action['container_idx']]
         container['packed_items'].append(_place(container, item, action))
         placed_ids.append(item['index'])
+        if item.get('is_prioritized', False):
+            n_prio_placed += 1
+            if has_prio_container and not container.get('is_prioritized', False):
+                n_prio_misrouted += 1
         item_volume = item['length'] * item['width'] * item['height']
         placed_volume += item_volume
         risk_adjusted_volume += item_volume * geo.fill_risk_factor(info.get('slack', geo.REAL_INCLUSION_MARGIN))
         refill()
 
-    return placed_ids, placed_volume, risk_adjusted_volume
+    violation_ratio = n_prio_misrouted / n_prio_placed if n_prio_placed else 0.0
+    return placed_ids, placed_volume, risk_adjusted_volume, violation_ratio
 
 
 def greedy_construct_order(container_list: list[dict], item_list: list[dict], deadline: float,
