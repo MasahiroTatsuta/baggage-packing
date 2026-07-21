@@ -404,11 +404,23 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
                 stats['fail_inclusion_and_ceiling'] = stats.get('fail_inclusion_and_ceiling', 0) + 1
         return None
 
-    # 直置き面(床 or 棚上面)なら浮上なし、それ以外(荷物の上)は搬入時に少し浮かせてから下ろす
+    # 直置き面(床 or 棚上面)なら浮上なし、それ以外(荷物の上)は搬入時に少し浮かせてから下ろす。
+    # validator.check_transport_path の判定式と完全に一致させること:
+    #     for r_z in resting_surfaces: if 0 <= (bottom_z - r_z) <= 0.05: effective_start_z = 0.0
+    # Phase11: 旧実装は landing_top が直置き面と 1mm 以内で一致する場合しか「直置き」と
+    # みなしていなかった。本家は「底面が直置き面の 0〜50mm 上」なら直置き扱いなので、
+    # 例えば背の低い荷物の上に積む(landing_top が床から数cm)候補について、
+    #   本家: 浮上なし(=最終高さのまま奥へ掃引)
+    #   旧実装: 浮上あり(+START_Z=80mm の高い経路を検証)
+    # と食い違い、「実際には通らない低い経路」を検証せずに合法と誤判定していた。
+    # 背の低い荷物ほど起きやすく、union支持面の導入で低い段積みが増えたことで顕在化した
+    # (実測: D04(flat) は 7手目で搬入失敗しエピソード即終了、配置 12→6 個・fill 15.20→3.16)。
+    bottom_z = world_z - half[2]
     resting_values = [thickness, height / 2.0 + thickness + buffer]
     is_resting = np.zeros(n, dtype=bool)
     for rv in resting_values:
-        is_resting |= np.isclose(landing_top, rv, atol=1e-3)
+        d = bottom_z - rv
+        is_resting |= (d >= 0.0) & (d <= 0.05)
 
     # validator.check_transport_path と同式の「浮上量(effective_start_z)クリップ」。
     # 常設の小棚(と大棚)は概ね height/2 付近にあるため、非直置き(浮上あり)の掃引が
