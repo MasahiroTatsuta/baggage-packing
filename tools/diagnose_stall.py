@@ -36,6 +36,7 @@ from agents.mysolver import planner as msplanner
 
 REASON_LABELS = {
     'no_xy': '候補位置が1つも生成されない',
+    'fail_support': '着地面の支持条件(乗る面が足りない)で全滅',
     'fail_inclusion': '内包判定(壁食い込み)で全滅',
     'fail_ceiling': '天井制約で全滅',
     'fail_inclusion_and_ceiling': '内包+天井の複合で全滅',
