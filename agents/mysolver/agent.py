@@ -20,10 +20,14 @@ class Agent:
     def __init__(self, module_path: str):
         self._lookahead_k = None
         self._container_list = None
+        self._optimize = True
 
     def get_init_states(self, init_states: dict) -> None:
         self._lookahead_k = init_states.get('lookahead_k')
         self._container_list = init_states.get('container_list')
+        # Phase13(ターゲット2): offline optimize が無効なシーン(事前の順序検証が無い)では
+        # planner.plan により保守的な union支持しきい値を使わせる(詳細はplanner.py参照)。
+        self._optimize = init_states.get('optimize', True)
 
     def optimize(self, item_list: list) -> list[int]:
         try:
@@ -41,7 +45,8 @@ class Agent:
         action = None
         if pool_list and container_list:
             try:
-                action = planner.plan(container_list, pool_list, time_budget=5.5)
+                action = planner.plan(container_list, pool_list, time_budget=5.5,
+                                       strict_support=not self._optimize)
             except Exception:
                 action = None
 

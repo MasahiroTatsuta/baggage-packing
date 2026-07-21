@@ -70,6 +70,22 @@ MIN_UNION_SUPPORT_RATIO = 0.55
 SUPPORT_LEVEL_TOL = 0.02        # 「同じ高さ帯の支持面」とみなす上面zの許容差
 MIN_SUPPORT_SPAN_RATIO = 0.6    # 接触領域の外接矩形が底面の各軸方向をまたぐ最小割合
 MAX_SUPPORT_CENTROID_OFFSET = 0.15  # 接触面積重心の底面中心からのずれ(半寸法に対する比)
+# Phase13(ターゲット2): B01_1c_40_plain の stability(94.20 < 97制約)回収。
+#
+# phase11 §5.2 で「union のしきい値を全シーン一律に締めるのは割に合わない」(B01 fill -10.51,
+# P06 fill -6.11)ことは実測済みなので、しきい値自体は変えない。代わりに、
+# 「offline optimize が無効(config.agent.optimize=False)」なシーンに限定して、より保守的な
+# union支持しきい値を使う(strict_support、agent.py が init_states['optimize'] から判定して
+# planner.plan に渡す)。この条件に該当するのは本スイートでは B01-B04・P04 の5シーンのみで、
+# 他21シーンは一切影響を受けない(=fillへの副作用が構造的に他シーンへ波及しない)。
+# 根拠: offline optimize が有効なシーン(パターンA等)は simulate.py の影シミュレータで
+# 順序をあらかじめ検証してから本番実行するため、union支持による際どい積み上げも「その順序で
+# 本当に置けるか」を事前にふるいにかけられる。一方 optimize=False(パターンB、lookahead=10)
+# ではその事前検証が一切無く、際どい支持のまま積み上げが実行時に初めて試される。B01の
+# stability低下がパターンB群で層別最大(98.57→97.56, phase11 §4.2)だったことと整合する仮説。
+MIN_UNION_SUPPORT_RATIO_STRICT = 0.75
+MIN_SUPPORT_SPAN_RATIO_STRICT = 0.75
+MAX_SUPPORT_CENTROID_OFFSET_STRICT = 0.10
 # Phase9: 層規律導入により、非優先荷物が優先荷物のすぐ側面に密接して置かれやすくなった結果、
 # 揺れ試験(stability_score算出)時の沈み込み・傾きで優先荷物の上に非優先荷物が乗り上げてしまい
 # placement_scoreを損なう実例が確認された(候補生成時は「優先荷物の上を着地面にしない」を
@@ -273,7 +289,8 @@ def _score(container, local_x, local_y, world_z, half, item, support_ratio, cont
             - stability_penalty + cog_term + boundary_term)
 
 
-def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline, stats=None):
+def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline, stats=None,
+                          strict_support=False):
     """
     候補XY一覧について、乗せられる一番高い支持面(landing z)を求め、内包・搬入経路衝突を
     チェックしたうえで最良の1候補を返す。合法な候補が無ければ None。
@@ -351,13 +368,17 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
         span_y_lo = np.where(at_level, np.minimum(span_y_lo, y_lo), span_y_lo)
         span_y_hi = np.where(at_level, np.maximum(span_y_hi, y_hi), span_y_hi)
 
+    union_ratio = MIN_UNION_SUPPORT_RATIO_STRICT if strict_support else MIN_UNION_SUPPORT_RATIO
+    span_ratio = MIN_SUPPORT_SPAN_RATIO_STRICT if strict_support else MIN_SUPPORT_SPAN_RATIO
+    centroid_offset = MAX_SUPPORT_CENTROID_OFFSET_STRICT if strict_support else MAX_SUPPORT_CENTROID_OFFSET
+
     safe_area = np.maximum(sum_area, 1e-12)
     off_x = np.abs(cen_x / safe_area - world_x) / max(half[0], 1e-9)
     off_y = np.abs(cen_y / safe_area - world_y) / max(half[1], 1e-9)
-    span_ok = (((span_x_hi - span_x_lo) >= MIN_SUPPORT_SPAN_RATIO * 2.0 * half[0]) &
-               ((span_y_hi - span_y_lo) >= MIN_SUPPORT_SPAN_RATIO * 2.0 * half[1]))
-    balanced = span_ok & (off_x <= MAX_SUPPORT_CENTROID_OFFSET) & (off_y <= MAX_SUPPORT_CENTROID_OFFSET)
-    stacked_ok = (sum_ratio >= MIN_SUPPORT_RATIO) | ((sum_ratio >= MIN_UNION_SUPPORT_RATIO) & balanced)
+    span_ok = (((span_x_hi - span_x_lo) >= span_ratio * 2.0 * half[0]) &
+               ((span_y_hi - span_y_lo) >= span_ratio * 2.0 * half[1]))
+    balanced = span_ok & (off_x <= centroid_offset) & (off_y <= centroid_offset)
+    stacked_ok = (sum_ratio >= MIN_SUPPORT_RATIO) | ((sum_ratio >= union_ratio) & balanced)
     support_ok = on_floor | (stacked_ok & ~forbidden_hit)
     landing_ratio = np.where(on_floor, 1.0, np.minimum(sum_ratio, 1.0))
 
@@ -511,7 +532,7 @@ def _apply_y_slice_filter(candidate_xy, half_y, y_active_lo):
 def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container,
                   has_prioritized_container, rng=None, score_noise=0.0, stats=None,
                   grid_density: int = BASE_GRID_DENSITY, n_y_slices: int = Y_SLICE_COUNT,
-                  reserve_priority_container: bool = False):
+                  reserve_priority_container: bool = False, strict_support: bool = False):
     """
     (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
     enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
@@ -580,7 +601,8 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
                         candidate_cache[cache_key] = (half, full_xy)
                     half, full_xy = candidate_cache[cache_key]
                     candidate_xy = full_xy if is_fully_open else _apply_y_slice_filter(full_xy, half[1], y_active_lo)
-                    r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline, stats=stats)
+                    r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline,
+                                              stats=stats, strict_support=strict_support)
                     if r is None:
                         continue
 
@@ -611,7 +633,7 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
 
 def plan(container_list: list[dict], pool_list: list[dict], time_budget: float = 5.5,
          max_pool_items: int | None = MAX_POOL_ITEMS, rng=None, score_noise: float = 0.0,
-         stats=None, info: dict | None = None) -> dict | None:
+         stats=None, info: dict | None = None, strict_support: bool = False) -> dict | None:
     """
     max_pool_items: online(agent.policy)は既定のMAX_POOL_ITEMSで呼ぶ。offlineの順序探索
     (ordering.build_order)は None を渡し、プール全件(=候補となる全未配置荷物)から
@@ -622,6 +644,9 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
     simulate.py が offline探索の目的関数(risk調整済みvolume)を計算するために使う。
     actionの実キー({item_idx,container_idx,place_pos,orientation})には含めない
     (env側のフォーマットチェックを壊さないため)。
+    strict_support: Phase13(ターゲット2)。True の間、union支持の判定をより保守的な
+    しきい値(MIN_UNION_SUPPORT_RATIO_STRICT等)に切り替える。agent.py が
+    「offline optimize 無効(=事前の順序検証が無い)」シーンでのみ True を渡す。
     """
     start = time.perf_counter()
     deadline = start + time_budget
@@ -643,13 +668,14 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
     best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=True,
                                  has_prioritized_container=has_prioritized_container, rng=rng,
                                  score_noise=score_noise, stats=stats,
-                                 reserve_priority_container=has_prioritized_container and has_plain_container)
+                                 reserve_priority_container=has_prioritized_container and has_plain_container,
+                                 strict_support=strict_support)
     if best_overall is None and has_prioritized_container and time.perf_counter() <= deadline:
         # 優先コンテナ限定では合法手が全く無かった場合のみ、非優先コンテナも含めて再探索する
         # (それ以上待っても優先コンテナに入らない荷物を無駄に足止めしないため)。
         best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
-                                     stats=stats)
+                                     stats=stats, strict_support=strict_support)
 
     if best_overall is None and time.perf_counter() <= deadline:
         # Phase7: 通常密度のグリッド+Extreme Pointで合法候補が1つも無かった場合の最終リトライ。
@@ -660,6 +686,9 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
         # グリッド密度だけを上げ、残り時間予算内で「本当に置ける場所が無いか」をもう一段
         # 丁寧に探す。時間予算(deadline)は呼び出し元が渡した time_budget のままで、
         # 新たに延長はしない(policy_timeout=8sに対する安全マージンを保つため)。
+        # NOTE: この最終リトライは strict_support を渡さない(=常に緩い方)。ここに来るのは
+        # 合法手が完全に0件だった場合であり、真の行き詰まり回避(sudden death防止)を
+        # stability の保守性より優先する。
         best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
                                      stats=stats, grid_density=RETRY_GRID_DENSITY)
