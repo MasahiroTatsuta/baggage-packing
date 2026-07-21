@@ -41,7 +41,7 @@ def _scene_means(data):
     out = {}
     for label, st in data['per_scene'].items():
         out[label] = {k: st[k]['mean'] for k in METRIC_KEYS}
-        for extra in ('num_placed_items_abs', 'total_items'):
+        for extra in ('num_placed_items_abs', 'total_items', 'fill_counted_ratio'):
             if extra in st:
                 out[label][extra] = st[extra]['mean']
     return out
@@ -84,6 +84,13 @@ def main():
         na = a[l].get('num_placed_items_abs', float('nan'))
         print(f'{name:36s} | {fb:7.2f} -> {fa:7.2f}  ({fa - fb:+6.2f}) | '
               f'{pb:6.2f} -> {pa:6.2f} ({pa - pb:+6.2f}) | {nb:5.1f} -> {na:5.1f}')
+
+    print('\n=== 補助指標 平均 (before -> after) ===')
+    for key, label in (('num_placed_items_abs', '配置個数'), ('fill_counted_ratio', 'fill集計率')):
+        vb = [b[l][key] for l in labels if key in b[l]]
+        va = [a[l][key] for l in labels if key in a[l]]
+        if vb and va:
+            print(f'  {label:12s}: {_mean(vb):8.3f} -> {_mean(va):8.3f} ({_mean(va) - _mean(vb):+.3f})')
 
     print('\n=== 全体平均 ===')
     print(f'{"metric":18s} | {"before":>8s} | {"after":>8s} | {"diff":>8s} | 判定(ノイズ床)')

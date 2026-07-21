@@ -370,16 +370,17 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     incl = slack <= geo.INCLUSION_MARGIN
     base_legal = incl & valid_h & support_ok
 
-    # Phase11: fill期待値の評価は「目標点」ではなく「沈降後の静止姿勢」の slack で行う。
-    # 目標zは支持面から geo.REST_CLEARANCE(16mm)だけ浮かせた点だが、配置後の物理演算で
-    # 荷物は必ず支持面まで落ちる。本家 evaluator は静止後の8角点を inclusion_margin=-0.005 で
-    # 判定するため、床直置きの荷物は「底面が内床面と一致 -> dot≈0 > -0.005」で必ず
-    # fill集計から脱落する(実測: 既積み6個だけの初期状態の fill_score は 0.00)。
-    # 目標点の slack(=-0.016)で risk を測ると床置きを 0.55 の期待値で過大評価してしまうため、
-    # 沈降後(z を REST_CLEARANCE だけ下げた点)の slack を fill リスク評価に使う。
-    settled_pos = world_pos.copy()
-    settled_pos[:, 2] -= geo.REST_CLEARANCE
-    settled_slack = geo.inclusion_slack_batch(container, half, settled_pos)
+    # NOTE(Phase11): 配置後の物理演算で荷物は目標点(支持面から geo.REST_CLEARANCE=16mm 浮かせた
+    # 点)から支持面まで必ず落ちる。本ローカル基盤の Evaluator は validator と同じ
+    # inclusion_margin=-0.005 で静止後の8角点を判定するため、床直置きの荷物は
+    # 「底面 = 内床面 -> dot≈0 > -0.005」で必ず fill 集計から脱落する
+    # (実測: 既積み6個だけの初期状態の fill_score = 0.00)。この事実に合わせて risk 評価を
+    # 「沈降後の姿勢」で行うと床置きの価値が 0 になり、探索は積み上げ一辺倒になる。
+    # ただし README「評価指標」は『内包判定は検証時よりも緩く設定されている』と明記しており、
+    # 本番基盤の evaluator 側 margin が正値(Evaluator の既定は +0.01)である可能性が高い。
+    # その場合「床置きの価値0」は本ローカル基盤だけの人工物になるため、Phase11 では
+    # 目標点の slack のまま(=Phase10 と同じ評価)に留める。詳細と検証案は
+    # results/phase11_report.md の「床直置きと fill_score」節を参照。
 
     if not item_is_prioritized:
         min_final = world_pos - half[None, :]
@@ -458,7 +459,7 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
         stats['success'] = stats.get('success', 0) + 1
 
     contact = _contact_bonus(container, half, world_x, world_y, world_z, obstacles)
-    scores = _score(container, local_x, local_y, world_z, half, item, landing_ratio, contact, settled_slack)
+    scores = _score(container, local_x, local_y, world_z, half, item, landing_ratio, contact, slack)
     scores = np.where(legal, scores, -np.inf)
     best_i = int(np.argmax(scores))
     if not legal[best_i]:
@@ -467,7 +468,7 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     return {
         'score': float(scores[best_i]),
         'local_pos': np.array([local_x[best_i], local_y[best_i], world_z[best_i]], dtype=np.float32),
-        'slack': float(settled_slack[best_i]),
+        'slack': float(slack[best_i]),
     }
 
 
