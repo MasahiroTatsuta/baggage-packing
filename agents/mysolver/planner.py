@@ -170,6 +170,27 @@ def _collect_obstacles(container):
     return geo.packed_obstacles(container) + geo.static_obstacles(container)
 
 
+def _collect_corridor_obstacles(container, prepacked_ids):
+    """Phase15(ターゲット1): corridor_penalty の min_top_behind 計算専用の障害物一覧。
+
+    エピソード開始時から既に積まれていた荷物(prepacked_ids)を除外する。合法性判定
+    (衝突・支持面)には一切影響しない(_collect_obstacles は変更しない、別関数)。
+    棚などの静的構造物は常に含める(初期状態かどうかを問わず搬入経路を塞ぐ実体だから)。
+    """
+    pre_ids = prepacked_ids.get(container.get('index')) if prepacked_ids else None
+    if not pre_ids:
+        return _collect_obstacles(container)
+    obstacles = []
+    for item in container.get('packed_items', []):
+        if item.get('pos') is None or item.get('orn') is None:
+            continue
+        if item.get('index') in pre_ids:
+            continue
+        obstacles.append(geo.item_world_aabb(item))
+    obstacles += geo.static_obstacles(container)
+    return obstacles
+
+
 def _landing_supports(container):
     """
     着地面候補として使える (center, half_ext, is_prioritized, is_soft) 一覧。
@@ -370,7 +391,7 @@ def _score(container, local_x, local_y, world_z, half, item, support_ratio, cont
 
 
 def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline, stats=None,
-                          strict_support=False):
+                          strict_support=False, corridor_obstacles=None):
     """
     候補XY一覧について、乗せられる一番高い支持面(landing z)を求め、内包・搬入経路衝突を
     チェックしたうえで最良の1候補を返す。合法な候補が無ければ None。
@@ -572,7 +593,8 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
         stats['success'] = stats.get('success', 0) + 1
 
     contact = _contact_bonus(container, half, world_x, world_y, world_z, obstacles)
-    corridor = (_corridor_excess(container, half, world_x, world_y, world_z, obstacles)
+    corridor = (_corridor_excess(container, half, world_x, world_y, world_z,
+                                  corridor_obstacles if corridor_obstacles is not None else obstacles)
                 if CORRIDOR_WEIGHT > 0.0 else None)
     scores = _score(container, local_x, local_y, world_z, half, item, landing_ratio, contact, slack,
                     corridor_excess=corridor)
@@ -615,7 +637,8 @@ def _apply_y_slice_filter(candidate_xy, half_y, y_active_lo):
 def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container,
                   has_prioritized_container, rng=None, score_noise=0.0, stats=None,
                   grid_density: int = BASE_GRID_DENSITY, n_y_slices: int = Y_SLICE_COUNT,
-                  reserve_priority_container: bool = False, strict_support: bool = False):
+                  reserve_priority_container: bool = False, strict_support: bool = False,
+                  prepacked_ids: dict | None = None):
     """
     (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
     enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
@@ -646,6 +669,7 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
             break
         container_is_prioritized = container.get('is_prioritized', False)
         obstacles = _collect_obstacles(container)
+        corridor_obstacles = _collect_corridor_obstacles(container, prepacked_ids)
         supports = _landing_supports(container)
         y_bounds = _y_slice_bounds(container, n_y_slices)
         # (pool_idx, orn_idx) -> (half, 全域候補xy)。層のlevelを上げてもgrid/extreme point自体は
@@ -685,7 +709,8 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
                     half, full_xy = candidate_cache[cache_key]
                     candidate_xy = full_xy if is_fully_open else _apply_y_slice_filter(full_xy, half[1], y_active_lo)
                     r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline,
-                                              stats=stats, strict_support=strict_support)
+                                              stats=stats, strict_support=strict_support,
+                                              corridor_obstacles=corridor_obstacles)
                     if r is None:
                         continue
 
@@ -716,7 +741,8 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
 
 def plan(container_list: list[dict], pool_list: list[dict], time_budget: float = 5.5,
          max_pool_items: int | None = MAX_POOL_ITEMS, rng=None, score_noise: float = 0.0,
-         stats=None, info: dict | None = None, strict_support: bool = False) -> dict | None:
+         stats=None, info: dict | None = None, strict_support: bool = False,
+         prepacked_ids: dict | None = None) -> dict | None:
     """
     max_pool_items: online(agent.policy)は既定のMAX_POOL_ITEMSで呼ぶ。offlineの順序探索
     (ordering.build_order)は None を渡し、プール全件(=候補となる全未配置荷物)から
@@ -730,6 +756,10 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
     strict_support: Phase13(ターゲット2)。True の間、union支持の判定をより保守的な
     しきい値(MIN_UNION_SUPPORT_RATIO_STRICT等)に切り替える。agent.py が
     「offline optimize 無効(=事前の順序検証が無い)」シーンでのみ True を渡す。
+    prepacked_ids: Phase15(ターゲット1)。{container_index: frozenset(item_index)}。
+    エピソード開始時から存在していた既積み荷物のindex集合(geo.initial_prepacked_ids)。
+    corridor_penalty の min_top_behind 計算だけをこの集合を除外した障害物一覧で行う
+    (合法性判定には一切影響しない)。省略時Noneは「全障害物を対象にする」旧挙動と同じ。
     """
     start = time.perf_counter()
     deadline = start + time_budget
@@ -752,13 +782,13 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
                                  has_prioritized_container=has_prioritized_container, rng=rng,
                                  score_noise=score_noise, stats=stats,
                                  reserve_priority_container=has_prioritized_container and has_plain_container,
-                                 strict_support=strict_support)
+                                 strict_support=strict_support, prepacked_ids=prepacked_ids)
     if best_overall is None and has_prioritized_container and time.perf_counter() <= deadline:
         # 優先コンテナ限定では合法手が全く無かった場合のみ、非優先コンテナも含めて再探索する
         # (それ以上待っても優先コンテナに入らない荷物を無駄に足止めしないため)。
         best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
-                                     stats=stats, strict_support=strict_support)
+                                     stats=stats, strict_support=strict_support, prepacked_ids=prepacked_ids)
 
     if best_overall is None and time.perf_counter() <= deadline:
         # Phase7: 通常密度のグリッド+Extreme Pointで合法候補が1つも無かった場合の最終リトライ。
@@ -774,7 +804,7 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
         # stability の保守性より優先する。
         best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
-                                     stats=stats, grid_density=RETRY_GRID_DENSITY)
+                                     stats=stats, grid_density=RETRY_GRID_DENSITY, prepacked_ids=prepacked_ids)
 
     if best_overall is None:
         return None

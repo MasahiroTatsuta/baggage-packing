@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 
+from . import geometry as geo
 from . import ordering
 from . import planner
 
@@ -21,6 +22,7 @@ class Agent:
         self._lookahead_k = None
         self._container_list = None
         self._optimize = True
+        self._prepacked_ids = None
 
     def get_init_states(self, init_states: dict) -> None:
         self._lookahead_k = init_states.get('lookahead_k')
@@ -28,6 +30,10 @@ class Agent:
         # Phase13(ターゲット2): offline optimize が無効なシーン(事前の順序検証が無い)では
         # planner.plan により保守的な union支持しきい値を使わせる(詳細はplanner.py参照)。
         self._optimize = init_states.get('optimize', True)
+        # Phase15(ターゲット1): エピソード開始時から既に積まれていた荷物のindexを記録する。
+        # corridor_penalty(planner._corridor_excess)が既積み層とオンライン中に自分が積んだ層を
+        # 区別するために使う(詳細はgeometry.initial_prepacked_ids参照)。
+        self._prepacked_ids = geo.initial_prepacked_ids(self._container_list)
 
     def optimize(self, item_list: list) -> list[int]:
         try:
@@ -46,7 +52,8 @@ class Agent:
         if pool_list and container_list:
             try:
                 action = planner.plan(container_list, pool_list, time_budget=5.5,
-                                       strict_support=not self._optimize)
+                                       strict_support=not self._optimize,
+                                       prepacked_ids=self._prepacked_ids)
             except Exception:
                 action = None
 

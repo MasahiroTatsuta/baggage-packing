@@ -46,8 +46,8 @@ def _place(container: dict, item: dict, action: dict) -> dict:
 
 
 def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], order: list[int],
-                    lookahead_k: int, deadline: float, per_step_time_budget: float = 0.7
-                    ) -> tuple[list[int], float, float]:
+                    lookahead_k: int, deadline: float, per_step_time_budget: float = 0.7,
+                    prepacked_ids: dict | None = None) -> tuple[list[int], float, float]:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
@@ -102,7 +102,7 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
             break
         budget = min(per_step_time_budget, max(0.02, deadline - now))
         info: dict = {}
-        action = planner.plan(containers, pool, time_budget=budget, info=info)
+        action = planner.plan(containers, pool, time_budget=budget, info=info, prepacked_ids=prepacked_ids)
         if action is None:
             break
         item = pool.pop(action['item_idx'])
@@ -124,7 +124,8 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
 
 def greedy_construct_order(container_list: list[dict], item_list: list[dict], deadline: float,
                             per_step_time_budget: float = 3.0, rng=None, score_noise: float = 0.0,
-                            shuffle_ties: bool = False, window: int | None = None) -> list[int]:
+                            shuffle_ties: bool = False, window: int | None = None,
+                            prepacked_ids: dict | None = None) -> list[int]:
     """
     「今置ける中で一番良い荷物・向き・位置」を毎回選び直す貪欲構築(オフライン限定, フル情報)。
     lookahead=1(パターンA)ではこの構築順そのものが online の実行結果と一致する
@@ -152,7 +153,7 @@ def greedy_construct_order(container_list: list[dict], item_list: list[dict], de
             pool = pool[:window]
         budget = min(per_step_time_budget, max(0.05, deadline - now))
         action = planner.plan(containers, pool, time_budget=budget, max_pool_items=None,
-                               rng=rng, score_noise=score_noise)
+                               rng=rng, score_noise=score_noise, prepacked_ids=prepacked_ids)
         if action is None:
             break
         item = pool[action['item_idx']]

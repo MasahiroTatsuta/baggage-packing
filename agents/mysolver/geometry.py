@@ -160,6 +160,23 @@ def packed_obstacles(container: dict):
     return obstacles
 
 
+def initial_prepacked_ids(container_list) -> dict:
+    """各コンテナについて、エピソード開始時(get_init_states時点)から既に存在していた
+    既配置荷物のindex集合を返す({container_index: frozenset(item_index)})。
+
+    Phase15 ターゲット1: corridor_penalty(搬入経路保護)が「初期状態から積まれていた
+    層」と「自分が今回のエピソードで積んだ層」を区別するために使う。既積み層の天面は
+    不揃いなことが多く、これを他の障害物と同様に min_top_behind の算出に使うと、
+    最低天面を過剰に守って既積み層の上への積み上げそのものを抑制してしまう
+    (pre-packedシーンでの実測: results/phase15_report.md 参照)。
+    """
+    result = {}
+    for c in container_list or []:
+        ids = {item['index'] for item in c.get('packed_items', []) if item.get('pos') is not None}
+        result[c.get('index')] = frozenset(ids)
+    return result
+
+
 def box_overlap_batch(min1: np.ndarray, max1: np.ndarray, center2: np.ndarray, half2: np.ndarray,
                        margin_xy: float = SAFETY_MARGIN_XY, margin_z=Z_TOUCH_EPS) -> np.ndarray:
     """

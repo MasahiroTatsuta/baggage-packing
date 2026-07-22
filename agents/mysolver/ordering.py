@@ -28,6 +28,7 @@ import time
 
 import numpy as np
 
+from . import geometry as geo
 from . import simulate
 
 # optimize() 全体の壁時計制限(180s)に対する、実際に使う探索時間予算。
@@ -207,6 +208,11 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     best_score = None
 
     total_container_volume = sum(c.get('volume', 0.0) for c in container_list)
+    # Phase15(ターゲット1): container_list はこの時点でまだ初期状態(get_init_states直後、
+    # 何も配置していない)なので、ここから「エピソード開始時に既に積まれていた荷物」の
+    # identityを求めておける(simulate.pyのclone_containersは深く複製するが、既積み荷物の
+    # indexはそのまま引き継がれるので、以降の全シミュレーション呼び出しに対して有効)。
+    prepacked_ids = geo.initial_prepacked_ids(container_list)
 
     def validate(order: list[int]) -> tuple[float, int] | None:
         """戻り値 None は「時間切れで評価できなかった」の意(比較対象にしない)。"""
@@ -215,7 +221,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             return None
         vdeadline = min(deadline, now + max_validate_slice)
         placed_ids, placed_volume, risk_adjusted_volume, violation_ratio = simulate.simulate_order(
-            container_list, items_by_index, order, k, vdeadline)
+            container_list, items_by_index, order, k, vdeadline, prepacked_ids=prepacked_ids)
         count = len(placed_ids)
         penalty = PLACEMENT_PENALTY_WEIGHT * total_container_volume * violation_ratio
         return (risk_adjusted_volume - penalty, count)
@@ -250,6 +256,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                 score_noise=0.35 if use_noise else 0.0,
                 shuffle_ties=use_noise,
                 window=window,
+                prepacked_ids=prepacked_ids,
             )
             if set(order) == all_indices:
                 score = validate(order)
