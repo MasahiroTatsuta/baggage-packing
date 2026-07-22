@@ -193,17 +193,27 @@ def _collect_corridor_obstacles(container, prepacked_ids):
 
 def _landing_supports(container):
     """
-    着地面候補として使える (center, half_ext, is_prioritized, is_soft) 一覧。
+    着地面候補として使える (center, half_ext, is_prioritized, is_soft, is_shelf) 一覧。
     棚などの構造物は誰の上にも中立(is_prioritized=is_soft=False)として扱う。
+    is_shelf=True は geo.static_obstacles(棚)由来であることを示すフラグ(Phase15
+    ターゲット2)。_evaluate_candidates の着地面計算で「棚の下の床」と「棚の上」を
+    独立した2つのコンパートメントとして扱うために使う。
     """
     supports = []
     for item in container.get('packed_items', []):
         if item.get('pos') is None or item.get('orn') is None:
             continue
         center, half = geo.item_world_aabb(item)
-        supports.append((center, half, item.get('is_prioritized', False), item.get('is_soft', False)))
-    for center, half in geo.static_obstacles(container):
-        supports.append((center, half, False, False))
+        supports.append((center, half, item.get('is_prioritized', False), item.get('is_soft', False), False))
+    # Phase15(ターゲット2)バグ修正: geo.static_obstacles() は全コンテナに常設される
+    # small_shelf_aabb(脇の小さいledge)と、shelf=Trueのコンテナだけに存在する
+    # big_shelf_aabb(大棚)の両方を返す。両者を一律 is_shelf=True にすると、棚を
+    # 持たないコンテナでも small_shelf を「棚」とみなして下/上コンパートメント分割が
+    # 誤発火し、無関係なシーン(例: B01)まで着地面計算が変わってしまう(実測で発覚)。
+    # is_shelf=True は big_shelf_aabb 由来の場合だけに限定する。
+    supports.append((*geo.small_shelf_aabb(container), False, False, False))
+    if container.get('shelf', False):
+        supports.append((*geo.big_shelf_aabb(container), False, False, True))
     return supports
 
 
@@ -424,10 +434,24 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     # --- 着地面(skyline)の決定 ---
     # pass1: XYで少しでも重なる支持体はすべて「その上に乗るしかない」障害なので、
     #        重なる支持体の上面の最大値が着地上面になる(重なりが無ければ床)。
+    #
+    # Phase15(ターゲット2): 棚(is_shelf=True)は「常に最優先の最高支持面」として扱うと、
+    # 棚の下の床が永久に候補から消える(棚の直下は必ず「棚の上面に乗る」候補に化けてしまい、
+    # 棚の下という別コンパートメントの床置きが一度も生成されない)。実測: gen_shelf_patternAで
+    # 棚下領域(0.987m^3、全体の最大区画)の利用率が0.0%だった(results/phase15_report.md参照)。
+    # 棚を「床(下のコンパートメント)」と「別の床(棚上面、上のコンパートメント)」の2つに
+    # 分離し、非棚支持体(既配置荷物)は自分の上面が棚の下面以下なら下コンパートメント、
+    # 棚の上面以上なら上コンパートメントに帰属させる。候補の荷物が下コンパートメントの
+    # 着地高さのまま棚の下面をクリアできるなら床置き(下)を採用し、収まらない場合のみ
+    # 棚の上(または棚上の既配置荷物)へ強制する。棚がそもそも無い(XY重なりなし)候補は
+    # 従来どおり単一コンパートメントのまま。
     item_area = max(4.0 * half[0] * half[1], 1e-12)
-    landing_top = np.full(n, thickness)
+    shelf_bottom = np.full(n, np.inf)
+    shelf_top = np.full(n, -np.inf)
+    shelf_touch_any = np.zeros(n, dtype=bool)
     cache = []
-    for center, oh, sup_prioritized, sup_soft in supports:
+    touch_list = []
+    for center, oh, sup_prioritized, sup_soft, is_shelf in supports:
         x_lo = np.maximum(world_x - half[0], center[0] - oh[0])
         x_hi = np.minimum(world_x + half[0], center[0] + oh[0])
         y_lo = np.maximum(world_y - half[1], center[1] - oh[1])
@@ -438,9 +462,27 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
         if not np.any(touch):
             continue
         top = center[2] + oh[2]
-        landing_top = np.where(touch & (top > landing_top), top, landing_top)
         forbidden = (sup_prioritized and not item_is_prioritized) or (sup_soft and not item_is_soft)
         cache.append((top, touch, x_lo, x_hi, y_lo, y_hi, ow, oh_, forbidden))
+        if is_shelf:
+            bottom = center[2] - oh[2]
+            shelf_bottom = np.where(touch, np.minimum(shelf_bottom, bottom), shelf_bottom)
+            shelf_top = np.where(touch, np.maximum(shelf_top, top), shelf_top)
+            shelf_touch_any |= touch
+        else:
+            touch_list.append((top, touch))
+
+    landing_below = np.full(n, thickness)
+    landing_above = np.where(shelf_touch_any, shelf_top, thickness)
+    for top, touch in touch_list:
+        is_below_case = touch & (top <= shelf_bottom + 1e-6)
+        is_above_case = touch & shelf_touch_any & (top >= shelf_top - 1e-6)
+        landing_below = np.where(is_below_case, np.maximum(landing_below, top), landing_below)
+        landing_above = np.where(is_above_case, np.maximum(landing_above, top), landing_above)
+
+    item_top_if_below = landing_below + geo.REST_CLEARANCE + 2.0 * half[2]
+    fits_below_shelf = ~shelf_touch_any | (item_top_if_below <= shelf_bottom - geo.OBSTACLE_Z_MARGIN)
+    landing_top = np.where(fits_below_shelf, landing_below, landing_above)
 
     # pass2: 着地上面と同じ高さ帯にある支持体だけを「接触している支持」として集計する。
     on_floor = landing_top <= thickness + 1e-9
@@ -507,7 +549,7 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     if not item_is_prioritized:
         min_final = world_pos - half[None, :]
         max_final = world_pos + half[None, :]
-        for center, oh, sup_prioritized, _ in supports:
+        for center, oh, sup_prioritized, _, _shelf in supports:
             if not sup_prioritized:
                 continue
             too_close = geo.box_overlap_batch(min_final, max_final, center, oh,

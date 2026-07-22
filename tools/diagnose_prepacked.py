@@ -94,7 +94,7 @@ def _union_support_gain(container, half, obstacles, supports, grid_density=2):
     uni_top = np.full(n, thickness)
     ratios = []
     tops = []
-    for center, oh, _sp, _ss in supports:
+    for center, oh, _sp, _ss, _shelf in supports:
         top = center[2] + oh[2]
         r = msplanner._rect_overlap_ratio_batch(wx, wy, half[0], half[1],
                                                 center[0], center[1], oh[0], oh[1])
