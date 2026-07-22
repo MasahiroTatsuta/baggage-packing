@@ -18,7 +18,9 @@
 「非優先(非ソフト)荷物を優先(ソフト)荷物の上に乗せる」候補そのものを作らないことで
 ハード制約として回避する(置く順序に関わらず下敷きは発生しない)。
 """
+import os
 import time
+
 import numpy as np
 
 from . import geometry as geo
@@ -94,6 +96,24 @@ MAX_SUPPORT_CENTROID_OFFSET_STRICT = 0.10
 # そのものを作らないことで、置く順序や重み調整に頼らずハード制約として回避する。
 PRIORITY_CLEARANCE_XY = 0.05
 PRIORITY_CLEARANCE_Z = 0.05
+# Phase14: 搬入経路の詰まり(fail_transport_y)対策 —— 「階段状スカイライン」の選好。
+#
+# 荷物は必ず手前(y=-width/2)から入り、直置き面(床・棚上面)の 0〜50mm 上に底面が来る候補は
+# 最終高さのまま、それ以外は START_Z だけ浮上した高さで +y 方向へ掃引される
+# (_evaluate_candidates の is_resting / sweep_z 参照)。したがって、ある候補が
+# 「自分と同じXレーンにあり、かつ自分より奥にある既配置物・棚の“最も低い天面”」より高く
+# 手前側に立つと、その低い天面の上に後から荷物を差し込む経路を物理的に塞ぐ。
+# 逆に「手前にあるものほど天面が低い」階段状のプロファイルを保てば、奥の残容積への通路は
+# 原理的に塞がれない。この超過量(m)に比例したペナルティを候補スコアに加える。
+#
+# 奥に何も無い場合(守るべき通路が存在しない)と、奥が既に天井付近まで埋まっている場合
+# (通路を残しても何も入らない)はペナルティなし。
+CORRIDOR_WEIGHT = float(os.environ.get('MYSOLVER_CORRIDOR_W', '3.0'))
+# 「奥にある」と判定する y の許容誤差。障害物の手前面が候補の奥面とほぼ一致する(隙間なく
+# 密着して並んでいる)場合も「奥にある」とみなす。
+CORRIDOR_Y_EPS = 0.02
+# 奥の最低天面から天井までがこの高さ未満なら、そこにはもう何も入らないので通路を守らない。
+CORRIDOR_MIN_HEADROOM = 0.10
 
 
 def _unique_orientations(lwh):
@@ -256,7 +276,44 @@ def _contact_bonus(container, half, world_x, world_y, world_z, obstacles):
     return touch
 
 
-def _score(container, local_x, local_y, world_z, half, item, support_ratio, contact_bonus, slack):
+def _corridor_excess(container, half, world_x, world_y, world_z, obstacles):
+    """
+    Phase14: 候補の天面が「同一Xレーンで自分より奥にある既配置物・棚の最低天面」をどれだけ
+    超えるか[m]を返す(超えないなら0)。奥に何も無い/奥が既に天井付近まで埋まっている
+    候補は0(守るべき搬入経路が存在しない)。
+
+    z座標系は _evaluate_candidates と同じ「コンテナ底面=0」のローカル系
+    (landing_top を thickness と直接比較しているのと同じ系)。
+    """
+    n = world_x.shape[0]
+    height = container['height']
+    thickness = container['thickness']
+    ceiling_limit = height - thickness - geo.START_MARGIN
+
+    cand_back_face = world_y + half[1]
+    cand_x_lo = world_x - half[0]
+    cand_x_hi = world_x + half[0]
+
+    min_top_behind = np.full(n, np.inf)
+    for center, oh in obstacles:
+        # 障害物の手前面が候補の奥面より奥にある(=候補が後からこの障害物へ向かう経路を塞ぐ側)
+        behind = (center[1] - oh[1]) >= (cand_back_face - CORRIDOR_Y_EPS)
+        if not np.any(behind):
+            continue
+        overlap_x = (cand_x_lo < center[0] + oh[0]) & (cand_x_hi > center[0] - oh[0])
+        mask = behind & overlap_x
+        if not np.any(mask):
+            continue
+        top = center[2] + oh[2]
+        min_top_behind = np.where(mask, np.minimum(min_top_behind, top), min_top_behind)
+
+    protected = np.isfinite(min_top_behind) & (min_top_behind <= ceiling_limit - CORRIDOR_MIN_HEADROOM)
+    excess = np.maximum(0.0, (world_z + half[2]) - min_top_behind)
+    return np.where(protected, excess, 0.0)
+
+
+def _score(container, local_x, local_y, world_z, half, item, support_ratio, contact_bonus, slack,
+           corridor_excess=None):
     length = container['length']; width = container['width']; height = container['height']
     z_term = -world_z * 12.0
     # 壁ギリギリ(real evaluatorのinclusion_margin付近)の配置は、後続荷物の投入や自身の
@@ -285,8 +342,10 @@ def _score(container, local_x, local_y, world_z, half, item, support_ratio, cont
     mass_norm = min(item.get('mass', 1.0), 15.0) / 15.0
     height_ratio = np.clip(world_z / max(height, 1e-6), 0.0, 1.0)
     cog_term = (1.0 - height_ratio) * mass_norm * 1.2
+    # Phase14: 階段状スカイライン(奥の搬入経路を塞がない)選好。詳細は CORRIDOR_WEIGHT 参照。
+    corridor_penalty = 0.0 if corridor_excess is None else corridor_excess * CORRIDOR_WEIGHT
     return (z_term + back_term + edge_term + support_term + contact_term + prio_term
-            - stability_penalty + cog_term + boundary_term)
+            - stability_penalty + cog_term + boundary_term - corridor_penalty)
 
 
 def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline, stats=None,
@@ -492,7 +551,10 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
         stats['success'] = stats.get('success', 0) + 1
 
     contact = _contact_bonus(container, half, world_x, world_y, world_z, obstacles)
-    scores = _score(container, local_x, local_y, world_z, half, item, landing_ratio, contact, slack)
+    corridor = (_corridor_excess(container, half, world_x, world_y, world_z, obstacles)
+                if CORRIDOR_WEIGHT > 0.0 else None)
+    scores = _score(container, local_x, local_y, world_z, half, item, landing_ratio, contact, slack,
+                    corridor_excess=corridor)
     scores = np.where(legal, scores, -np.inf)
     best_i = int(np.argmax(scores))
     if not legal[best_i]:
