@@ -108,12 +108,27 @@ PRIORITY_CLEARANCE_Z = 0.05
 #
 # 奥に何も無い場合(守るべき通路が存在しない)と、奥が既に天井付近まで埋まっている場合
 # (通路を残しても何も入らない)はペナルティなし。
-CORRIDOR_WEIGHT = float(os.environ.get('MYSOLVER_CORRIDOR_W', '3.0'))
+#
+# 重みは決定的なパターンBシーン(B01-B04, P04)での掃引で決めた。不感帯なし版は重みに対して
+# fill が非単調(W=2.5で19.46、W=3.0で23.21)にカオス的に振れ、全水準の平均が無変更と同じで
+# 「効果ゼロ+攪拌」でしかなかった。不感帯を入れた版は滑らかな単峰になり、W∈{3,6,12}の全てで
+# 両レジームのfillが無変更を上回る(W=6でstrict 22.33->24.38, loose 30.52->32.19)。
+# 台地の中央にあたる 6.0 を採用する(W=24 で崖があるため上端には寄せない)。
+CORRIDOR_WEIGHT = float(os.environ.get('MYSOLVER_CORRIDOR_W', '6.0'))
 # 「奥にある」と判定する y の許容誤差。障害物の手前面が候補の奥面とほぼ一致する(隙間なく
 # 密着して並んでいる)場合も「奥にある」とみなす。
 CORRIDOR_Y_EPS = 0.02
 # 奥の最低天面から天井までがこの高さ未満なら、そこにはもう何も入らないので通路を守らない。
 CORRIDOR_MIN_HEADROOM = 0.10
+# 「まだ通れる」高さ差の不感帯[m]。奥の天面 T_b の上に後から荷物を着地させる場合、その荷物は
+# 底面が T_b + REST_CLEARANCE の位置を目標にし、直置き面でなければ更に START_Z だけ浮上した
+# 高さで掃引される(_evaluate_candidates の sweep_z 参照)。掃引時に要求される z 方向の余裕が
+# SWEEP_Z_MARGIN なので、手前の天面が T_b + (REST_CLEARANCE + START_Z - SWEEP_Z_MARGIN) までなら
+# 経路は物理的に生きている。この範囲内の高さ差までペナルティを課すと、通路を全く塞いでいない
+# 候補どうしの順位まで揺さぶることになり、貪欲の選択が無意味に攪拌される(Phase14 の初版が
+# まさにこれで、重みに対して fill が非単調・カオス的に振れた)。
+CORRIDOR_DEADBAND = float(os.environ.get(
+    'MYSOLVER_CORRIDOR_DB', str(geo.REST_CLEARANCE + geo.START_Z - geo.SWEEP_Z_MARGIN)))
 
 
 def _unique_orientations(lwh):
@@ -308,7 +323,7 @@ def _corridor_excess(container, half, world_x, world_y, world_z, obstacles):
         min_top_behind = np.where(mask, np.minimum(min_top_behind, top), min_top_behind)
 
     protected = np.isfinite(min_top_behind) & (min_top_behind <= ceiling_limit - CORRIDOR_MIN_HEADROOM)
-    excess = np.maximum(0.0, (world_z + half[2]) - min_top_behind)
+    excess = np.maximum(0.0, (world_z + half[2]) - (min_top_behind + CORRIDOR_DEADBAND))
     return np.where(protected, excess, 0.0)
 
 
