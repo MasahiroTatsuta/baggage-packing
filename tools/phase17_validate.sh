@@ -40,10 +40,10 @@ if [ "$STAGE" = "sweep" ] || [ "$STAGE" = "all" ]; then
 fi
 
 if [ "$STAGE" = "suite" ] || [ "$STAGE" = "all" ]; then
-    run "26 scenes @default(120) x3"
+    run "26 scenes @default(120) x2"
     PYTHONPATH=. .venv/bin/python tools/measure_regime.py \
         --config-path 'configs/gen/suite_*.json' --module-path agents/mysolver/ \
-        --repeats 3 --out results/phase17_suite_after3.json --label phase17_suite_after3
+        --repeats 2 --out results/phase17_suite_after2.json --label phase17_suite_after2
 fi
 
 if [ "$STAGE" = "old6" ] || [ "$STAGE" = "all" ]; then
