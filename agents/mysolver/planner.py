@@ -31,8 +31,8 @@ GRID_MARGIN = 0.02
 # 密度1(31x23グリッド)は粗く、荷物どうしの隙間にぴったり収まる細いXY位置をExtreme Point法
 # だけでは拾いきれない場合がある。密度2は計測上、online呼び出し(pool<=MAX_POOL_ITEMS=20)
 # では0.35s->0.9s程度への増加に留まり、policy_timeout(8s)・実際の呼び出し予算(5.5s)に
-# 対して十分な余裕がある(探索は deadline を自己チェックして安全に打ち切るため、万一時間が
-# 足りない状況でもクラッシュや予算超過はしない)。
+# 対して十分な余裕がある(探索は SearchBudget を自己チェックして安全に打ち切るため、万一
+# 予算が足りない状況でもクラッシュや予算超過はしない)。
 BASE_GRID_DENSITY = 2
 # Phase7由来の「合法手0件時の最終リトライ」の密度。BASE_GRID_DENSITYを底上げしたことに
 # 合わせて、通常探索よりさらに一段細かく最後の望みを探れるよう底上げする。
@@ -135,6 +135,119 @@ CORRIDOR_MIN_HEADROOM = 0.10
 # まさにこれで、重みに対して fill が非単調・カオス的に振れた)。
 CORRIDOR_DEADBAND = float(os.environ.get(
     'MYSOLVER_CORRIDOR_DB', str(geo.REST_CLEARANCE + geo.START_Z - geo.SWEEP_Z_MARGIN)))
+
+# ---------------------------------------------------------------------------
+# Phase17: 探索打ち切りの決定化(壁時計 -> 評価コスト(ユニット))
+# ---------------------------------------------------------------------------
+# Phase16 §2.3 で特定した通り、_search_best / _evaluate_candidates が
+# time.perf_counter() を多重にチェックして打ち切っていたため、「どこまで候補を評価してから
+# 諦めるか」が実行環境の速度・瞬間的なCPU負荷で変わっていた。これが
+#   (a) 同一シーン・同一予算の反復間ノイズ(P02で fill_strict std ±5.14)
+#   (b) シーン単位の optimize予算 非単調性(スプレッド最大13.4pt)
+# の共通の根本原因だった。上位層(build_orderのリスタート選択)だけを決定化しても
+# 解決しないことは Phase16 で実証済み。
+#
+# 対策: 打ち切り条件を「消費した評価コスト(ユニット)」で表現する。壁時計は
+#   (1) 呼び出し元が秒で表現した予算をユニット数へ換算する較正定数 UNITS_PER_SEC
+#   (2) 本番タイムアウトを絶対に踏まないための非常用の最終安全弁 (hard_deadline)
+# の2つにのみ残す。(1)は定数なので、同一入力なら消費ユニット列は完全に同じになり、
+# マシン速度に依らず同一の出力が得られる。(2)は通常発火しない(発火した場合のみ
+# 決定性が失われるが、その場合でも制約遵守が優先される)。
+#
+# 1回の _evaluate_candidates のコストは、候補XY数 n_xy に対する numpy のベクトル演算を
+# supports(pass1/pass2) と obstacles(最終位置・掃引2phase) の個数だけ繰り返す形なので、
+#     units = n_xy * (n_supports + n_obstacles + COST_CONST)
+# でよく近似できる。COST_CONST は n_sup/n_obs に依らない固定コスト(着地面計算・
+# inclusion判定・スコアリング)を obstacles 何個分に相当するかで表した係数。
+COST_CONST = 8.0
+# 候補XY集合の構築(_candidate_xy: グリッド生成 + Extreme Point 列挙 + set/sort)のコスト。
+# 評価そのものではないが (pool_idx, orn) ごとに1回走る無視できない固定費なので、
+# 同じユニット系で計上する(生コスト = グリッド点数 + 障害物あたり8点の生成コスト)。
+# tools/phase17_probe.py の実測では **候補集合の構築のほうが評価より重い**
+# (plan()時間の内訳は _candidate_xy 58% / _evaluate_candidates 40%、
+#  1回あたり 3.41ms vs 2.09ms、しかも呼び出し回数もほぼ同数 26420 vs 29994)。
+# 係数は「両者が同じ units/sec になる」ように決める:
+#   評価 1.63e7 units/s ÷ 候補構築 8.94e5 生units/s = 18.2
+CANDIDATE_BUILD_COST = 18.2
+# 本環境(2コア)で実測した「1秒あたりに消化できるユニット数」。tools/phase17_probe.py で
+# 6シーン分の (n_xy, n_sup, n_obs, 実時間) と _candidate_xy の実時間を収集し、
+#     UNITS_PER_SEC = 総ユニット / plan() の総壁時計時間(155.1s)
+# として求めた(候補構築等のオーバーヘッド込みで較正するため、分母は探索全体の時間)。
+# この定数を「実機より小さめ(=保守的)」に置くと、同じ名目秒の予算に対して実所要時間が
+# 短くなる方向にずれるだけで、決定性も制約遵守も損なわれない。逆に大きすぎると名目予算より
+# 長く走り、非常用安全弁が発火して決定性を失う。
+# 実測値は集計 1.60e7 units/s(シーン別には 1.31e7〜2.01e7 の幅がある)。名目秒あたりの
+# 実所要時間が名目を超えにくいよう、集計値よりわずかに小さい 1.55e7 を採用する。
+UNITS_PER_SEC = float(os.environ.get('MYSOLVER_UNITS_PER_SEC', '1.55e7'))
+# 非常用安全弁の壁時計チェック間隔(exhausted() 呼び出し回数)。毎回 perf_counter() を
+# 呼ぶとホットループのオーバーヘッドになるため間引く。決定性には影響しない
+# (安全弁が発火しない限り結果に関与しないため)。
+HARD_CHECK_INTERVAL = 64
+
+
+class SearchBudget:
+    """探索の打ち切りを『消費ユニット』で決める決定的な予算。
+
+    limit:          このスコープで使えるユニット数(決定的)。
+    hard_deadline:  非常用の最終安全弁(壁時計、絶対時刻)。None なら無し。
+    parent:         親スコープ。spend は親にも伝播し、exhausted は親も見る
+                    (1手の予算 ⊂ 1リスタートの予算 ⊂ optimize全体の予算 のような入れ子)。
+
+    exhausted() は「これ以上新しい評価を始めない」判定。1回の評価が limit を多少
+    超過することは許す(超過量は1回の _evaluate_candidates 分=高々数ms相当で有界)。
+    """
+
+    __slots__ = ('limit', 'used', 'hard_deadline', 'parent', '_probe', 'hard_expired')
+
+    def __init__(self, limit: float, hard_deadline: float | None = None, parent=None):
+        self.limit = float(limit)
+        self.used = 0.0
+        self.hard_deadline = hard_deadline
+        self.parent = parent
+        self._probe = 0
+        self.hard_expired = False
+
+    @classmethod
+    def from_seconds(cls, seconds: float, hard_deadline: float | None = None, parent=None):
+        return cls(seconds * UNITS_PER_SEC, hard_deadline=hard_deadline, parent=parent)
+
+    def child(self, limit: float):
+        """このスコープの残量を超えない子スコープを作る。"""
+        return SearchBudget(min(limit, self.remaining()), parent=self)
+
+    def child_seconds(self, seconds: float):
+        return self.child(seconds * UNITS_PER_SEC)
+
+    def remaining(self) -> float:
+        r = self.limit - self.used
+        if self.parent is not None:
+            r = min(r, self.parent.remaining())
+        return r
+
+    def spend(self, units: float) -> None:
+        self.used += units
+        if self.parent is not None:
+            self.parent.spend(units)
+
+    def exhausted(self) -> bool:
+        if self.used >= self.limit:
+            return True
+        if self.hard_expired:
+            return True
+        if self.hard_deadline is not None:
+            self._probe += 1
+            if self._probe >= HARD_CHECK_INTERVAL:
+                self._probe = 0
+                if time.perf_counter() > self.hard_deadline:
+                    self.hard_expired = True
+                    return True
+        if self.parent is not None and self.parent.exhausted():
+            return True
+        return False
+
+
+def _eval_units(n_xy: int, n_sup: int, n_obs: int) -> float:
+    return n_xy * (n_sup + n_obs + COST_CONST)
 
 
 def _unique_orientations(lwh):
@@ -400,18 +513,23 @@ def _score(container, local_x, local_y, world_z, half, item, support_ratio, cont
             - stability_penalty + cog_term + boundary_term - corridor_penalty)
 
 
-def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline, stats=None,
+def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, budget, stats=None,
                           strict_support=False, corridor_obstacles=None):
     """
     候補XY一覧について、乗せられる一番高い支持面(landing z)を求め、内包・搬入経路衝突を
     チェックしたうえで最良の1候補を返す。合法な候補が無ければ None。
 
+    budget: SearchBudget。Phase17 で壁時計 deadline から置き換えた決定的な打ち切り予算。
+    「予算切れなら評価を始めない」判定だけを行い、始めた評価は必ず最後まで行う
+    (途中で壁時計を見て中断することはしない = 同一入力なら同一の結果になる)。
+
     stats: 診断用(tools/diagnose_stall.py 専用)。None以外を渡すと、Noneを返す直前に
     「どの段階で全滅したか」をカウントする。本番のonline呼び出し(agent.policy)では
     常にNoneのままなので、このオプションは通常経路の速度・挙動に影響しない。
     """
-    if time.perf_counter() > deadline:
+    if budget.exhausted():
         return None
+    budget.spend(_eval_units(candidate_xy.shape[0], len(supports), len(obstacles)))
     if candidate_xy.shape[0] == 0:
         if stats is not None:
             stats['no_xy'] = stats.get('no_xy', 0) + 1
@@ -676,7 +794,7 @@ def _apply_y_slice_filter(candidate_xy, half_y, y_active_lo):
     return candidate_xy[keep]
 
 
-def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container,
+def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container,
                   has_prioritized_container, rng=None, score_noise=0.0, stats=None,
                   grid_density: int = BASE_GRID_DENSITY, n_y_slices: int = Y_SLICE_COUNT,
                   reserve_priority_container: bool = False, strict_support: bool = False,
@@ -707,7 +825,7 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
     """
     best_overall = None
     for container in container_list:
-        if time.perf_counter() > deadline:
+        if budget.exhausted():
             break
         container_is_prioritized = container.get('is_prioritized', False)
         obstacles = _collect_obstacles(container)
@@ -720,7 +838,7 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
 
         container_best = None
         for level_idx, y_active_lo in enumerate(y_bounds):
-            if time.perf_counter() > deadline:
+            if budget.exhausted():
                 break
             # 最終levelは全開放(従来の全域探索と同値)。y絞り込みのマスク生成・コピーは
             # 候補配列サイズ分のコストがかかるため、無駄なオーバーヘッドを避けるため省略する
@@ -728,7 +846,7 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
             is_fully_open = level_idx == len(y_bounds) - 1
             level_best = None
             for pool_idx in range(n_pool):
-                if time.perf_counter() > deadline:
+                if budget.exhausted():
                     break
                 item = pool_list[pool_idx]
                 item_is_prio = item.get('is_prioritized', False)
@@ -741,16 +859,20 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
                 lwh = (item['length'], item['width'], item['height'])
 
                 for orn_idx in _unique_orientations(lwh):
-                    if time.perf_counter() > deadline:
+                    if budget.exhausted():
                         break
                     cache_key = (pool_idx, orn_idx)
                     if cache_key not in candidate_cache:
                         half = geo.half_extent(lwh, orn_idx)
                         full_xy = _candidate_xy(container, half, obstacles, grid_density=grid_density)
                         candidate_cache[cache_key] = (half, full_xy)
+                        # 候補XY集合の構築コストも同じユニット系で計上する(評価そのものでは
+                        # ないが (pool_idx, orn) ごとに1回走る無視できない固定費)。
+                        budget.spend(CANDIDATE_BUILD_COST * (31 * 23 * grid_density * grid_density
+                                                              + 8 * len(obstacles)))
                     half, full_xy = candidate_cache[cache_key]
                     candidate_xy = full_xy if is_fully_open else _apply_y_slice_filter(full_xy, half[1], y_active_lo)
-                    r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, deadline,
+                    r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, budget,
                                               stats=stats, strict_support=strict_support,
                                               corridor_obstacles=corridor_obstacles)
                     if r is None:
@@ -784,7 +906,8 @@ def _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_c
 def plan(container_list: list[dict], pool_list: list[dict], time_budget: float = 5.5,
          max_pool_items: int | None = MAX_POOL_ITEMS, rng=None, score_noise: float = 0.0,
          stats=None, info: dict | None = None, strict_support: bool = False,
-         prepacked_ids: dict | None = None) -> dict | None:
+         prepacked_ids: dict | None = None, budget: 'SearchBudget | None' = None,
+         hard_deadline: float | None = None) -> dict | None:
     """
     max_pool_items: online(agent.policy)は既定のMAX_POOL_ITEMSで呼ぶ。offlineの順序探索
     (ordering.build_order)は None を渡し、プール全件(=候補となる全未配置荷物)から
@@ -802,9 +925,14 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
     エピソード開始時から存在していた既積み荷物のindex集合(geo.initial_prepacked_ids)。
     corridor_penalty の min_top_behind 計算だけをこの集合を除外した障害物一覧で行う
     (合法性判定には一切影響しない)。省略時Noneは「全障害物を対象にする」旧挙動と同じ。
+    budget: Phase17。呼び出し元(offlineの順序探索)が管理する SearchBudget をそのまま使う。
+    省略時は time_budget を UNITS_PER_SEC で決定的にユニット換算した専用予算を作る
+    (online の agent.policy はこちら)。
+    hard_deadline: 非常用の最終安全弁(絶対時刻)。budget を省略した場合にのみ使う。
+    online(policy)は policy_timeout(8s)を絶対に踏まないため必ず指定すること。
     """
-    start = time.perf_counter()
-    deadline = start + time_budget
+    if budget is None:
+        budget = SearchBudget.from_seconds(time_budget, hard_deadline=hard_deadline)
 
     n_pool = len(pool_list) if max_pool_items is None else min(len(pool_list), max_pool_items)
     has_prioritized_container = any(c.get('is_prioritized', False) for c in container_list)
@@ -820,31 +948,31 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
     # tier は同一パス内のランキングなので探索コストは増えず、tier 0 の合法手が皆無なら
     # 自動的に tier 1(=優先コンテナ)へ落ちるため「置けたはずの荷物を置けなくする」ことは
     # 無い(=配置数・fillを構造的に減らさない)。
-    best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=True,
+    best_overall = _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container=True,
                                  has_prioritized_container=has_prioritized_container, rng=rng,
                                  score_noise=score_noise, stats=stats,
                                  reserve_priority_container=has_prioritized_container and has_plain_container,
                                  strict_support=strict_support, prepacked_ids=prepacked_ids)
-    if best_overall is None and has_prioritized_container and time.perf_counter() <= deadline:
+    if best_overall is None and has_prioritized_container and not budget.exhausted():
         # 優先コンテナ限定では合法手が全く無かった場合のみ、非優先コンテナも含めて再探索する
         # (それ以上待っても優先コンテナに入らない荷物を無駄に足止めしないため)。
-        best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
+        best_overall = _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
                                      stats=stats, strict_support=strict_support, prepacked_ids=prepacked_ids)
 
-    if best_overall is None and time.perf_counter() <= deadline:
+    if best_overall is None and not budget.exhausted():
         # Phase7: 通常密度のグリッド+Extreme Pointで合法候補が1つも無かった場合の最終リトライ。
         # 「本当に空間的行き詰まり」なのか「粗いグリッドが偶然、荷物が収まる細い隙間を
         # 拾えなかっただけ」なのかを区別せず一律諦めると、agent.py側は合法性チェックを
         # 一切行わない無検証フォールバックに落ちてsudden death(即座にエピソード終了、
         # 残り全荷物を失う)になる。同じ margin(=real validatorに対して安全側)のまま
         # グリッド密度だけを上げ、残り時間予算内で「本当に置ける場所が無いか」をもう一段
-        # 丁寧に探す。時間予算(deadline)は呼び出し元が渡した time_budget のままで、
+        # 丁寧に探す。予算(budget)は呼び出し元が渡したものをそのまま使い、
         # 新たに延長はしない(policy_timeout=8sに対する安全マージンを保つため)。
         # NOTE: この最終リトライは strict_support を渡さない(=常に緩い方)。ここに来るのは
         # 合法手が完全に0件だった場合であり、真の行き詰まり回避(sudden death防止)を
         # stability の保守性より優先する。
-        best_overall = _search_best(container_list, pool_list, n_pool, deadline, enforce_priority_container=False,
+        best_overall = _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
                                      stats=stats, grid_density=RETRY_GRID_DENSITY, prepacked_ids=prepacked_ids)
 

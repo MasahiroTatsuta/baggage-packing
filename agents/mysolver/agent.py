@@ -1,10 +1,20 @@
 import os
+import time
 
 import numpy as np
 
 from . import geometry as geo
 from . import ordering
 from . import planner
+
+# online(policy)1回に許す名目探索予算[s]。planner.UNITS_PER_SEC で決定的にユニット数へ
+# 換算され、実際の打ち切りは消費ユニット数で決まる(壁時計には依存しない)。
+POLICY_TIME_BUDGET = 5.5
+# Phase17(方針3): online側は「決定性より制約遵守が優先」。本番の policy_timeout(8s)・
+# 本フェーズの制約(policy<7s)を絶対に踏まないため、非常用の壁時計チェックを必ず残す。
+# 較正が想定より甘い(実機がこの環境より遅い)場合はここが発火して決定性は失われるが、
+# タイムアウトによるエピソード即死のほうが遥かに損失が大きい。
+POLICY_HARD_WALL = 6.0
 
 # 開発中の反復を速くするための環境変数。未設定なら本番想定の ordering.DEFAULT_TIME_BUDGET
 # (165s、180sタイムアウトに対する安全マージン込み)を使う。最終計測時は未設定のまま
@@ -51,7 +61,8 @@ class Agent:
         action = None
         if pool_list and container_list:
             try:
-                action = planner.plan(container_list, pool_list, time_budget=5.5,
+                action = planner.plan(container_list, pool_list, time_budget=POLICY_TIME_BUDGET,
+                                       hard_deadline=time.perf_counter() + POLICY_HARD_WALL,
                                        strict_support=not self._optimize,
                                        prepacked_ids=self._prepacked_ids)
             except Exception:

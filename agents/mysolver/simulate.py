@@ -13,8 +13,6 @@ container dict / item dict は get_init_states() / get_info_for_optimization() �
 生の dict をそのまま複製して使う。既配置荷物の姿勢は ORNS[orn_idx] に対応する
 クオータニオンを直接組み立てて付与するため、pybullet の物理クライアントは一切不要。
 """
-import time
-
 import pybullet as p
 
 from . import geometry as geo
@@ -46,7 +44,7 @@ def _place(container: dict, item: dict, action: dict) -> dict:
 
 
 def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], order: list[int],
-                    lookahead_k: int, deadline: float, per_step_time_budget: float = 0.7,
+                    lookahead_k: int, budget: planner.SearchBudget, per_step_time_budget: float = 0.7,
                     prepacked_ids: dict | None = None) -> tuple[list[int], float, float]:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
@@ -58,6 +56,10 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     合わせて引き上げた値(旧値0.35は、pool=MAX_POOL_ITEMS・密度1の1手評価に要する実測時間
     (約0.35s)に由来する較正値だったため、密度を上げた分だけ比例して増やし、lookahead_k>1
     のシーン(pool>1)でここが毎回途中打ち切りになり評価が不正確になるのを防ぐ)。
+    Phase17以降、この「秒」は planner.UNITS_PER_SEC で決定的にユニット数へ換算される
+    名目値であり、実際の打ち切りは壁時計ではなく消費ユニット数で決まる。
+
+    budget: planner.SearchBudget。この検証1回に使えるユニット予算(親=optimize全体の予算)。
 
     戻り値: (配置できた item index のリスト(配置順), 配置できた体積の合計,
              risk調整済み体積の合計, placement違反率)。
@@ -97,12 +99,12 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     risk_adjusted_volume = 0.0
 
     while pool:
-        now = time.perf_counter()
-        if now > deadline:
+        # Phase17: 壁時計ではなく親の残ユニットで打ち切る(同一入力なら同じ手数・同じ結果)。
+        if budget.exhausted():
             break
-        budget = min(per_step_time_budget, max(0.02, deadline - now))
         info: dict = {}
-        action = planner.plan(containers, pool, time_budget=budget, info=info, prepacked_ids=prepacked_ids)
+        action = planner.plan(containers, pool, info=info, prepacked_ids=prepacked_ids,
+                               budget=budget.child_seconds(per_step_time_budget))
         if action is None:
             break
         item = pool.pop(action['item_idx'])
@@ -122,7 +124,7 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     return placed_ids, placed_volume, risk_adjusted_volume, violation_ratio
 
 
-def greedy_construct_order(container_list: list[dict], item_list: list[dict], deadline: float,
+def greedy_construct_order(container_list: list[dict], item_list: list[dict], budget: planner.SearchBudget,
                             per_step_time_budget: float = 3.0, rng=None, score_noise: float = 0.0,
                             shuffle_ties: bool = False, window: int | None = None,
                             prepacked_ids: dict | None = None) -> list[int]:
@@ -132,8 +134,12 @@ def greedy_construct_order(container_list: list[dict], item_list: list[dict], de
     (pool=1個の planner.plan は、pool内に他の候補が無いだけで同じ探索・同じ位置を返すため)。
     lookahead>1(パターンB)でも「常に最良の1手から詰める」近似順序として有効に働く。
 
-    時間切れ、または合法手が尽きた場合は、残りの荷物インデックスを(必要なら shuffle して)
+    予算切れ、または合法手が尽きた場合は、残りの荷物インデックスを(必要なら shuffle して)
     そのまま末尾に付け足し、必ず全 item index を過不足なく含む順列を返す。
+
+    budget: planner.SearchBudget。この1リスタートに使えるユニット予算(親=optimize全体)。
+    Phase17: 旧実装は壁時計 deadline で打ち切っていたため、同じ入力でも実行環境の速度で
+    「何手目まで構築できたか」が変わり、返す順序自体が run ごとに違っていた。
     """
     containers = clone_containers(container_list)
     remaining = {item['index']: dict(item) for item in item_list}
@@ -145,15 +151,16 @@ def greedy_construct_order(container_list: list[dict], item_list: list[dict], de
         remaining = {k: remaining[k] for k in keys}
 
     while remaining:
-        now = time.perf_counter()
-        if now > deadline:
+        # Phase17: 壁時計ではなく親の残ユニットで打ち切る。1リスタートが「どの手で止まるか」が
+        # 実行環境の速度に依らず決まるため、同じ seed_items/window なら常に同じ順序を返す。
+        if budget.exhausted():
             break
         pool = list(remaining.values())
         if window is not None:
             pool = pool[:window]
-        budget = min(per_step_time_budget, max(0.05, deadline - now))
-        action = planner.plan(containers, pool, time_budget=budget, max_pool_items=None,
-                               rng=rng, score_noise=score_noise, prepacked_ids=prepacked_ids)
+        action = planner.plan(containers, pool, max_pool_items=None,
+                               rng=rng, score_noise=score_noise, prepacked_ids=prepacked_ids,
+                               budget=budget.child_seconds(per_step_time_budget))
         if action is None:
             break
         item = pool[action['item_idx']]

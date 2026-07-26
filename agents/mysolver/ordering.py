@@ -29,6 +29,7 @@ import time
 import numpy as np
 
 from . import geometry as geo
+from . import planner
 from . import simulate
 
 # optimize() 全体の壁時計制限(180s、本番の実効上限は170s)に対する、実際に使う探索時間予算。
@@ -60,6 +61,17 @@ MIN_CONSTRUCT_SLICE = 20.0
 # 貪欲構築時にプールとして見せる「window(手前から何件か)」の候補。
 # None は無制限(残り全件)。
 WINDOW_CANDIDATES = [15, 20, 25, 30, None]
+# Phase17: optimize() 全体の非常用の最終安全弁(壁時計、秒)。本番の optimization_timeout
+# (180s、実効上限170s)を絶対に踏まないための保険であり、通常は発火しない。
+#
+# 探索の打ち切り自体は planner.SearchBudget の「消費ユニット」で決まる(=決定的)。
+# 本環境より遅いマシンでは同じユニット数の消化に時間がかかるが、その場合でもこの安全弁が
+# 発火するまでは最後まで決定的に探索しきる(=マシン速度に依らず同じ順序を返す)。
+# 逆に本環境より速いマシンでは同じ探索を短時間で終える(安全側)。
+HARD_WALL_LIMIT = 165.0
+# time_budget を短く指定した開発時(--optimize-budget 30 等)にも比例した安全弁を掛ける。
+# 較正誤差(実効速度が想定の 1/1.4 まで落ちる)まではユニット予算を使い切れる余裕になる。
+HARD_WALL_FACTOR = 1.4
 
 
 def _volume_of(item: dict) -> float:
@@ -190,16 +202,23 @@ PLACEMENT_PENALTY_WEIGHT = 0.5
 def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
                  time_budget: float = DEFAULT_TIME_BUDGET) -> list[int]:
     start = time.perf_counter()
-    deadline = start + time_budget
+    # Phase17: 探索の総量は「秒」ではなく決定的なユニット数で持つ。壁時計は
+    # 非常用の最終安全弁(hard_deadline)としてのみ使い、通常は発火しない。
+    hard_deadline = start + min(HARD_WALL_LIMIT, time_budget * HARD_WALL_FACTOR)
+    total_budget = planner.SearchBudget.from_seconds(time_budget, hard_deadline=hard_deadline)
 
     # time_budget を短く指定した開発時(local_evalの--optimize-budget等)でも、
-    # 定数を固定のままだと「残り時間 < MIN_CONSTRUCT_SLICE」で即打ち切りになり、
+    # 定数を固定のままだと「残り予算 < MIN_CONSTRUCT_SLICE」で即打ち切りになり、
     # 貪欲構築が一度も走らずヒューリスティック順のままになってしまう。
     # 本番相当(165s+)では従来の定数と一致するよう min() で頭打ちにしつつ、
     # 短い time_budget では予算に比例させて必ず何回かは構築が回るようにする。
+    # (以下はすべて「名目秒」。planner.UNITS_PER_SEC で決定的にユニットへ換算する。)
     min_construct_slice = min(MIN_CONSTRUCT_SLICE, max(1.0, time_budget * 0.15))
     final_margin = min(FINAL_MARGIN, max(0.2, time_budget * 0.05))
     max_validate_slice = min(MAX_VALIDATE_SLICE, max(0.5, time_budget * 0.3))
+    u = planner.UNITS_PER_SEC
+    min_construct_units = min_construct_slice * u
+    final_margin_units = final_margin * u
 
     heuristic_order = order_items(item_list)
 
@@ -221,13 +240,12 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     prepacked_ids = geo.initial_prepacked_ids(container_list)
 
     def validate(order: list[int]) -> tuple[float, int] | None:
-        """戻り値 None は「時間切れで評価できなかった」の意(比較対象にしない)。"""
-        now = time.perf_counter()
-        if now > deadline:
+        """戻り値 None は「予算切れで評価できなかった」の意(比較対象にしない)。"""
+        if total_budget.exhausted():
             return None
-        vdeadline = min(deadline, now + max_validate_slice)
         placed_ids, placed_volume, risk_adjusted_volume, violation_ratio = simulate.simulate_order(
-            container_list, items_by_index, order, k, vdeadline, prepacked_ids=prepacked_ids)
+            container_list, items_by_index, order, k,
+            total_budget.child_seconds(max_validate_slice), prepacked_ids=prepacked_ids)
         count = len(placed_ids)
         penalty = PLACEMENT_PENALTY_WEIGHT * total_container_volume * violation_ratio
         return (risk_adjusted_volume - penalty, count)
@@ -249,14 +267,13 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     rng = np.random.default_rng(0)
     all_indices = set(items_by_index.keys())
 
-    def try_construct(seed_items, window, use_noise, slice_budget):
+    def try_construct(seed_items, window, use_noise, slice_units):
         nonlocal best_order, best_score
-        if slice_budget <= 0:
+        if slice_units <= 0:
             return
-        slice_deadline = time.perf_counter() + slice_budget
         try:
             order = simulate.greedy_construct_order(
-                container_list, seed_items, slice_deadline,
+                container_list, seed_items, total_budget.child(slice_units),
                 per_step_time_budget=PER_STEP_TIME_BUDGET,
                 rng=rng if use_noise else None,
                 score_noise=0.35 if use_noise else 0.0,
@@ -275,31 +292,41 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # これはPhase6-8で個別に調整されてきた基準戦略・基準配分そのものであり、他戦略を混ぜて
     # 時間配分を変えると(戦略数倍に時間を奪われ、結果としてこのフェーズ自体が薄まる)回帰する
     # ことをPhase9の実験で確認したため、ここは従来通り体積優先1本のみで手厚く行う。
-    # 各候補には「残り時間 ÷ 残り候補数」を均等配分する(先の候補が早く自然終了すれば、
-    # 後の候補により多くの時間が回る)。CPU競合等で1ステップが遅くなっても、構築が
-    # 「合法手が尽きる」まで自然完了できるだけの最低時間(MIN_CONSTRUCT_SLICE)は必ず確保し、
+    # 各候補には「残り予算 ÷ 残り候補数」を均等配分する(先の候補が早く自然終了すれば、
+    # 後の候補により多くの予算が回る)。1ステップの評価コストが想定より大きくても、構築が
+    # 「合法手が尽きる」まで自然完了できるだけの最低予算(MIN_CONSTRUCT_SLICE)は必ず確保し、
     # 尻切れによる不当な低評価(=品質比較にならない)を避ける。
+    #
+    # Phase17: ここは旧実装で壁時計の「残り時間」を見ていた最大の非決定性源だった。
+    # 残りユニットに置き換えたことで、リスタート回数 N も各リスタートに配られる予算も
+    # 決定的になる。さらに各リスタートの結果は N に依存しない(リスタート i の乱数列は
+    # 0..i-1 の消費だけで決まり、それらも決定的)ため、build_order は
+    # 「決定的な系列の先頭 N 個の argmax」になり、予算を増やすと目的関数が単調に
+    # 改善する(=シーン単位の budget 非単調性が構造的に消える)。
     default_items = strategy_orders[0][1]
     pending_windows = list(WINDOW_CANDIDATES)
     while pending_windows:
-        now = time.perf_counter()
-        remaining = deadline - final_margin - now
-        if remaining < min_construct_slice:
+        if total_budget.exhausted():   # 非常用安全弁が発火した場合のみ真になりうる
+            break
+        remaining = total_budget.remaining() - final_margin_units
+        if remaining < min_construct_units:
             break
         window = pending_windows.pop(0)
-        slice_budget = max(min_construct_slice, remaining / (len(pending_windows) + 1))
-        slice_budget = min(slice_budget, remaining)
-        try_construct(default_items, window, use_noise=False, slice_budget=slice_budget)
+        slice_units = max(min_construct_units, remaining / (len(pending_windows) + 1))
+        slice_units = min(slice_units, remaining)
+        try_construct(default_items, window, use_noise=False, slice_units=slice_units)
 
-    # フェーズ2: 残り時間でランダム化(shuffle+noise)リスタートを繰り返し、
+    # フェーズ2: 残り予算でランダム化(shuffle+noise)リスタートを繰り返し、
     # window と戦略の両方をランダムに振って多様性を確保する(単一戦略への依存を避ける)。
     while True:
-        now = time.perf_counter()
-        remaining = deadline - final_margin - now
-        if remaining < min_construct_slice:
+        if total_budget.exhausted():   # 非常用安全弁が発火した場合のみ真になりうる
+            break
+        remaining = total_budget.remaining() - final_margin_units
+        if remaining < min_construct_units:
             break
         window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
         _, seed_items = strategy_orders[int(rng.integers(0, len(strategy_orders)))]
-        try_construct(seed_items, window, use_noise=True, slice_budget=min(remaining, min_construct_slice * 2))
+        try_construct(seed_items, window, use_noise=True,
+                      slice_units=min(remaining, min_construct_units * 2))
 
     return best_order
