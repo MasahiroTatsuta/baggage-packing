@@ -54,10 +54,22 @@ PER_STEP_TIME_BUDGET = 3.0
 MAX_VALIDATE_SLICE = 12.0
 # 最終的な締切ぎりぎりまで新しいリスタートを始めないための安全マージン。
 FINAL_MARGIN = 6.0
-# 貪欲構築の1回あたりの最低保証時間。実行環境の負荷変動(CPU競合等)で1ステップが
-# 想定より遅くなっても、window探索の各候補が「時間切れによる尻切れ」で不当に低評価
-# されないための下限(=最悪ケースでも構築が自然完了(合法手が尽きる)まで待てるようにする)。
-MIN_CONSTRUCT_SLICE = 20.0
+# 貪欲構築1回(=1リスタート)に配る予算[名目秒]。
+#
+# Phase17(ターゲット2): **総予算に依存しない固定値**であることが本質的に重要。
+# ターゲット1(決定化)だけでは予算に対する単調性は回復しなかった(実測: シーン単位の
+# スプレッド平均 5.33->6.76 と、むしろ拡大)。原因は、旧実装がこの配分を
+# 「残り予算 ÷ 残り候補数」で決めており、しかも下限自体も time_budget に比例させていたため、
+# **総予算が変わるとリスタート i に配られる予算も変わり、結果として順序そのものが変わる**
+# ことにあった。つまり予算を増やすと「同じ系列をより多く辿る」のではなく
+# 「まるごと別の系列を辿る」ため、改善するか悪化するかが事実上ランダムになる。
+#
+# 固定値にすると、リスタート i の結果は総予算に依存しなくなり、小さい予算の系列が
+# 大きい予算の系列の**接頭辞**になる。build_order は best-of-N なので、N が増えれば
+# 目的関数は単調に改善する(tools/phase17_restart_trace.py が接頭辞性を直接検査する)。
+CONSTRUCT_SLICE = 20.0
+# フェーズ2(ランダムリスタート)の1回あたり予算は従来どおりフェーズ1の2倍。
+PHASE2_SLICE_FACTOR = 2.0
 # 貪欲構築時にプールとして見せる「window(手前から何件か)」の候補。
 # None は無制限(残り全件)。
 WINDOW_CANDIDATES = [15, 20, 25, 30, None]
@@ -207,17 +219,21 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     hard_deadline = start + min(HARD_WALL_LIMIT, time_budget * HARD_WALL_FACTOR)
     total_budget = planner.SearchBudget.from_seconds(time_budget, hard_deadline=hard_deadline)
 
-    # time_budget を短く指定した開発時(local_evalの--optimize-budget等)でも、
-    # 定数を固定のままだと「残り予算 < MIN_CONSTRUCT_SLICE」で即打ち切りになり、
-    # 貪欲構築が一度も走らずヒューリスティック順のままになってしまう。
-    # 本番相当(165s+)では従来の定数と一致するよう min() で頭打ちにしつつ、
-    # 短い time_budget では予算に比例させて必ず何回かは構築が回るようにする。
+    # Phase17(ターゲット2): 1リスタートあたりの配分・検証枠・最終マージンはすべて
+    # **総予算に依存しない固定値**にする(理由は CONSTRUCT_SLICE のコメント参照)。
+    # 旧実装はこれらを time_budget に比例させており、それ自体が予算非単調性の原因だった。
     # (以下はすべて「名目秒」。planner.UNITS_PER_SEC で決定的にユニットへ換算する。)
-    min_construct_slice = min(MIN_CONSTRUCT_SLICE, max(1.0, time_budget * 0.15))
-    final_margin = min(FINAL_MARGIN, max(0.2, time_budget * 0.05))
-    max_validate_slice = min(MAX_VALIDATE_SLICE, max(0.5, time_budget * 0.3))
+    #
+    # 例外は「1リスタート分すら入らないほど短い開発用予算」の場合だけ。ここだけは
+    # 何も構築せずヒューリスティック順を返してしまうのを避けるため予算に比例させる
+    # (本フェーズの掃引水準 30/60/120/165 はすべて固定値側に入るので、単調性の
+    #  検証には影響しない)。
+    construct_slice = CONSTRUCT_SLICE if time_budget >= CONSTRUCT_SLICE else max(1.0, time_budget * 0.5)
+    final_margin = FINAL_MARGIN if time_budget >= CONSTRUCT_SLICE else max(0.2, time_budget * 0.05)
+    max_validate_slice = MAX_VALIDATE_SLICE
     u = planner.UNITS_PER_SEC
-    min_construct_units = min_construct_slice * u
+    construct_units = construct_slice * u
+    phase2_units = construct_units * PHASE2_SLICE_FACTOR
     final_margin_units = final_margin * u
 
     heuristic_order = order_items(item_list)
@@ -292,41 +308,33 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # これはPhase6-8で個別に調整されてきた基準戦略・基準配分そのものであり、他戦略を混ぜて
     # 時間配分を変えると(戦略数倍に時間を奪われ、結果としてこのフェーズ自体が薄まる)回帰する
     # ことをPhase9の実験で確認したため、ここは従来通り体積優先1本のみで手厚く行う。
-    # 各候補には「残り予算 ÷ 残り候補数」を均等配分する(先の候補が早く自然終了すれば、
-    # 後の候補により多くの予算が回る)。1ステップの評価コストが想定より大きくても、構築が
-    # 「合法手が尽きる」まで自然完了できるだけの最低予算(MIN_CONSTRUCT_SLICE)は必ず確保し、
-    # 尻切れによる不当な低評価(=品質比較にならない)を避ける。
+    # Phase17(ターゲット2): 各リスタートには**固定量**(construct_units)を配る。
+    # 旧実装の「残り予算 ÷ 残り候補数」は総予算に依存するため、予算を変えると
+    # リスタート i の結果そのものが変わってしまい、単調性が原理的に成立しなかった。
     #
-    # Phase17: ここは旧実装で壁時計の「残り時間」を見ていた最大の非決定性源だった。
-    # 残りユニットに置き換えたことで、リスタート回数 N も各リスタートに配られる予算も
-    # 決定的になる。さらに各リスタートの結果は N に依存しない(リスタート i の乱数列は
-    # 0..i-1 の消費だけで決まり、それらも決定的)ため、build_order は
-    # 「決定的な系列の先頭 N 個の argmax」になり、予算を増やすと目的関数が単調に
-    # 改善する(=シーン単位の budget 非単調性が構造的に消える)。
+    # あわせて「満額の枠が入らないなら新しいリスタートを始めない」ことで、
+    # 尻切れリスタート(=総予算によって内容が変わる唯一の残りケース)も排除する。
+    # これにより小さい予算の系列は大きい予算の系列の**接頭辞**になり、
+    # build_order は「決定的な系列の先頭 N 個の argmax」= N に対して単調になる。
     default_items = strategy_orders[0][1]
     pending_windows = list(WINDOW_CANDIDATES)
     while pending_windows:
         if total_budget.exhausted():   # 非常用安全弁が発火した場合のみ真になりうる
             break
-        remaining = total_budget.remaining() - final_margin_units
-        if remaining < min_construct_units:
+        if total_budget.remaining() < construct_units + final_margin_units:
             break
         window = pending_windows.pop(0)
-        slice_units = max(min_construct_units, remaining / (len(pending_windows) + 1))
-        slice_units = min(slice_units, remaining)
-        try_construct(default_items, window, use_noise=False, slice_units=slice_units)
+        try_construct(default_items, window, use_noise=False, slice_units=construct_units)
 
     # フェーズ2: 残り予算でランダム化(shuffle+noise)リスタートを繰り返し、
     # window と戦略の両方をランダムに振って多様性を確保する(単一戦略への依存を避ける)。
     while True:
         if total_budget.exhausted():   # 非常用安全弁が発火した場合のみ真になりうる
             break
-        remaining = total_budget.remaining() - final_margin_units
-        if remaining < min_construct_units:
+        if total_budget.remaining() < phase2_units + final_margin_units:
             break
         window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
         _, seed_items = strategy_orders[int(rng.integers(0, len(strategy_orders)))]
-        try_construct(seed_items, window, use_noise=True,
-                      slice_units=min(remaining, min_construct_units * 2))
+        try_construct(seed_items, window, use_noise=True, slice_units=phase2_units)
 
     return best_order
