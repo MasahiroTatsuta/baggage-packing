@@ -376,6 +376,106 @@ def _candidate_xy(container, half, obstacles, grid_density: int = 1):
     return np.array(sorted(pts), dtype=np.float64)
 
 
+# ---------------------------------------------------------------------------
+# Phase19(ターゲット1): 到達不能候補の早期枝刈り
+# ---------------------------------------------------------------------------
+# tools/diagnose_stall.py 相当の停止時失敗内訳計測で、_evaluate_candidates が棄却する
+# 候補の大半が legal1(y方向搬入スイープの掃引衝突、_apply_obstacle_filters phase1)由来
+# だった(fail_transport_y、gen_shelf_patternAで62.3%)。この判定は候補の着地高さ
+# (world_z、ひいてはそこから決まる sweep_z)に依存するため、素朴には「着地面評価(landing_top
+# の算出)より前」には判定できないように見える。
+#
+# しかし sweep_z は「landing_top(常に thickness 以上)+ half[2] + REST_CLEARANCE」に
+# 0以上の浮上量を足し、最後に ceiling_sweep で頭打ちにする値なので、候補の (x,y) に一切
+# 依存しない決定的な範囲 [SWEEP_Z_MIN, SWEEP_Z_MAX] に必ず収まる(下記 _y_sweep_range 参照)。
+# したがって「その範囲全体が、XY方向で重なる既存障害物のz遮断区間(_apply_obstacle_filters
+# の phase1 と同一の margin_xy=SAFETY_MARGIN_XY・margin_z=SWEEP_Z_MARGIN)で切れ目なく
+# 覆われている」候補は、実際の着地高さが何であれ legal1=False が確定する。これは近似ではなく
+# 厳密な必要条件の判定であり、後段の判定結果(=最終出力)を一切変えない
+# (tools/phase17_dump.py の digest 一致で検証済み。§results/phase19_report.md T1)。
+def _y_sweep_range(container, half):
+    """候補の(x,y)によらない sweep_z の到達可能範囲 [z_min, z_max] を返す。
+
+    z_min: landing_top>=thickness (常に成立) から、床置きが on_floor 相当の is_resting
+           (effective_start=0) になるため達成できる真の最小値。
+    z_max: _evaluate_candidates の sweep_z = min(ceiling_sweep, world_z+effective_start) が
+           常に頭打ちにする ceiling_sweep(候補位置に依存しない)。
+    z_max <= z_min の場合(この向きの荷物がそもそも高さ的に入り得ない)は None を返し、
+    呼び出し元は枝刈りをスキップする(安全側: 判定を real evaluator に委ねる)。
+    """
+    thickness = container['thickness']; height = container['height']
+    buffer = container.get('buffer', 0.0)
+    z_min = thickness + half[2] + geo.REST_CLEARANCE
+    z_max = height + buffer - thickness - half[2] - geo.START_MARGIN
+    if z_max <= z_min:
+        return None
+    return z_min, z_max
+
+
+def _y_sweep_unreachable_mask(container, half, candidate_xy, obstacles):
+    """
+    候補ごとに「到達可能などの sweep_z を選んでも legal1(y搬入スイープ)が必ず失敗する」かを
+    厳密に判定する。obstacles は _evaluate_candidates の legal1/legal2 判定と同一の一覧
+    (_collect_obstacles の戻り値)をそのまま渡すこと。
+
+    アルゴリズム: 各障害物の z 遮断区間([obstacle z範囲] ± half[2] ± SWEEP_Z_MARGIN、
+    [z_min,z_max] にクリップ)を求め、区間の下端でソートしてから候補ごとに「区間の合併が
+    [z_min,z_max] を隙間なく覆うか」を古典的な線分被覆走査で判定する(候補ごとに異なるのは
+    どの障害物がXYで重なる=有効かだけなので、有効フラグを numpy でベクトル化しつつ同じ
+    走査順序を全候補で共有することで O(候補数 × 障害物数) に収める)。
+
+    戻り値: shape (N,) bool。True = 「どんな着地高さでもY搬入不可能」と確定した候補。
+    """
+    n = candidate_xy.shape[0]
+    if n == 0 or not obstacles:
+        return np.zeros(n, dtype=bool)
+
+    zr = _y_sweep_range(container, half)
+    if zr is None:
+        return np.zeros(n, dtype=bool)
+    z_min, z_max = zr
+
+    ox = container['center'][0]
+    width = container['width']
+    local_x = candidate_xy[:, 0]; local_y = candidate_xy[:, 1]
+
+    x_min_local, x_max_local = geo.transport_x_bounds(container, half[0])
+    x_min_local -= ox; x_max_local -= ox
+    start_x_world = np.clip(local_x, x_min_local, x_max_local) + ox
+
+    y_entry = -width / 2.0
+    y1_lo = np.minimum(y_entry, local_y); y1_hi = np.maximum(y_entry, local_y)
+    sx_lo = start_x_world - half[0]; sx_hi = start_x_world + half[0]
+    sy_lo = y1_lo - half[1]; sy_hi = y1_hi + half[1]
+
+    blocked = []
+    for center, oh in obstacles:
+        lo = max(z_min, center[2] - oh[2] - half[2] - geo.SWEEP_Z_MARGIN)
+        hi = min(z_max, center[2] + oh[2] + half[2] + geo.SWEEP_Z_MARGIN)
+        if hi <= lo:
+            continue
+        blocked.append((lo, hi, center, oh))
+    if not blocked:
+        return np.zeros(n, dtype=bool)
+    blocked.sort(key=lambda t: t[0])
+
+    eps = 1e-9
+    covered_hi = np.full(n, z_min)
+    gap_found = np.zeros(n, dtype=bool)
+    for lo, hi, center, oh in blocked:
+        if np.all(gap_found):
+            break
+        sep_x = (sx_hi + geo.SAFETY_MARGIN_XY <= center[0] - oh[0]) | (center[0] + oh[0] + geo.SAFETY_MARGIN_XY <= sx_lo)
+        sep_y = (sy_hi + geo.SAFETY_MARGIN_XY <= center[1] - oh[1]) | (center[1] + oh[1] + geo.SAFETY_MARGIN_XY <= sy_lo)
+        active = ~(sep_x | sep_y)
+        pending = active & ~gap_found
+        would_gap = pending & (lo > covered_hi + eps)
+        gap_found = gap_found | would_gap
+        extend = pending & ~would_gap
+        covered_hi = np.where(extend, np.maximum(covered_hi, hi), covered_hi)
+    return (~gap_found) & (covered_hi >= z_max - eps)
+
+
 def _apply_obstacle_filters(world_pos, half, obstacles, x_lo_arr, x_hi_arr, y_lo_arr, y_hi_arr, z_center):
     """
     world_pos: (N,3) 最終目標点。x_lo_arr..z_center: 搬入経路(掃引)の外接範囲。
@@ -865,6 +965,14 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
                     if cache_key not in candidate_cache:
                         half = geo.half_extent(lwh, orn_idx)
                         full_xy = _candidate_xy(container, half, obstacles, grid_density=grid_density)
+                        # Phase19(ターゲット1): 着地面評価より前に、どの着地高さを選んでも
+                        # y搬入スイープが必ず失敗する候補を厳密に間引く(出力不変、§planner.py
+                        # _y_sweep_unreachable_mask のコメント参照)。以降のy_slice絞り込み・
+                        # _evaluate_candidates はこの縮小済み配列に対して行われる。
+                        if full_xy.shape[0] > 0:
+                            unreachable = _y_sweep_unreachable_mask(container, half, full_xy, obstacles)
+                            if np.any(unreachable):
+                                full_xy = full_xy[~unreachable]
                         candidate_cache[cache_key] = (half, full_xy)
                         # 候補XY集合の構築コストも同じユニット系で計上する(評価そのものでは
                         # ないが (pool_idx, orn) ごとに1回走る無視できない固定費)。
