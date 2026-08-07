@@ -24,6 +24,7 @@ simulate.py の自前シミュレータ(pybullet不使用・planner.pyと同一�
   4. 180s のタイムアウト(→デフォルト順)は絶対に踏まないよう、time_budget に対して
      十分なマージンを取って必ず打ち切る。
 """
+import os
 import time
 
 import numpy as np
@@ -218,6 +219,27 @@ def _better(candidate: tuple[float, int], current: tuple[float, int]) -> bool:
 # (=placement 1pt は fill 0.5pt 相当。D03 の 20pt 減点は fill 10pt 相当の価値)。
 PLACEMENT_PENALTY_WEIGHT = 0.5
 
+# Phase18: 順序探索の目的関数に stability の幾何代理(geo.stacking_instability_risk)を
+# 組み込む重み。Phase17 で決定性を確保したことで gen_2containers_priority の探索が
+# 「影シミュレータの目的関数(risk調整済み体積 − placementペナルティ)は改善するが実
+# stability は悪化する」順序に常に収束することが判明した(results/phase17_report.md §3.5)。
+# 目的関数に stability の代理が一切無かったことが原因。
+#
+# 初版は PLACEMENT_PENALTY_WEIGHT と同じ構造(平均リスク[0,1] * total_container_volume の
+# 加算ペナルティ)を試したが、bulky系シーン(荷物が大きく、積み上げなしでは大半が入らない)で
+# 「達成可能な体積よりペナルティのほうが大きい」ため何も置かない退化解に収束する重大な回帰を
+# 引き起こした(実測: suite_A07_1c_40_bulky で fill_strict 28.07->0.00)。26シーンスイートでの
+# 過適合チェック(指示3)で発見。simulate.simulate_order 側で「荷物ごとの寄与を超えては
+# 割り引かない」設計に直してある(simulate.pyのdocstring参照)ため、この重みは
+# 「stacking_instability_risk=1.0(閾値到達)のときその荷物の寄与を何割引くか」という
+# [0,1]に近いスケールの意味に変わった(1.0=リスク最大でその荷物の寄与を0にする)。
+#
+# 再較正(bulky系の退化を修正した後): gen_2containers_priority + suite_A07_1c_40_bulky を
+# 同時に見る掃引で、W<=1.0 では無効果(gen_2containers_priorityは18.24/96.87のまま)、
+# W=2.0 で修正(20.54/98.23)、W=3.0〜5.0 はプラトー(A07はむしろ改善: 27.18->30.35)。
+# 崖のすぐ上ではなくプラトー中央寄りの 2.5 を採用する。
+STABILITY_PENALTY_WEIGHT = float(os.environ.get('MYSOLVER_STABILITY_W', '2.5'))
+
 
 def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
                  time_budget: float = DEFAULT_TIME_BUDGET) -> list[int]:
@@ -267,9 +289,14 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         """戻り値 None は「予算切れで評価できなかった」の意(比較対象にしない)。"""
         if total_budget.exhausted():
             return None
-        placed_ids, placed_volume, risk_adjusted_volume, violation_ratio = simulate.simulate_order(
-            container_list, items_by_index, order, k,
-            total_budget.child_seconds(max_validate_slice), prepacked_ids=prepacked_ids)
+        # Phase18: stability の幾何代理は risk_adjusted_volume 自体(荷物ごとの割引)に
+        # 織り込み済み(simulate.simulate_order の stability_weight 引数)。ここで返る
+        # stability_risk_ratio は診断用(coverageの平均リスク)であり目的関数には使わない。
+        placed_ids, placed_volume, risk_adjusted_volume, violation_ratio, stability_risk_ratio = \
+            simulate.simulate_order(
+                container_list, items_by_index, order, k,
+                total_budget.child_seconds(max_validate_slice), prepacked_ids=prepacked_ids,
+                stability_weight=STABILITY_PENALTY_WEIGHT)
         count = len(placed_ids)
         penalty = PLACEMENT_PENALTY_WEIGHT * total_container_volume * violation_ratio
         return (risk_adjusted_volume - penalty, count)

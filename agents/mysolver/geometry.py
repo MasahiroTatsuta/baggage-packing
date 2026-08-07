@@ -160,6 +160,140 @@ def packed_obstacles(container: dict):
     return obstacles
 
 
+# --- Phase18: 積み上げの静的安定 幾何代理(影シミュレータのorder選択用) ---
+# 実 stability_score は shake test(pybullet の物理演算)でしか測れないが、offline探索
+# (ordering.build_order)は影シミュレータ(simulate.py)上でしか順序を評価できない。
+# 物理シミュレーションをそのまま足すのは高コストなため、静的力学から導ける必要条件2つを
+# 幾何だけで近似する:
+#   (a) 上下質量比: 上の荷物の質量が、直下で支持している既配置荷物群の合計質量に対して
+#       どれだけ重いか(heavy-over-light の度合い)。
+#   (b) 支持点凸包へのCoG投影: 剛体の静的安定の必要条件そのもの(接触点が張る支持多角形の
+#       外に重心があれば転倒モーメントが生じる)。CoGが支持多角形の境界にどれだけ近いか
+#       (=転倒までの余裕)を連続量として使う。
+# 床/棚に直接乗る配置(直下に既配置荷物が無い)は、支持面がコンテナ底面/棚上面という
+# 常にCoGを覆う広い剛体面なので、常に安定側(リスク0)として扱う。
+#
+# Phase18実測(tools診断、旧gen_2containers_priorityの探索中に生成された全候補順序を計測):
+# planner._evaluate_candidates の候補legality(MIN_UNION_SUPPORT_RATIO・span・centroid offset)
+# が既に「あからさまに際どい支持」を候補生成の時点でハード排除しているため、(a)(b)を単純な
+# 二値(違反/非違反)にすると閾値(質量比3.0倍・CoGがhull外)に一度も抵触せず
+# (実測: 122回の積み上げ全てで質量比<=1.63・CoGはhull境界から常に正の余裕を持つ)、
+# 目的関数への寄与が恒等的にゼロになり探索に一切影響しなかった。二値の必要条件としては
+# 満たされていても、「閾値ぎりぎり」ほど実物理(摩擦・剛性)的には不利という直感
+# (geo.fill_risk_factor が壁際配置を連続的に割り引くのと同じ発想)に基づき、[0,1] の
+# 連続リスクへ変更する: 質量比・CoG余裕とも「閾値に対する消費割合」を返し、閾値に近づくほど
+# 1へ、余裕があるほど0へ連続的に近づける。
+STACKING_MASS_RATIO = 3.0            # 上の荷物質量 <= この倍率 * 直下支持荷物群の合計質量 が「安全」の目安
+STACKING_CONTACT_Z_TOL = 0.02        # 「同じ高さ帯の支持」とみなすz許容差(planner.SUPPORT_LEVEL_TOLと同値)
+STACKING_COG_SAFE_MARGIN = 0.05      # CoGが支持多角形境界からこれだけ内側(m)にあれば安全(リスク0)
+
+
+def convex_hull_2d(points: np.ndarray) -> np.ndarray:
+    """Andrew's monotone chain。points: (N,2) -> 凸包頂点(CCW順、(M,2))。
+    scipy不使用(理由は本セクション冒頭のコメント参照)。"""
+    pts = np.unique(np.asarray(points, dtype=np.float64), axis=0)
+    if pts.shape[0] <= 2:
+        return pts
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    order = np.lexsort((pts[:, 1], pts[:, 0]))
+    pts = pts[order]
+    lower = []
+    for pt in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], pt) <= 0:
+            lower.pop()
+        lower.append(pt)
+    upper = []
+    for pt in pts[::-1]:
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], pt) <= 0:
+            upper.pop()
+        upper.append(pt)
+    return np.array(lower[:-1] + upper[:-1])
+
+
+def point_in_convex_polygon(hull: np.ndarray, point, tol: float = 1e-6) -> bool:
+    """hull は convex_hull_2d の戻り値(CCW)。頂点数<3(点・線分に退化)も扱う。"""
+    return signed_distance_to_convex_polygon(hull, point) >= -tol
+
+
+def signed_distance_to_convex_polygon(hull: np.ndarray, point) -> float:
+    """
+    hull(convex_hull_2d の戻り値、CCW)の境界までの符号付き距離[m]を返す。
+    正 = 内側にその距離だけ余裕がある、負 = 外側にその距離だけはみ出している。
+    厳密には「各辺を含む直線までの符号付き距離の最小値」であり、最近傍特徴が頂点の場合は
+    真の最短距離よりわずかに小さい(=より安全側に出る)近似になるが、連続なリスク指標としては
+    十分(点/線分に退化した場合は面としての内部を持たないため、内側扱いにはしない)。
+    """
+    n = hull.shape[0]
+    px, py = point
+    if n == 0:
+        return -np.inf
+    if n == 1:
+        return -float(np.hypot(hull[0, 0] - px, hull[0, 1] - py))
+    if n == 2:
+        ax, ay = hull[0]; bx, by = hull[1]
+        abx, aby = bx - ax, by - ay
+        length = float(np.hypot(abx, aby))
+        if length < 1e-12:
+            return -float(np.hypot(ax - px, ay - py))
+        return -abs((abx * (py - ay) - aby * (px - ax)) / length)
+    dists = []
+    for i in range(n):
+        ax, ay = hull[i]
+        bx, by = hull[(i + 1) % n]
+        abx, aby = bx - ax, by - ay
+        length = float(np.hypot(abx, aby))
+        if length < 1e-12:
+            continue
+        dists.append((abx * (py - ay) - aby * (px - ax)) / length)
+    return min(dists) if dists else 0.0
+
+
+def stacking_instability_risk(existing_items: list[dict], placed_item: dict, item_mass: float,
+                               mass_ratio: float = STACKING_MASS_RATIO,
+                               z_tol: float = STACKING_CONTACT_Z_TOL,
+                               cog_safe_margin: float = STACKING_COG_SAFE_MARGIN) -> tuple[bool, float]:
+    """
+    placed_item(pos/orn確定済み)の直下に既配置荷物(existing_items。placed_item自身は
+    含まない)があるか(is_stacked)と、あるならその積み上げの静的安定リスク(risk, [0,1])を
+    1回の接触計算で判定する。risk は (a)質量比 (b)CoG投影余裕 のうち悪い方
+    (max、=より危険な側)を採用する。
+    床/棚に直接乗る(直下に既配置荷物が無い)場合は is_stacked=False, risk=0.0
+    (=常に安定側、分母にも数えない)。
+    戻り値: (is_stacked, risk)
+    """
+    pos, half = item_world_aabb(placed_item)
+    item_bottom = pos[2] - half[2]
+    contacts = []
+    support_mass = 0.0
+    for other in existing_items:
+        if other.get('pos') is None or other.get('orn') is None:
+            continue
+        o_pos, o_half = item_world_aabb(other)
+        top = o_pos[2] + o_half[2]
+        if abs(top - item_bottom) > z_tol:
+            continue
+        x_lo = max(pos[0] - half[0], o_pos[0] - o_half[0])
+        x_hi = min(pos[0] + half[0], o_pos[0] + o_half[0])
+        y_lo = max(pos[1] - half[1], o_pos[1] - o_half[1])
+        y_hi = min(pos[1] + half[1], o_pos[1] + o_half[1])
+        if x_hi - x_lo > 1e-6 and y_hi - y_lo > 1e-6:
+            contacts.append((x_lo, x_hi, y_lo, y_hi))
+            support_mass += other.get('mass', 0.0)
+    if not contacts:
+        return False, 0.0
+    risk_mass = np.clip((item_mass / support_mass) / mass_ratio if support_mass > 0 else 1.0, 0.0, 1.0)
+    pts = []
+    for x_lo, x_hi, y_lo, y_hi in contacts:
+        pts.extend([(x_lo, y_lo), (x_lo, y_hi), (x_hi, y_lo), (x_hi, y_hi)])
+    hull = convex_hull_2d(np.array(pts))
+    margin = signed_distance_to_convex_polygon(hull, (pos[0], pos[1]))
+    risk_cog = float(np.clip(1.0 - margin / cog_safe_margin, 0.0, 1.0))
+    return True, max(float(risk_mass), risk_cog)
+
+
 def initial_prepacked_ids(container_list) -> dict:
     """各コンテナについて、エピソード開始時(get_init_states時点)から既に存在していた
     既配置荷物のindex集合を返す({container_index: frozenset(item_index)})。

@@ -45,7 +45,8 @@ def _place(container: dict, item: dict, action: dict) -> dict:
 
 def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], order: list[int],
                     lookahead_k: int, budget: planner.SearchBudget, per_step_time_budget: float = 0.7,
-                    prepacked_ids: dict | None = None) -> tuple[list[int], float, float]:
+                    prepacked_ids: dict | None = None,
+                    stability_weight: float = 1.0) -> tuple[list[int], float, float]:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
@@ -61,17 +62,42 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
 
     budget: planner.SearchBudget。この検証1回に使えるユニット予算(親=optimize全体の予算)。
 
+    stability_weight: Phase18。積み上げの幾何代理リスク(geo.stacking_instability_risk)を
+    risk調整済み体積へ割り引く強さ([0,1]のクリップ後の乗数 (1 - stability_weight*risk) を
+    その荷物自身の寄与にだけ掛ける)。**個々の荷物の寄与を超えては割り引けない**設計が
+    重要: 初版は「平均リスク率 * コンテナ総容積」を目的関数から一律に減算する加算ペナルティ
+    だったが、bulky系(荷物が大きく、積み上げなしでは大半が入らない)シーンで実際の
+    達成可能な体積(risk_adjusted_volume)よりペナルティのほうが大きくなり、「何も置かない
+    ほうが目的関数上は得」という退化解に収束する重大な回帰を引き起こした(実測:
+    suite_A07_1c_40_bulky で fill_strict 28.07->0.00, 40個中1個しか置かない順序が選ばれた)。
+    荷物ごとの寄与に対してのみ割り引く(=常に0以上)設計にすることで、「置かないほうが得」
+    という退化解を構造的に排除する。
+
     戻り値: (配置できた item index のリスト(配置順), 配置できた体積の合計,
-             risk調整済み体積の合計, placement違反率)。
+             risk調整済み体積の合計, placement違反率, stability平均リスク)。
     placement違反率は tools/scorer.calculate_placement_score と同じ定義の
     「優先コンテナがあるのに非優先コンテナへ入った優先手荷物の数 / 配置された優先手荷物の数」
     (既積みの優先手荷物も分母・分子に含む)。Phase11: 順序探索がこの違反を明示的に避けられる
     ようにするため(placement_score は離散ペナルティで、順序次第で 100 に戻せる)。
     risk調整済み体積は、各配置の壁からの余裕(geo.inclusion_slack_batch)を
-    geo.fill_risk_factor で [0,1] に変換し体積に掛けたものの総和。real evaluator の
-    厳しいinclusion_marginぎりぎりで壁ぎわに配置された荷物は、実機の沈降ドリフトで
-    fill集計から漏れるリスクが高いとみなして割り引く(Phase6: sim-to-realギャップ対策)。
-    offline探索(ordering.build_order)はこの値を目的関数の主指標として使う。
+    geo.fill_risk_factor で [0,1] に変換し、さらに積み上げの安定リスクで割り引いた体積の
+    総和。real evaluator の厳しいinclusion_marginぎりぎりで壁ぎわに配置された荷物は、
+    実機の沈降ドリフトでfill集計から漏れるリスクが高いとみなして割り引く
+    (Phase6: sim-to-realギャップ対策)。offline探索(ordering.build_order)はこの値を
+    目的関数の主指標として使う。
+    stability平均リスクは geo.stacking_instability_risk (Phase18: 実stability_score(shake
+    test)には無い、静的安定の必要条件の幾何代理) が返す [0,1] の連続リスクを積み上げ
+    (床/棚への直置きでない配置)についてのみ平均したもの(直置きは常に安定側で0扱い・
+    分母にも含めない)。診断・報告用に返すだけで、目的関数自体はこの平均値ではなく
+    上記の荷物ごとの割引(risk調整済み体積に織り込み済み)を使う。
+    実測(旧gen_2containers_priorityの探索で生成された全候補順序)では候補生成側
+    (planner._evaluate_candidates)の合法性判定が既に「あからさまに際どい支持」をハード
+    排除しているため、二値の違反フラグにすると閾値に一度も抵触せず目的関数への寄与が
+    恒等的にゼロになった。そのため「閾値に対する消費割合」を連続量として使う設計にしている
+    (geo.fill_risk_factor が壁際配置を連続的に割り引くのと同じ発想)。
+    Phase17までの目的関数(risk調整済み体積 − placementペナルティ)には stability の代理が
+    一切無く、目的関数上は改善するが実stabilityが悪化する順序に探索が収束する問題があった
+    (results/phase17_report.md §3.5)。
     """
     containers = clone_containers(container_list)
     has_prio_container = any(c.get('is_prioritized', False) for c in containers)
@@ -97,6 +123,8 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     placed_ids: list[int] = []
     placed_volume = 0.0
     risk_adjusted_volume = 0.0
+    n_stacked = 0
+    stacking_risk_sum = 0.0
 
     while pool:
         # Phase17: 壁時計ではなく親の残ユニットで打ち切る(同一入力なら同じ手数・同じ結果)。
@@ -109,7 +137,14 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
             break
         item = pool.pop(action['item_idx'])
         container = containers[action['container_idx']]
-        container['packed_items'].append(_place(container, item, action))
+        placed = _place(container, item, action)
+        # Phase18: 積む前(=直下候補になりうる既配置荷物だけ)の packed_items に対して判定する。
+        is_stacked, stacking_risk = geo.stacking_instability_risk(
+            container['packed_items'], placed, item.get('mass', 0.0))
+        container['packed_items'].append(placed)
+        if is_stacked:
+            n_stacked += 1
+            stacking_risk_sum += stacking_risk
         placed_ids.append(item['index'])
         if item.get('is_prioritized', False):
             n_prio_placed += 1
@@ -117,11 +152,17 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
                 n_prio_misrouted += 1
         item_volume = item['length'] * item['width'] * item['height']
         placed_volume += item_volume
-        risk_adjusted_volume += item_volume * geo.fill_risk_factor(info.get('slack', geo.REAL_INCLUSION_MARGIN))
+        # Phase18: 積み上げリスクは「この荷物自身の寄与」だけを割り引く(0未満にはしない)。
+        # コンテナ総容積に対する加算ペナルティにすると、達成可能な体積より罰則が大きくなる
+        # シーンで「何も置かない」ほうが目的関数上有利になる退化解を生む(関数docstring参照)。
+        stability_discount = max(0.0, 1.0 - stability_weight * stacking_risk)
+        risk_adjusted_volume += (item_volume * geo.fill_risk_factor(info.get('slack', geo.REAL_INCLUSION_MARGIN))
+                                  * stability_discount)
         refill()
 
     violation_ratio = n_prio_misrouted / n_prio_placed if n_prio_placed else 0.0
-    return placed_ids, placed_volume, risk_adjusted_volume, violation_ratio
+    stability_risk_ratio = stacking_risk_sum / n_stacked if n_stacked else 0.0
+    return placed_ids, placed_volume, risk_adjusted_volume, violation_ratio, stability_risk_ratio
 
 
 def greedy_construct_order(container_list: list[dict], item_list: list[dict], budget: planner.SearchBudget,
