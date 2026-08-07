@@ -234,11 +234,33 @@ PLACEMENT_PENALTY_WEIGHT = 0.5
 # 「stacking_instability_risk=1.0(閾値到達)のときその荷物の寄与を何割引くか」という
 # [0,1]に近いスケールの意味に変わった(1.0=リスク最大でその荷物の寄与を0にする)。
 #
-# 再較正(bulky系の退化を修正した後): gen_2containers_priority + suite_A07_1c_40_bulky を
-# 同時に見る掃引で、W<=1.0 では無効果(gen_2containers_priorityは18.24/96.87のまま)、
-# W=2.0 で修正(20.54/98.23)、W=3.0〜5.0 はプラトー(A07はむしろ改善: 27.18->30.35)。
-# 崖のすぐ上ではなくプラトー中央寄りの 2.5 を採用する。
-STABILITY_PENALTY_WEIGHT = float(os.environ.get('MYSOLVER_STABILITY_W', '2.5'))
+# 再較正(bulky系の退化を修正した後): gen_2containers_priority + suite_A07_1c_40_bulky の
+# 2シーンだけを見る掃引では W<=1.0 で無効果(gen_2containers_priorityは18.24/96.87のまま)、
+# W=2.0 で修正(20.54/98.23)、W=3.0〜5.0 はプラトー(A07はむしろ改善: 27.18->30.35)に見えたため、
+# 一度は 2.5 を採用候補にした。
+#
+# **しかし指示3の26シーンスイート検証(過適合チェック)で重大な回帰が見つかり、不採用にした**
+# (results/phase18_report.md §3参照)。W=2.5 で fill_strict がスイート平均 24.37→22.93(−1.44、
+# ノイズ床±0.26を大きく超える)に悪化し、suite_D02_A_1c_40_prioheavy_nocont は
+# fill_strict 32.42→14.06(−18.36)、suite_C02_2c_55_shelfprio は placement_score が
+# 100→85.71 に落ちる(制約違反)。原因を切り分けるため W を 1.1〜2.5 の範囲で細かく
+# 掃引したところ、次の「崖の不一致」が判明した:
+#   - gen_2containers_priority は W=1.1(未修正: 18.24)→W=1.2(修正: 20.54)の間に不連続に切り替わる。
+#   - suite_D02 は W=1.1 の時点で既に破綻しており(14.06)、W=1.2〜2.5 でも変化しない
+#     (=gen_2containers_priorityが直る前に既に壊れている。両者を同時に満たす区間が存在しない)。
+#   - suite_C02 は W=1.2/1.4 で 24.70(無傷)なのに W=1.3 だけ 27.14 に跳ねる(非単調)。
+#     目的関数への滑らかな重みづけのつもりが、貪欲構築+リスタートという離散探索に対しては
+#     「別の局所解へ飛び移るスイッチ」として作用するため、重みに対して滑らかに応答しない。
+# この2点(a: シーン間で質量比の「安全な尺度」が大きく異なり閾値を共有できない、
+# b: 離散探索の出力は重みに対して非連続)から、**単一の大域重みでは較正不能**と判断した。
+# Phase14の教訓(重みには崖がある)がここでも再現しており、しかも今回はスイープで崖を
+# 避ける「安全な水準」自体が存在しないケースだった。
+#
+# 結論: 幾何代理(geo.stacking_instability_risk)自体・discount機構(荷物ごとにのみ働き
+# 加算ペナルティにしない設計)は次フェーズ(trust region + ρ-test)でも土台として使える見込みが
+# あるため実装は残すが、**デフォルトの重みは 0.0(=無効・Phase17と完全に同じ挙動)に戻す**。
+# 有効化したいときは環境変数 MYSOLVER_STABILITY_W で明示的に上書きすること。
+STABILITY_PENALTY_WEIGHT = float(os.environ.get('MYSOLVER_STABILITY_W', '0.0'))
 
 
 def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
