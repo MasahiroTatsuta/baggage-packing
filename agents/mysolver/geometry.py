@@ -115,11 +115,24 @@ def quat_abs_rotmat(orn) -> np.ndarray:
 
 
 def item_world_aabb(item: dict):
-    """既配置荷物のワールドAABB(中心, 半寸)を実姿勢(orn)から保守的に算出する。"""
+    """既配置荷物のワールドAABB(中心, 半寸)を実姿勢(orn)から保守的に算出する。
+
+    Phase19(ターゲット2): 荷物のpos/ornは配置時に一度だけ設定され、以降変更されない
+    (agents/mysolver 内で再代入する箇所は simulate.py の配置処理1箇所のみで、既存の
+    要素を後から書き換える経路は無い)。そのため計算結果を item dict にメモ化してよい。
+    offline探索(simulate.py)は同一の既配置荷物(dictオブジェクトそのもの)に対し
+    毎ステップ(=毎 planner.plan 呼び出し)このAABBを再計算していたが、その大部分は
+    quat_abs_rotmat(pybulletのクォータニオン→行列変換呼び出し)の再実行だった。
+    キャッシュは出力を一切変えない(近似ではなく厳密な記憶化)。
+    """
+    cached = item.get('_aabb_cache')
+    if cached is not None:
+        return cached
     pos = np.array(item['pos'], dtype=np.float64)
     half_local = np.array([item['length'] / 2.0, item['width'] / 2.0, item['height'] / 2.0])
     absR = quat_abs_rotmat(item['orn'])
     half_world = absR @ half_local
+    item['_aabb_cache'] = (pos, half_world)
     return pos, half_world
 
 
@@ -152,12 +165,36 @@ def static_obstacles(container: dict):
 
 
 def packed_obstacles(container: dict):
-    obstacles = []
-    for item in container.get('packed_items', []):
+    """
+    Phase19(ターゲット2): container dict に増分キャッシュ(_packed_obstacle_cache)を
+    載せ、前回この関数を呼び出した時点から新たに packed_items の末尾に追加された荷物
+    だけAABBを計算する(Extreme Point法の"増分更新": 障害物集合を毎回スキャンし直すの
+    ではなく前回の集合+差分で構築する)。
+
+    simulate.py の offline探索は container dict を1回 clone_containers で複製した後、
+    以降は同一の packed_items リストオブジェクトへ .append() するだけで単調増加させる
+    (agents/mysolver 内でリストを丸ごと差し替える箇所は無い)ため、下のidentityチェックが
+    常に安全に成立する。online(agent.py)は毎ステップ observation から container dict を
+    丸ごと再構築するため packed_items のリストオブジェクトが呼び出しごとに異なり、
+    identityチェックが必ず不一致になって安全にフルスキャンへフォールバックする
+    (誤ったキャッシュヒットは構造的に起こり得ない)。
+    """
+    items = container.get('packed_items', [])
+    cache = container.get('_packed_obstacle_cache')
+    if cache is not None and cache['src'] is items and cache['n'] <= len(items):
+        obstacles = cache['list']
+        start = cache['n']
+    else:
+        obstacles = []
+        cache = {'src': items, 'n': 0, 'list': obstacles}
+        container['_packed_obstacle_cache'] = cache
+        start = 0
+    for item in items[start:]:
         if item.get('pos') is None or item.get('orn') is None:
             continue
         obstacles.append(item_world_aabb(item))
-    return obstacles
+    cache['n'] = len(items)
+    return list(obstacles)
 
 
 # --- Phase18: 積み上げの静的安定 幾何代理(影シミュレータのorder選択用) ---

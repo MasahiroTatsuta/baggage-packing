@@ -18,6 +18,7 @@
 「非優先(非ソフト)荷物を優先(ソフト)荷物の上に乗せる」候補そのものを作らないことで
 ハード制約として回避する(置く順序に関わらず下敷きは発生しない)。
 """
+import functools
 import os
 import time
 
@@ -259,16 +260,28 @@ def _unique_orientations(lwh):
     return list(seen.values())
 
 
-def _grid_xy(container, nx=31, ny=23, density: int = 1):
-    length = container['length']; width = container['width']
+@functools.lru_cache(maxsize=64)
+def _grid_point_frozenset(length: float, width: float, density: int) -> frozenset:
+    """
+    Phase19(ターゲット2): _candidate_xy が毎回組み立てていた
+    「グリッド生成(np.meshgrid)+丸め+set化」は (length, width, density) だけで決まる
+    純粋な計算(荷物・障害物には一切依存しない)にもかかわらず、(pool_idx, orn_idx) の
+    キャッシュミスのたびに(=1ステップにつき最大 pool×orientation 回)フルスキャンで
+    再構築されていた。値ベースでメモ化し、同じ (length, width, density) の組に対しては
+    grid点集合そのもの(数値・丸め誤差込みで既存コードと完全に同一)を再利用する。
+    online(agent.py)は毎ステップ container dict を再構築するが、コンテナの寸法自体は
+    エピソード中不変なので、寸法値をキーにしたこのキャッシュは online/offline のどちらでも
+    安全に効く(dict identityではなく値でキーイングしているため、container dict が
+    毎回新しいオブジェクトでもヒットする)。
+    """
     x_lo = -length / 2.0 + GRID_MARGIN
     x_hi = length / 2.0 - GRID_MARGIN
     y_lo = -width / 2.0 + GRID_MARGIN
     y_hi = width / 2.0 - GRID_MARGIN
-    xs = np.linspace(x_lo, x_hi, nx * density)
-    ys = np.linspace(y_lo, y_hi, ny * density)
+    xs = np.linspace(x_lo, x_hi, 31 * density)
+    ys = np.linspace(y_lo, y_hi, 23 * density)
     xx, yy = np.meshgrid(xs, ys, indexing='ij')
-    return xx.ravel(), yy.ravel()
+    return frozenset(zip(np.round(xx.ravel(), 5).tolist(), np.round(yy.ravel(), 5).tolist()))
 
 
 def _rect_overlap_ratio_batch(cx, cy, hx, hy, ocx, ocy, ohx, ohy):
@@ -312,12 +325,26 @@ def _landing_supports(container):
     ターゲット2)。_evaluate_candidates の着地面計算で「棚の下の床」と「棚の上」を
     独立した2つのコンパートメントとして扱うために使う。
     """
-    supports = []
-    for item in container.get('packed_items', []):
+    # Phase19(ターゲット2): geo.packed_obstacles と同じ増分キャッシュを、荷物側の
+    # (is_prioritized, is_soft) 込みの support タプルに対しても適用する(理由・安全性は
+    # geo.packed_obstacles のdocstring参照。online/offlineの区別も同じロジックで成立する)。
+    items = container.get('packed_items', [])
+    cache = container.get('_landing_support_cache')
+    if cache is not None and cache['src'] is items and cache['n'] <= len(items):
+        supports = cache['list']
+        start = cache['n']
+    else:
+        supports = []
+        cache = {'src': items, 'n': 0, 'list': supports}
+        container['_landing_support_cache'] = cache
+        start = 0
+    for item in items[start:]:
         if item.get('pos') is None or item.get('orn') is None:
             continue
         center, half = geo.item_world_aabb(item)
         supports.append((center, half, item.get('is_prioritized', False), item.get('is_soft', False), False))
+    cache['n'] = len(items)
+    supports = list(supports)
     # Phase15(ターゲット2)バグ修正: geo.static_obstacles() は全コンテナに常設される
     # small_shelf_aabb(脇の小さいledge)と、shelf=Trueのコンテナだけに存在する
     # big_shelf_aabb(大棚)の両方を返す。両者を一律 is_shelf=True にすると、棚を
@@ -368,9 +395,8 @@ def _extreme_points(container, half, obstacles):
 
 
 def _candidate_xy(container, half, obstacles, grid_density: int = 1):
-    grid_x, grid_y = _grid_xy(container, density=grid_density)
-    pts = set(zip(np.round(grid_x, 5).tolist(), np.round(grid_y, 5).tolist()))
-    pts |= _extreme_points(container, half, obstacles)
+    grid_pts = _grid_point_frozenset(container['length'], container['width'], grid_density)
+    pts = grid_pts | _extreme_points(container, half, obstacles)
     if not pts:
         return np.zeros((0, 2), dtype=np.float64)
     return np.array(sorted(pts), dtype=np.float64)
