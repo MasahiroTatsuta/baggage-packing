@@ -273,7 +273,13 @@ STABILITY_PENALTY_WEIGHT = float(os.environ.get('MYSOLVER_STABILITY_W', '0.0'))
 # 幅bとリスタート回数はトレードオフになる: 1構築あたりのコストがb倍になるので、
 # 同じ総予算で回せるリスタート数は 1/b になる。Phase22 §3.3 で「1手あたりコストを増やすと
 # 予算内で回れる組合せが減って逆効果」という失敗を実証済みなので、値は掃引で決める。
-BEAM_WIDTH = int(os.environ.get('MYSOLVER_BEAM_WIDTH', '1'))
+# Phase23 の掃引結果(8シーン -> 26シーンで確定):
+#   b=1 23.74 / b=2 D03のplacementが92.86で制約違反 / b=3 **26シーンで fill_strict +1.95** /
+#   b=5 C02のplacementが85.71で制約違反
+# 制約(placement/soft 全シーン満点)を満たす b>1 は b=3 のみで、26シーンで
+# fill_strict 23.74->25.68 / fill_loose 36.65->39.13、採点モデル換算 public +0.87pt。
+# b=1 は greedy_construct_order と完全に同一(18/18 の順序一致で検証済み)。
+BEAM_WIDTH = int(os.environ.get('MYSOLVER_BEAM_WIDTH', '3'))
 
 
 def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
