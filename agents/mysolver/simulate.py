@@ -209,6 +209,32 @@ def beam_construct_order(container_list: list[dict], item_list: list[dict], budg
     if top_k is None:
         top_k = max(1, beam_width)
 
+    # Phase23(修正): ビームの枝刈り基準を build_order の目的関数と厳密に一致させる。
+    # 初版は risk調整済み体積だけで枝を選んでいたため、優先コンテナを非優先荷物で潰す枝を
+    # 咎められず、実測で D03 の placement_score が 100->92.86 に落ちた(b=2)。
+    # build_order の目的関数は「risk調整済み体積 − PLACEMENT_PENALTY_WEIGHT × 総容積 × 違反率」
+    # なので、同じ定義の placement ペナルティをビームのスコアにも入れる
+    # (重みは ordering 側の既存定数をそのまま使い、新しい調整パラメータは増やさない)。
+    from . import ordering as _ordering
+    total_container_volume = sum(c.get('volume', 0.0) for c in container_list)
+    placement_w = getattr(_ordering, 'PLACEMENT_PENALTY_WEIGHT', 0.5)
+    has_prio_container = any(c.get('is_prioritized', False) for c in container_list)
+
+    def _prio_counts(containers):
+        """simulate_order と同一定義(既積みの優先手荷物も分母・分子に含む)。"""
+        placed = mis = 0
+        for c in containers:
+            for it in c['packed_items']:
+                if it.get('is_prioritized', False):
+                    placed += 1
+                    if has_prio_container and not c.get('is_prioritized', False):
+                        mis += 1
+        return placed, mis
+
+    def _objective(risk_vol, n_prio, n_mis):
+        ratio = (n_mis / n_prio) if n_prio else 0.0
+        return risk_vol - placement_w * total_container_volume * ratio
+
     base = clone_containers(container_list)
     remaining = {item['index']: dict(item) for item in item_list}
     if shuffle_ties and rng is not None:
@@ -217,7 +243,9 @@ def beam_construct_order(container_list: list[dict], item_list: list[dict], budg
         remaining = {k: remaining[k] for k in keys}
 
     # state: containers / remaining(dict) / order(list) / score(float) / key(部分解の同一性)
-    beam = [{'containers': base, 'remaining': remaining, 'order': [], 'score': 0.0,
+    _p0, _m0 = _prio_counts(base)
+    beam = [{'containers': base, 'remaining': remaining, 'order': [], 'risk_vol': 0.0,
+             'n_prio': _p0, 'n_mis': _m0, 'score': _objective(0.0, _p0, _m0),
              'key': _state_key(base)}]
     best = beam[0]
 
@@ -252,16 +280,22 @@ def beam_construct_order(container_list: list[dict], item_list: list[dict], budg
                 risk_slack = a.get('settled_slack') if planner.USE_SETTLED_SLACK else None
                 if risk_slack is None:
                     risk_slack = a.get('slack', geo.REAL_INCLUSION_MARGIN)
-                score = st['score'] + vol * float(geo.fill_risk_factor(risk_slack))
+                risk_vol = st['risk_vol'] + vol * float(geo.fill_risk_factor(risk_slack))
+                n_prio, n_mis = st['n_prio'], st['n_mis']
+                if item.get('is_prioritized', False):
+                    n_prio += 1
+                    if has_prio_container and not cont.get('is_prioritized', False):
+                        n_mis += 1
+                score = _objective(risk_vol, n_prio, n_mis)
                 key = tuple(sorted(st['key'] + ((int(item['index']), round(pos[0], 4),
                                                   round(pos[1], 4), round(pos[2], 4)),)))
-                cands.append((score, key, st, a, item))
+                cands.append((score, key, st, a, item, risk_vol, n_prio, n_mis))
         if not any_open or not cands:
             break
         cands.sort(key=lambda t: t[0], reverse=True)
         beam = []
         seen = set()
-        for score, key, st, a, item in cands:
+        for score, key, st, a, item, risk_vol, n_prio, n_mis in cands:
             if key in seen:
                 continue
             seen.add(key)
@@ -272,6 +306,7 @@ def beam_construct_order(container_list: list[dict], item_list: list[dict], budg
             del rem[item['index']]
             beam.append({'containers': conts, 'remaining': rem,
                          'order': st['order'] + [item['index']],
+                         'risk_vol': risk_vol, 'n_prio': n_prio, 'n_mis': n_mis,
                          'score': score, 'key': key})
             if len(beam) >= max(1, beam_width):
                 break
