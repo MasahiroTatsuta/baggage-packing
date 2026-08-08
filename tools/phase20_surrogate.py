@@ -481,6 +481,10 @@ def analyze_scene(scene):
     best_pred_i = max(range(len(rows)), key=lambda i: pred_obj[i])
     best_act_i = max(range(len(rows)), key=lambda i: act_fill[i])
     regret = act_fill[best_act_i] - act_fill[best_pred_i]
+    # 実際に build_order が返した順序(as-used の目的関数・打ち切りあり込みで選ばれたもの)。
+    # 追加候補まで含めた全候補の中での位置づけを見るために別途記録する。
+    chosen_rows = [i for i, r in enumerate(rows) if r.get('is_chosen')]
+    native_i = [i for i, r in enumerate(rows) if r.get('source') == 'build_order']
 
     # oracle が「予測値そのものではなく順位だけ」を使う点に合わせ、順位相関を主指標にする
     return {
@@ -518,6 +522,16 @@ def analyze_scene(scene):
         'regret_fill': regret,
         'fill_spread': max(act_fill) - min(act_fill),
         'n_budget_exhausted': sum(1 for r in rows if r.get('budget_exhausted')),
+        'n_clean_truncated': sum(1 for r in rows if r.get('clean_truncated')),
+        # build_order が実際に返した順序の実fill(as-used。追加候補は見ていない)
+        'asused_chosen_fill': act_fill[chosen_rows[0]] if chosen_rows else float('nan'),
+        'n_native': len(native_i),
+        # native候補だけに限ったときの相関・regret(=実際の意思決定が起きた集合)
+        'spearman_native': (_spearman([pred_obj[i] for i in native_i], [act_fill[i] for i in native_i])
+                             if len(native_i) >= 2 else float('nan')),
+        'regret_native': ((max(act_fill[i] for i in native_i)
+                            - act_fill[max(native_i, key=lambda i: pred_obj[i])])
+                           if len(native_i) >= 2 else float('nan')),
     }
 
 
