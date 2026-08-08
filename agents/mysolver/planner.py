@@ -122,6 +122,27 @@ PRIORITY_CLEARANCE_Z = 0.05
 # 両レジームのfillが無変更を上回る(W=6でstrict 22.33->24.38, loose 30.52->32.19)。
 # 台地の中央にあたる 6.0 を採用する(W=24 で崖があるため上端には寄せない)。
 CORRIDOR_WEIGHT = float(os.environ.get('MYSOLVER_CORRIDOR_W', '6.0'))
+
+# Phase20(ターゲット2): 影シミュレータの fill 計上期待値を、配置目標点ではなく
+# **沈降後の静止姿勢**の slack で評価するかどうか。
+#
+# 物理的にはこちらが正しい(本家 evaluator は settle_wait_step=300 の物理演算後の8角点を
+# 判定するので、支持面から REST_CLEARANCE だけ浮いた目標点で測るのは評価する姿勢の誤り)。
+# 実際、有効にすると較正は大幅に良くなる:
+#   ・計上割合の予測誤差   +0.141 -> -0.049 (絶対値65%減)
+#   ・fill の系統バイアス   +4.02pt -> -1.75pt
+# **しかし順位相関(=build_orderが実際に使う情報)は改善しなかった**:
+#   ・Spearman(native) 0.710 -> 0.690、改善したのは 8シーン中 2つだけ
+#   ・26シーン: fill_strict +0.13(ノイズ内)/ fill_loose -1.00(悪化)/
+#               stability 98.30->98.18 かつ suite_A01 が 98.41->96.35 で新規に制約違反
+# 理由は results/phase20_report.md §3 に詳述: 代理誤差は「シーンごとの一定の下駄
+# (較正誤差)」と「候補ごとのばらつき(弁別誤差)」に分解でき、本修正が消したのは前者
+# だけだった(シーン内ばらつきは 0.075 -> 0.075 と不変)。build_order は同一シーン内の
+# **順位**しか使わないため、全候補に共通の下駄は定義上どんな決定も変えない。
+#
+# よって既定は False(Phase19と数学的にも計算量的にも完全に等価な no-op)。
+# 実装と計測基盤は次フェーズ(trust region + ρ-test)の土台として残す。
+USE_SETTLED_SLACK = os.environ.get('MYSOLVER_SETTLED_SLACK', '0') != '0'
 # 「奥にある」と判定する y の許容誤差。障害物の手前面が候補の奥面とほぼ一致する(隙間なく
 # 密着して並んでいる)場合も「奥にある」とみなす。
 CORRIDOR_Y_EPS = 0.02
@@ -914,10 +935,27 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     if not legal[best_i]:
         return None
 
+    # Phase20(ターゲット2、既定では無効): 沈降後の静止姿勢での slack。
+    # 目標zは支持面から geo.REST_CLEARANCE(16mm)浮かせた点だが、配置後の物理演算で
+    # 荷物は必ず支持面まで落ちるため、本家 evaluator が8角点を判定するのは沈降後の姿勢。
+    # 床直置きなら 目標点: 床面dot=-0.016 -> fill_risk_factor=0.55 / 沈降後: dot=0 -> 0.00。
+    # 較正は良くなるが順位を変えないため不採用(USE_SETTLED_SLACK のコメント参照)。
+    #
+    # コスト: 全候補に対して inclusion_slack_batch をもう1回走らせると Phase19 で削った
+    # ホットパスのコストを戻してしまうため、**argmaxで選ばれた1点だけ**に対して計算する
+    # (O(面数)。候補数に依存しない)。既定(無効)では計算自体を行わないので、
+    # Phase19 と計算量的にも完全に等価。
+    settled_slack = None
+    if USE_SETTLED_SLACK:
+        settled_pos = world_pos[best_i].copy()
+        settled_pos[2] -= geo.REST_CLEARANCE
+        settled_slack = float(geo.inclusion_slack_batch(container, half, settled_pos[None, :])[0])
+
     return {
         'score': float(scores[best_i]),
         'local_pos': np.array([local_x[best_i], local_y[best_i], world_z[best_i]], dtype=np.float32),
         'slack': float(slack[best_i]),
+        'settled_slack': settled_slack,
     }
 
 
@@ -1051,6 +1089,7 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
                             'container_idx': container['index'],
                             'orientation': orn_idx,
                             'slack': r['slack'],
+                            'settled_slack': r['settled_slack'],
                         }
             if level_best is not None:
                 container_best = level_best
@@ -1140,6 +1179,11 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
 
     if info is not None:
         info['slack'] = best_overall['slack']
+        # Phase20: 沈降後の姿勢での slack。simulate.simulate_order の risk調整済み体積
+        # (=offline順序探索の目的関数)がこちらを使う。_score() は従来どおり目標点の
+        # slack を使うため、**online の候補選択は一切変わらない**(B01-B04/P04 の
+        # digest 一致で検証済み)。
+        info['settled_slack'] = best_overall['settled_slack']
 
     return {
         'item_idx': best_overall['item_idx'],

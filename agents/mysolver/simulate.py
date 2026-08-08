@@ -156,7 +156,15 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
         # コンテナ総容積に対する加算ペナルティにすると、達成可能な体積より罰則が大きくなる
         # シーンで「何も置かない」ほうが目的関数上有利になる退化解を生む(関数docstring参照)。
         stability_discount = max(0.0, 1.0 - stability_weight * stacking_risk)
-        risk_adjusted_volume += (item_volume * geo.fill_risk_factor(info.get('slack', geo.REAL_INCLUSION_MARGIN))
+        # Phase20(ターゲット2、既定では無効): fill計上の期待値を「配置目標点」ではなく
+        # 「沈降後の静止姿勢」の slack で評価する案。planner.USE_SETTLED_SLACK が False の
+        # ときは settled_slack は計算すらされず None なので、Phase19 と完全に同じ式になる。
+        # 採用を見送った理由は planner.USE_SETTLED_SLACK のコメントと
+        # results/phase20_report.md §3 を参照(較正は改善するが順位=意思決定を変えないため)。
+        risk_slack = info.get('settled_slack') if planner.USE_SETTLED_SLACK else None
+        if risk_slack is None:
+            risk_slack = info.get('slack', geo.REAL_INCLUSION_MARGIN)
+        risk_adjusted_volume += (item_volume * geo.fill_risk_factor(risk_slack)
                                   * stability_discount)
         refill()
 

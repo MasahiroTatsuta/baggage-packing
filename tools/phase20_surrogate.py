@@ -602,6 +602,63 @@ def cmd_analyze(args):
         print(f'\nwrote {args.out}')
 
 
+def cmd_repredict(args):
+    """既存の groundtruth 結果の**予測側だけ**を現行コードで再計算する。
+
+    実エピソード(真値)は候補順序だけで決まり、目的関数の定義には依存しない。
+    したがって代理関数を変更したときの順位相関の改善は、**物理エピソードを1本も
+    再実行せずに**測れる(125エピソード分の再計測を省ける)。
+    """
+    with open(args.gt) as f:
+        data = json.load(f)
+
+    mod_prefix = '.'.join(args.module_path.rstrip('/').split('/'))
+    agent_mod = importlib.import_module(mod_prefix + '.agent')
+    simulate_mod = importlib.import_module(mod_prefix + '.simulate')
+    ordering_mod = importlib.import_module(mod_prefix + '.ordering')
+    planner_mod = importlib.import_module(mod_prefix + '.planner')
+    geo_mod = importlib.import_module(mod_prefix + '.geometry')
+
+    for label, scene in data['scenes'].items():
+        with open(scene['config_path']) as f:
+            task_config = json.load(f)[scene['task_id']]
+        env = GroundHandlingEnv(config=task_config, verbose=False, render_mode=None)
+        try:
+            env.reset_settings()
+            init_states = env.get_init_states()
+            item_list = env.get_info_for_optimization()
+        finally:
+            try:
+                env.close()
+            except Exception:
+                pass
+        container_list = init_states.get('container_list', [])
+        total_vol = sum(c.get('volume', 0.0) for c in container_list)
+        placement_w = getattr(ordering_mod, 'PLACEMENT_PENALTY_WEIGHT', 0.5)
+        k = max(1, int(init_states.get('lookahead_k') or 1))
+        items_by_index = {it['index']: it for it in item_list}
+        prepacked_ids = geo_mod.initial_prepacked_ids(container_list)
+
+        for rec in scene['rows']:
+            budget = planner_mod.SearchBudget.from_seconds(args.clean_validate_sec)
+            placed_ids, placed_volume, risk_vol, viol, _srisk = simulate_mod.simulate_order(
+                container_list, items_by_index, rec['order'], k, budget,
+                prepacked_ids=prepacked_ids,
+                stability_weight=getattr(ordering_mod, 'STABILITY_PENALTY_WEIGHT', 0.0))
+            rec['n_placed_pred'] = len(placed_ids)
+            rec['placed_volume_pred'] = float(placed_volume)
+            rec['risk_adjusted_volume_pred'] = float(risk_vol)
+            rec['violation_ratio_pred'] = float(viol)
+            rec['clean_truncated'] = bool(budget.used >= budget.limit)
+            rec['objective_pred'] = float(risk_vol) - placement_w * total_vol * float(viol)
+        print(f'[repredict] {label}: {len(scene["rows"])}候補を再予測', flush=True)
+
+    data['repredicted_with'] = args.label or 'current-code'
+    with open(args.out, 'w') as f:
+        json.dump(data, f, indent=1)
+    print(f'wrote {args.out}')
+
+
 def _expand(patterns):
     paths = []
     for pattern in patterns:
@@ -631,6 +688,14 @@ def main():
     g.add_argument('--with-stability', action='store_true')
     g.add_argument('--out', required=True)
     g.set_defaults(func=cmd_groundtruth)
+
+    rp = sub.add_parser('repredict')
+    rp.add_argument('--gt', required=True)
+    rp.add_argument('--module-path', default='agents/mysolver/')
+    rp.add_argument('--clean-validate-sec', type=float, default=60.0)
+    rp.add_argument('--label', default=None)
+    rp.add_argument('--out', required=True)
+    rp.set_defaults(func=cmd_repredict)
 
     a = sub.add_parser('analyze')
     a.add_argument('--gt', nargs='+', required=True)
