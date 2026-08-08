@@ -37,7 +37,13 @@ GRID_MARGIN = 0.02
 BASE_GRID_DENSITY = 2
 # Phase7由来の「合法手0件時の最終リトライ」の密度。BASE_GRID_DENSITYを底上げしたことに
 # 合わせて、通常探索よりさらに一段細かく最後の望みを探れるよう底上げする。
-RETRY_GRID_DENSITY = 4
+# Phase22: 合法手0件時の最終リトライの密度。Phase22 ターゲット1 の実測で、行き詰まり状態から
+# この密度だけを 8/16 へ引き上げた探索が **26シーン合計 6.932 m^3(fill換算 +4.82pt)** を
+# 追加で配置できることが分かった(= production の取りこぼしはグリッド解像度に由来する)。
+# このリトライは「通常探索が全滅したときだけ」発火するので、密度を上げてもコストを払う
+# 頻度は低く、払う場面は「そのままなら1手失敗して sudden death になる」場面に限られる。
+# 既定は 4(Phase7以来の値)。MYSOLVER_RETRY_DENSITY で A/B 計測できる。
+RETRY_GRID_DENSITY = int(os.environ.get('MYSOLVER_RETRY_DENSITY', '4'))
 # Phase9: 「奥から手前への層規律」を back_term の重みではなく探索の構造そのものとして担保する。
 # コンテナをY方向(手前=-width/2 〜 奥=+width/2)に n_y_slices 個の層へ分割し、まず「奥側から
 # level+1 個分の層」だけを合法候補の対象にする。その層内でpool全件×全orientationを試し、
