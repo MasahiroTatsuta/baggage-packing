@@ -1000,7 +1000,7 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
                   has_prioritized_container, rng=None, score_noise=0.0, stats=None,
                   grid_density: int = BASE_GRID_DENSITY, n_y_slices: int = Y_SLICE_COUNT,
                   reserve_priority_container: bool = False, strict_support: bool = False,
-                  prepacked_ids: dict | None = None):
+                  prepacked_ids: dict | None = None, top_k: int = 1):
     """
     (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
     enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
@@ -1026,6 +1026,7 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
     見つかった時点でそのコンテナの手番を確定する(それより手前の層は開放しない)。
     """
     best_overall = None
+    by_item_overall: dict = {}
     for container in container_list:
         if budget.exhausted():
             break
@@ -1039,6 +1040,10 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
         candidate_cache: dict = {}
 
         container_best = None
+        # Phase23(ビームサーチ): top_k>1 のときだけ「荷物ごとの最良手」も控える。
+        # 探索そのもの(_evaluate_candidates の呼び出し回数・rngの消費回数)は一切変えないので、
+        # top_k==1 の既定経路は従来と完全に同一のまま。
+        container_by_item = None
         for level_idx, y_active_lo in enumerate(y_bounds):
             if budget.exhausted():
                 break
@@ -1047,6 +1052,7 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
             # (n_y_slices<=1の場合は常にここに該当し、実質従来のplanner.pyと同じ速度になる)。
             is_fully_open = level_idx == len(y_bounds) - 1
             level_best = None
+            level_by_item = {} if top_k > 1 else None
             for pool_idx in range(n_pool):
                 if budget.exhausted():
                     break
@@ -1093,6 +1099,15 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
                         score = score + float(rng.normal(0.0, score_noise))
 
                     rank = (-tier, score)
+                    if level_by_item is not None:
+                        prev = level_by_item.get(pool_idx)
+                        if prev is None or rank > prev['rank']:
+                            level_by_item[pool_idx] = {
+                                'rank': rank, 'score': score, 'local_pos': r['local_pos'],
+                                'item_idx': pool_idx, 'container_idx': container['index'],
+                                'orientation': orn_idx, 'slack': r['slack'],
+                                'settled_slack': r['settled_slack'],
+                            }
                     if level_best is None or rank > level_best['rank']:
                         level_best = {
                             'rank': rank,
@@ -1106,12 +1121,70 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
                         }
             if level_best is not None:
                 container_best = level_best
+                container_by_item = level_by_item
                 break  # このコンテナは現在開放中の層内で置けるため、より手前の層は開放しない
 
         if container_best is not None:
             if best_overall is None or container_best['rank'] > best_overall['rank']:
                 best_overall = container_best
+            if top_k > 1 and container_by_item:
+                for pi, ent in container_by_item.items():
+                    prev = by_item_overall.get(pi)
+                    if prev is None or ent['rank'] > prev['rank']:
+                        by_item_overall[pi] = ent
+    if top_k > 1:
+        # 荷物ごとに1手だけ残し、rank降順の上位 top_k を返す(ビームの展開候補)。
+        return sorted(by_item_overall.values(), key=lambda e: e['rank'], reverse=True)[:top_k]
     return best_overall
+
+
+def plan_topk(container_list: list[dict], pool_list: list[dict], top_k: int,
+              budget: 'SearchBudget', max_pool_items: int | None = None,
+              rng=None, score_noise: float = 0.0, strict_support: bool = False,
+              prepacked_ids: dict | None = None) -> list[dict]:
+    """Phase23(ビームサーチ): 荷物ごとに最良の1手を集め、上位 top_k を返す offline 専用API。
+
+    plan() と同じ探索(_search_best)を1回走らせるだけで上位k手が得られる点が要点である。
+    「上位k個の荷物選択を展開する」ために plan() を k 回呼ぶ実装にすると探索コストが k 倍に
+    なり、Phase22 §3.3 で実証済みの失敗(1手あたりコストを増やすと予算内で回れる組合せが
+    減って逆効果)を繰り返すことになる。_search_best は元々 (荷物×向き×位置) を総当たりして
+    argmax を取っているので、「荷物ごとの最良」を控えるだけならコストはほぼゼロで済む。
+
+    戻り値は rank 降順の action 辞書のリスト(空リストは合法手なし)。
+    ビームのスコアリング用に 'slack'/'settled_slack'/'score' も含めて返す
+    (env に渡す action 形式とは別物であり、offline の探索内でのみ使う)。
+    """
+    n_pool = len(pool_list) if max_pool_items is None else min(len(pool_list), max_pool_items)
+    has_prio_c = any(c.get('is_prioritized', False) for c in container_list)
+    has_plain_c = any(not c.get('is_prioritized', False) for c in container_list)
+
+    res = _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container=True,
+                       has_prioritized_container=has_prio_c, rng=rng, score_noise=score_noise,
+                       reserve_priority_container=has_prio_c and has_plain_c,
+                       strict_support=strict_support, prepacked_ids=prepacked_ids, top_k=top_k)
+    if not res and has_prio_c and not budget.exhausted():
+        res = _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container=False,
+                           has_prioritized_container=has_prio_c, rng=rng, score_noise=score_noise,
+                           strict_support=strict_support, prepacked_ids=prepacked_ids, top_k=top_k)
+    if not res and not budget.exhausted():
+        res = _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container=False,
+                           has_prioritized_container=has_prio_c, rng=rng, score_noise=score_noise,
+                           grid_density=RETRY_GRID_DENSITY, prepacked_ids=prepacked_ids, top_k=top_k)
+    # top_k==1 のとき _search_best は単一のdict(またはNone)を返すのでリストへ正規化する
+    if isinstance(res, dict):
+        res = [res]
+    out = []
+    for e in res or []:
+        out.append({
+            'item_idx': e['item_idx'],
+            'container_idx': e['container_idx'],
+            'place_pos': e['local_pos'].astype(np.float32),
+            'orientation': e['orientation'],
+            'slack': e['slack'],
+            'settled_slack': e['settled_slack'],
+            'score': e['score'],
+        })
+    return out
 
 
 def plan(container_list: list[dict], pool_list: list[dict], time_budget: float = 5.5,

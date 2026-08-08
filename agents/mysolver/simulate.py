@@ -173,6 +173,122 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     return placed_ids, placed_volume, risk_adjusted_volume, violation_ratio, stability_risk_ratio
 
 
+def _state_key(containers):
+    """部分解の同一性キー。荷物の集合と実際の姿勢が同じなら、詰めた順番が違っても同一状態。
+
+    ビームが同一状態のコピーで埋まると実質 b=1 の貪欲へ退化するため、これで重複を排除する。
+    """
+    parts = []
+    for c in containers:
+        for it in c['packed_items']:
+            p = it['pos']
+            parts.append((int(it['index']), round(p[0], 4), round(p[1], 4), round(p[2], 4)))
+    parts.sort()
+    return tuple(parts)
+
+
+def beam_construct_order(container_list: list[dict], item_list: list[dict], budget: planner.SearchBudget,
+                          per_step_time_budget: float = 3.0, rng=None, score_noise: float = 0.0,
+                          shuffle_ties: bool = False, window: int | None = None,
+                          prepacked_ids: dict | None = None, beam_width: int = 1,
+                          top_k: int | None = None) -> list[int]:
+    """Phase23: greedy_construct_order を幅 beam_width のビームサーチへ一般化したもの。
+
+    各ステップで、ビーム内の各部分解について planner.plan_topk で上位 top_k 手を展開し、
+    「そこまでに積んだ risk調整済み体積」で上位 beam_width 個を残す。この評価量は
+    build_order の目的関数(simulate_order が返す risk_adjusted_volume)と同じ定義なので、
+    ビームの枝刈り基準と最終的な採否基準が一致する。
+
+    **beam_width=1 かつ top_k=1 は greedy_construct_order と同一の手順に退化する**
+    (同じ探索を同じ順序で呼び、常に最良手1つだけを採用する)。実装の正しさは
+    「b=1 の出力が greedy_construct_order と完全一致すること」で担保する。
+
+    予算は planner.SearchBudget のユニットで管理し、いつ打ち切られても
+    「それまでに構築できた順序 + 残りを末尾に付けた完全順列」を返す(anytime)。
+    """
+    if top_k is None:
+        top_k = max(1, beam_width)
+
+    base = clone_containers(container_list)
+    remaining = {item['index']: dict(item) for item in item_list}
+    if shuffle_ties and rng is not None:
+        keys = list(remaining.keys())
+        rng.shuffle(keys)
+        remaining = {k: remaining[k] for k in keys}
+
+    # state: containers / remaining(dict) / order(list) / score(float) / key(部分解の同一性)
+    beam = [{'containers': base, 'remaining': remaining, 'order': [], 'score': 0.0,
+             'key': _state_key(base)}]
+    best = beam[0]
+
+    while True:
+        if budget.exhausted():
+            break
+        # 展開候補は (親, action) のまま集め、**上位b個に絞ってから初めてコンテナを複製する**。
+        # 素直に子ごとに clone_containers すると 1ステップあたり b*top_k 回の複製が発生し、
+        # その費用はユニット予算に計上されないため、b を上げると壁時計だけが膨らんで
+        # 非常用安全弁(hard_deadline)を踏み、Phase17 で確保した決定性を壊してしまう。
+        # 子のスコアも同一性キーも action だけから増分計算できるので、複製は b 回で足りる。
+        cands = []
+        any_open = False
+        for st in beam:
+            if not st['remaining']:
+                continue
+            any_open = True
+            pool = list(st['remaining'].values())
+            if window is not None:
+                pool = pool[:window]
+            acts = planner.plan_topk(st['containers'], pool, top_k,
+                                     budget.child_seconds(per_step_time_budget),
+                                     max_pool_items=None, rng=rng, score_noise=score_noise,
+                                     prepacked_ids=prepacked_ids)
+            for a in acts:
+                item = pool[a['item_idx']]
+                cont = st['containers'][a['container_idx']]
+                ox = cont['center'][0]
+                lp = a['place_pos']
+                pos = (float(lp[0]) + ox, float(lp[1]), float(lp[2]))
+                vol = item['length'] * item['width'] * item['height']
+                risk_slack = a.get('settled_slack') if planner.USE_SETTLED_SLACK else None
+                if risk_slack is None:
+                    risk_slack = a.get('slack', geo.REAL_INCLUSION_MARGIN)
+                score = st['score'] + vol * float(geo.fill_risk_factor(risk_slack))
+                key = tuple(sorted(st['key'] + ((int(item['index']), round(pos[0], 4),
+                                                  round(pos[1], 4), round(pos[2], 4)),)))
+                cands.append((score, key, st, a, item))
+        if not any_open or not cands:
+            break
+        cands.sort(key=lambda t: t[0], reverse=True)
+        beam = []
+        seen = set()
+        for score, key, st, a, item in cands:
+            if key in seen:
+                continue
+            seen.add(key)
+            conts = clone_containers(st['containers'])
+            cont = conts[a['container_idx']]
+            cont['packed_items'].append(_place(cont, item, a))
+            rem = dict(st['remaining'])
+            del rem[item['index']]
+            beam.append({'containers': conts, 'remaining': rem,
+                         'order': st['order'] + [item['index']],
+                         'score': score, 'key': key})
+            if len(beam) >= max(1, beam_width):
+                break
+        if beam[0]['score'] > best['score'] or not best['order']:
+            best = beam[0]
+
+    # 「最も多く積めた」ではなく「risk調整済み体積が最大」の部分解を採用する
+    # (build_order の目的関数と一致させる)。
+    for st in beam:
+        if st['score'] > best['score']:
+            best = st
+    order = list(best['order'])
+    if best['remaining']:
+        order.extend(best['remaining'].keys())
+    return order
+
+
 def greedy_construct_order(container_list: list[dict], item_list: list[dict], budget: planner.SearchBudget,
                             per_step_time_budget: float = 3.0, rng=None, score_noise: float = 0.0,
                             shuffle_ties: bool = False, window: int | None = None,

@@ -262,6 +262,19 @@ PLACEMENT_PENALTY_WEIGHT = 0.5
 # 有効化したいときは環境変数 MYSOLVER_STABILITY_W で明示的に上書きすること。
 STABILITY_PENALTY_WEIGHT = float(os.environ.get('MYSOLVER_STABILITY_W', '0.0'))
 
+# Phase23: 貪欲構築をビームサーチへ一般化したときの幅。
+#
+# Phase20/22 の測定が同じ結論を指していた: 現在の探索は「見た候補の中ではほぼ最良を選べて
+# いる」(native regret 1.14pt)が「良い候補を生成できていない」(候補順序による実fill
+# スプレッド 19.19pt、行き詰まりからの取りこぼし (c) の7割が荷物選択の自由度由来)。
+# そこで狙うのは候補の選び方ではなく**候補の作り方**であり、1本の貪欲構築を幅bのビームへ
+# 広げる。b=1 は greedy_construct_order と完全に同一の手順に退化する(検証済み)。
+#
+# 幅bとリスタート回数はトレードオフになる: 1構築あたりのコストがb倍になるので、
+# 同じ総予算で回せるリスタート数は 1/b になる。Phase22 §3.3 で「1手あたりコストを増やすと
+# 予算内で回れる組合せが減って逆効果」という失敗を実証済みなので、値は掃引で決める。
+BEAM_WIDTH = int(os.environ.get('MYSOLVER_BEAM_WIDTH', '1'))
+
 
 def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
                  time_budget: float = DEFAULT_TIME_BUDGET) -> list[int]:
@@ -284,7 +297,10 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     final_margin = FINAL_MARGIN if time_budget >= CONSTRUCT_SLICE else max(0.2, time_budget * 0.05)
     max_validate_slice = MAX_VALIDATE_SLICE
     u = planner.UNITS_PER_SEC
-    construct_units = construct_slice * u
+    # Phase23: ビーム幅bのとき1構築あたりの探索量はb倍になるため、1リスタートの枠もb倍にする
+    # (=各ビーム状態が従来の貪欲1本と同じ計算量を受け取る)。その分リスタート回数は 1/b に減り、
+    # 「幅を取るか、試行回数を取るか」というトレードオフが予算配分として素直に表現される。
+    construct_units = construct_slice * u * max(1, BEAM_WIDTH)
     phase2_units = construct_units * PHASE2_SLICE_FACTOR
     final_margin_units = final_margin * u
 
@@ -345,7 +361,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         if slice_units <= 0:
             return
         try:
-            order = simulate.greedy_construct_order(
+            order = simulate.beam_construct_order(
                 container_list, seed_items, total_budget.child(slice_units),
                 per_step_time_budget=PER_STEP_TIME_BUDGET,
                 rng=rng if use_noise else None,
@@ -353,6 +369,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                 shuffle_ties=use_noise,
                 window=window,
                 prepacked_ids=prepacked_ids,
+                beam_width=BEAM_WIDTH,
             )
             if set(order) == all_indices:
                 score = validate(order)
