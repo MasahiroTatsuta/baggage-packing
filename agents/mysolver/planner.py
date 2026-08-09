@@ -171,6 +171,29 @@ CORRIDOR_MIN_HEADROOM = 0.10
 CORRIDOR_DEADBAND = float(os.environ.get(
     'MYSOLVER_CORRIDOR_DB', str(geo.REST_CLEARANCE + geo.START_Z - geo.SWEEP_Z_MARGIN)))
 
+# Phase24(ターゲット2): 上の不感帯 0.0805 は「後から差し込む荷物が START_Z=80mm 浮上して
+# 掃引される」ことを前提にした値だが、その前提が成り立たない天面が存在する。
+#
+# validator.check_transport_path は「底面が直置き面(床 / 棚上面)の 0〜50mm 上」なら
+# effective_start_z=0(浮上なし)にする。奥の天面 T_b の上に着地する荷物の底面は
+# T_b + REST_CLEARANCE なので、
+#     T_b + REST_CLEARANCE ∈ [r_z, r_z + 0.05]   (r_z ∈ {thickness, height/2+thickness+buffer})
+# を満たす天面 —— つまり **床そのもの・棚上面そのもの(および直上 34mm 以内)** の上に置く
+# 荷物は浮上せず、最終高さのまま掃引される。この場合に通路が生きている条件は
+#     手前の天面 <= T_b + (REST_CLEARANCE - SWEEP_Z_MARGIN) = T_b + 0.0005
+# であり、実効的な不感帯はほぼゼロになる。現行実装は床レベル・棚上面レベルの通路に対しても
+# 一律 80.5mm の猶予を与えており、**その帯の通路を塞ぐ候補にペナルティがかからない**。
+#
+# Phase24 の搬入経路監査(tools/phase24_corridor_audit.py)で、封鎖されている空間のうち
+# この「直置き帯」が占めるシェアを実測したうえで、不感帯を天面の種類から一意に決める。
+# どちらの値も REST_CLEARANCE / START_Z / SWEEP_Z_MARGIN の3定数から導かれるもので、
+# 新しい調整パラメータではない(Phase14 の設計方針をそのまま帯域別に一般化しただけ)。
+CORRIDOR_DEADBAND_REST = geo.REST_CLEARANCE - geo.SWEEP_Z_MARGIN
+CORRIDOR_DEADBAND_LIFT = geo.REST_CLEARANCE + geo.START_Z - geo.SWEEP_Z_MARGIN
+# 'uniform' = Phase23 までと完全に同一(全天面へ CORRIDOR_DEADBAND を適用)。
+# 'surface' = 天面が直置き面かどうかで不感帯を切り替える。
+CORRIDOR_DB_MODE = os.environ.get('MYSOLVER_CORRIDOR_DB_MODE', 'uniform')
+
 # ---------------------------------------------------------------------------
 # Phase17: 探索打ち切りの決定化(壁時計 -> 評価コスト(ユニット))
 # ---------------------------------------------------------------------------
@@ -638,14 +661,25 @@ def _corridor_excess(container, half, world_x, world_y, world_z, obstacles):
     n = world_x.shape[0]
     height = container['height']
     thickness = container['thickness']
+    buffer = container.get('buffer', 0.0)
     ceiling_limit = height - thickness - geo.START_MARGIN
+    headroom_cap = ceiling_limit - CORRIDOR_MIN_HEADROOM
+    resting_values = (thickness, height / 2.0 + thickness + buffer)
 
     cand_back_face = world_y + half[1]
     cand_x_lo = world_x - half[0]
     cand_x_hi = world_x + half[0]
 
-    min_top_behind = np.full(n, np.inf)
+    # 障害物ごとに「その天面の上の通路が生きている手前側の天面の上限」= top + 不感帯 を求め、
+    # 奥にある障害物すべてについての最小値を取る。不感帯が一定(uniform)なら
+    # min(top + DB) = min(top) + DB なので Phase23 までと数学的に同一。
+    min_limit = np.full(n, np.inf)
     for center, oh in obstacles:
+        top = center[2] + oh[2]
+        # そこにはもう何も入らない天面は守らない(旧実装は最小天面に対してのみ判定していたが、
+        # 最小天面が閾値以下ならその天面が採用されるので、不感帯が一定なら結果は同一)。
+        if top > headroom_cap:
+            continue
         # 障害物の手前面が候補の奥面より奥にある(=候補が後からこの障害物へ向かう経路を塞ぐ側)
         behind = (center[1] - oh[1]) >= (cand_back_face - CORRIDOR_Y_EPS)
         if not np.any(behind):
@@ -654,12 +688,18 @@ def _corridor_excess(container, half, world_x, world_y, world_z, obstacles):
         mask = behind & overlap_x
         if not np.any(mask):
             continue
-        top = center[2] + oh[2]
-        min_top_behind = np.where(mask, np.minimum(min_top_behind, top), min_top_behind)
+        if CORRIDOR_DB_MODE == 'surface':
+            # この天面の上に着地する荷物の底面は top + REST_CLEARANCE。それが直置き判定に
+            # 入るなら浮上しない(実効不感帯 ≒ 0)、入らないなら START_Z だけ浮上できる。
+            b = top + geo.REST_CLEARANCE
+            on_rest = any(0.0 <= (b - rv) <= 0.05 for rv in resting_values)
+            db = CORRIDOR_DEADBAND_REST if on_rest else CORRIDOR_DEADBAND_LIFT
+        else:
+            db = CORRIDOR_DEADBAND
+        min_limit = np.where(mask, np.minimum(min_limit, top + db), min_limit)
 
-    protected = np.isfinite(min_top_behind) & (min_top_behind <= ceiling_limit - CORRIDOR_MIN_HEADROOM)
-    excess = np.maximum(0.0, (world_z + half[2]) - (min_top_behind + CORRIDOR_DEADBAND))
-    return np.where(protected, excess, 0.0)
+    excess = np.maximum(0.0, (world_z + half[2]) - min_limit)
+    return np.where(np.isfinite(min_limit), excess, 0.0)
 
 
 def _score(container, local_x, local_y, world_z, half, item, support_ratio, contact_bonus, slack,
