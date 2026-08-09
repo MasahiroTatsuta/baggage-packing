@@ -278,7 +278,7 @@ def fit_and_reach(masks, remaining, geo, cdict, voxel=VOXEL):
 
     out = {name: np.zeros(empty.shape, dtype=bool) for name in
            ('covered', 'supported', 'reach_strict', 'reach_optimistic',
-            'blk_item_only', 'blk_shelf', 'blk_xshift',
+            'blk_item_only', 'blk_shelf', 'blk_xshift', 'blk_x_only',
             'band_floor', 'band_shelf', 'band_high',
             'obs0', 'obs1', 'obs2', 'obs3plus')}
 
@@ -365,6 +365,8 @@ def fit_and_reach(masks, remaining, geo, cdict, voxel=VOXEL):
             x2lo = np.minimum(sx0, x0); x2hi = np.maximum(sx1, x1)
 
             hit_any = np.zeros(pi.shape[0], dtype=bool)
+            hit_p1 = np.zeros(pi.shape[0], dtype=bool)
+            hit_p2 = np.zeros(pi.shape[0], dtype=bool)
             hit_item = np.zeros(pi.shape[0], dtype=bool)
             hit_shelf = np.zeros(pi.shape[0], dtype=bool)
             nobs = np.zeros(pi.shape[0], dtype=np.int16)
@@ -382,6 +384,8 @@ def fit_and_reach(masks, remaining, geo, cdict, voxel=VOXEL):
                     if not hit.any():
                         continue
                     hit_any |= hit
+                    hit_p1 |= p1
+                    hit_p2 |= p2
                     nobs += hit
                     if is_shelf:
                         hit_shelf |= hit
@@ -389,6 +393,7 @@ def fit_and_reach(masks, remaining, geo, cdict, voxel=VOXEL):
                         hit_item |= hit
             else:
                 hit_any[:] = True
+                hit_p2[:] = True
 
             def _scatter(sel):
                 m = np.zeros(ok_sup.shape, dtype=bool)
@@ -402,6 +407,7 @@ def fit_and_reach(masks, remaining, geo, cdict, voxel=VOXEL):
                         (hit_any & hit_item & ~hit_shelf, 'blk_item_only'),
                         (hit_any & hit_shelf, 'blk_shelf'),
                         (hit_any & needs_x, 'blk_xshift'),
+                        (hit_any & hit_p2 & ~hit_p1, 'blk_x_only'),
                         (hit_any & (band == BAND_FLOOR), 'band_floor'),
                         (hit_any & (band == BAND_SHELF), 'band_shelf'),
                         (hit_any & (band == BAND_HIGH), 'band_high'),
@@ -443,7 +449,7 @@ def analyze_scene(task_config, module_path, label):
                reach_strict=0.0, reach_optimistic=0.0,
                a_strict=0.0, a_optimistic=0.0,
                a_band_floor=0.0, a_band_shelf=0.0, a_band_high=0.0,
-               a_item_only=0.0, a_shelf=0.0, a_xshift=0.0,
+               a_item_only=0.0, a_shelf=0.0, a_xshift=0.0, a_x_only=0.0,
                a_obs0=0.0, a_obs1=0.0, a_obs2=0.0, a_obs3plus=0.0)
     ray_hist = [0.0] * 6            # 参考: voxel 自身の高さで手前から直進したとき横切る個数
     lane_a = [0.0] * 10             # X を10レーンに分けた (a) 体積
@@ -488,6 +494,7 @@ def analyze_scene(task_config, module_path, label):
         agg['a_item_only'] += io.sum() * vv
         agg['a_shelf'] += sh.sum() * vv
         agg['a_xshift'] += (a_strict & res['blk_xshift']).sum() * vv
+        agg['a_x_only'] += (a_strict & res['blk_x_only'] & ~res['reach_strict']).sum() * vv
 
         # (iii) 経路上の障害物個数(排他: 少ない個数で塞がれている方を優先して数える)
         o1 = a_strict & res['obs1']

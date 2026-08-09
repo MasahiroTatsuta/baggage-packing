@@ -32,7 +32,7 @@ def main():
 
     keys = ['in_container', 'empty', 'covered', 'supported', 'reach_strict', 'reach_optimistic',
             'a_strict', 'a_optimistic', 'a_band_floor', 'a_band_shelf', 'a_band_high',
-            'a_item_only', 'a_shelf', 'a_xshift',
+            'a_item_only', 'a_shelf', 'a_xshift', 'a_x_only',
             'a_obs0', 'a_obs1', 'a_obs2', 'a_obs3plus']
     V = {k: sum(s['voxel'][k] for s in d.values()) for k in keys}
 
@@ -75,6 +75,7 @@ def main():
     row('棚(構造物)が絡む', V['a_shelf'])
     print(f'{"(参考) 切り欠きでx迂回が必要":34s}{V["a_xshift"]:12.3f}'
           f'{V["a_xshift"]/a*100:9.1f}%')
+    row('うち x掃引でだけ塞がれる(=切り欠き由来)', V['a_x_only'])
 
     print('\n--- (iii) 経路上の障害物の個数 ((a) を排他分割・少ない方優先) ---')
     print(f'{"":34s}{"体積[m^3]":>12s}{"(a)の%":>10s}{"fill換算pt":>12s}')
