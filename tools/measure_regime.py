@@ -185,6 +185,10 @@ def main():
     scene_labels = [f'{os.path.basename(cp)}::{tid}' for cp, tid, _ in scene_specs]
     samples = {lab: {k: [] for k in METRIC_KEYS} for lab in scene_labels}
     samples_status = {lab: [] for lab in scene_labels}
+    # Phase25a: optimize()/policy()の実測壁時計時間をシーン別に記録する(安全弁発火の有無・
+    # 決定性を事後確認するため)。metrics算出とは独立にrun_one_scene_with_regimesの戻り値
+    # から直接拾う(既に計算済みで捨てられていた値を保存するだけで、計測経路には影響しない)。
+    samples_time = {lab: {'optimize_time': [], 'policy_time': []} for lab in scene_labels}
     per_run_suite_avg = []
 
     t_start = time.time()
@@ -196,6 +200,8 @@ def main():
             result = run_one_scene_with_regimes(task_config, module_path, agent_module)
             m = result['metrics']
             samples_status[label].append(result['status'])
+            samples_time[label]['optimize_time'].append(result['optimize_time'])
+            samples_time[label]['policy_time'].append(result['policy_time'])
             if m is None:
                 print(f'  [{label}] ERROR/None metrics: {result["status"]}')
                 continue
@@ -218,12 +224,26 @@ def main():
             mean, std = _mean_std(samples[label][k])
             per_scene[label][k] = {'mean': mean, 'std': std, 'n': len(samples[label][k])}
         per_scene[label]['statuses'] = samples_status[label]
+        for tk in ('optimize_time', 'policy_time'):
+            vals = samples_time[label][tk]
+            mean, std = _mean_std(vals)
+            per_scene[label][tk] = {'mean': mean, 'std': std, 'max': max(vals) if vals else float('nan')}
 
     suite_stats = {}
     for k in METRIC_KEYS:
         vals = [s[k] for s in per_run_suite_avg if not math.isnan(s[k])]
         mean, std = _mean_std(vals)
         suite_stats[k] = {'mean': mean, 'std': std, 'n': len(vals)}
+
+    # 安全弁(HARD_WALL_LIMIT=165s / policy 8s)の発火有無を事後確認するための全シーン最大値。
+    all_optimize_times = [v for lab in scene_labels for v in samples_time[lab]['optimize_time']]
+    all_policy_times = [v for lab in scene_labels for v in samples_time[lab]['policy_time']]
+    time_stats = {
+        'optimize_time_max': max(all_optimize_times) if all_optimize_times else float('nan'),
+        'optimize_time_mean': sum(all_optimize_times) / len(all_optimize_times) if all_optimize_times else float('nan'),
+        'policy_time_max': max(all_policy_times) if all_policy_times else float('nan'),
+        'policy_time_mean': sum(all_policy_times) / len(all_policy_times) if all_policy_times else float('nan'),
+    }
 
     out = {
         'label': args.label,
@@ -235,6 +255,7 @@ def main():
         'per_scene': per_scene,
         'per_run_suite_avg': per_run_suite_avg,
         'suite_stats': suite_stats,
+        'time_stats': time_stats,
         'elapsed_sec': time.time() - t_start,
     }
     with open(args.out, 'w') as f:
@@ -245,6 +266,10 @@ def main():
           f'(±{suite_stats["fill_strict"]["std"]:.2f})')
     print(f'fill_loose  (margin={LOOSE_MARGIN}): {suite_stats["fill_loose"]["mean"]:.2f} '
           f'(±{suite_stats["fill_loose"]["std"]:.2f})')
+    print(f'optimize_time: mean={time_stats["optimize_time_mean"]:.2f}s max={time_stats["optimize_time_max"]:.2f}s '
+          f'(HARD_WALL_LIMIT=165s)')
+    print(f'policy_time  : mean={time_stats["policy_time_mean"]:.3f}s max={time_stats["policy_time_max"]:.2f}s '
+          f'(timeout=8s)')
     print(f'\n出力: {args.out} (総所要 {out["elapsed_sec"]:.0f}s)')
 
 

@@ -279,7 +279,14 @@ STABILITY_PENALTY_WEIGHT = float(os.environ.get('MYSOLVER_STABILITY_W', '0.0'))
 # 制約(placement/soft 全シーン満点)を満たす b>1 は b=3 のみで、26シーンで
 # fill_strict 23.74->25.68 / fill_loose 36.65->39.13、採点モデル換算 public +0.87pt。
 # b=1 は greedy_construct_order と完全に同一(18/18 の順序一致で検証済み)。
-BEAM_WIDTH = int(os.environ.get('MYSOLVER_BEAM_WIDTH', '3'))
+# Phase25a: 既定を Phase22 相当(b=1)へ戻した。理由は Phase25a の採否基準の改訂:
+# 26シーン平均の改善だけでなく、シーン別効果の標準偏差σ・SE=σ/√26・t値で判定すべきところ、
+# Phase23の b=3 は +1.95±1.20(t=1.63、t>2に届かず)で本来は不採用相当の分散だった。
+# 実際の提出フィードバックも public -0.45 で悪化しており、σが大きい変更は26シーン平均が
+# 改善して見えても隠しテスト(別シーン集合)には一般化しないことが裏付けられた
+# (results/phase25a_report.md)。b=3以上を再検討する場合は必ずシーン数を増やしてSEを
+# 下げてから判定すること。
+BEAM_WIDTH = int(os.environ.get('MYSOLVER_BEAM_WIDTH', '1'))
 
 
 def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
