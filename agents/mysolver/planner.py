@@ -271,7 +271,7 @@ CANDIDATE_BUILD_COST = 18.2
 # 安全だが、この分散の大きさでは26シーンの平均改善が隠しテスト(別シーン集合)に
 # 一般化する保証がない(Phase23 b=3の教訓と同型)。1.05e7を据え置き、以後の変更は
 # この値をアンカーにdiffで評価する。
-UNITS_PER_SEC = float(os.environ.get('MYSOLVER_UNITS_PER_SEC', '1.05e7'))
+UNITS_PER_SEC = float(os.environ.get('MYSOLVER_UNITS_PER_SEC', '1.55e7'))
 # 非常用安全弁の壁時計チェック間隔(exhausted() 呼び出し回数)。毎回 perf_counter() を
 # 呼ぶとホットループのオーバーヘッドになるため間引く。決定性には影響しない
 # (安全弁が発火しない限り結果に関与しないため)。
