@@ -1,0 +1,528 @@
+[
+ {
+  "label": "A01_1c_40_plain",
+  "n_placed": 26,
+  "n_items": 40,
+  "stalled": true,
+  "blocker_sec": 0.0014896459997544298,
+  "pool_size": 1,
+  "pool": [
+   13
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 13,
+    "n_blockers": null
+   }
+  ],
+  "sec": 0.9860487490000196
+ },
+ {
+  "label": "A02_1c_80_plain",
+  "n_placed": 21,
+  "n_items": 80,
+  "stalled": true,
+  "blocker_sec": 0.0017564740001034806,
+  "pool_size": 1,
+  "pool": [
+   52
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 52,
+    "n_blockers": null
+   }
+  ],
+  "sec": 0.8388303470001119
+ },
+ {
+  "label": "A03_1c_40_shelf",
+  "n_placed": 26,
+  "n_items": 40,
+  "stalled": true,
+  "blocker_sec": 0.00137923000011142,
+  "pool_size": 1,
+  "pool": [
+   13
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 13,
+    "n_blockers": null
+   }
+  ],
+  "sec": 1.0695008930001677
+ },
+ {
+  "label": "A04_2c_80_noprio",
+  "n_placed": 28,
+  "n_items": 80,
+  "stalled": true,
+  "blocker_sec": 0.004626651999842579,
+  "pool_size": 1,
+  "pool": [
+   8
+  ],
+  "repairable": true,
+  "stall_item": 8,
+  "n_blockers": 3,
+  "blockers": [
+   1,
+   18,
+   73
+  ],
+  "n_blocked_positions": 1,
+  "stall_item_pos": 28,
+  "earliest_blocker_pos": 2,
+  "per_item": [
+   {
+    "item": 8,
+    "n_blockers": 3
+   }
+  ],
+  "sec": 1.9308480029999373
+ },
+ {
+  "label": "A05_2c_80_prio",
+  "n_placed": 24,
+  "n_items": 80,
+  "stalled": true,
+  "blocker_sec": 0.004065436000018963,
+  "pool_size": 1,
+  "pool": [
+   36
+  ],
+  "repairable": true,
+  "stall_item": 36,
+  "n_blockers": 2,
+  "blockers": [
+   9,
+   44
+  ],
+  "n_blocked_positions": 2,
+  "stall_item_pos": 24,
+  "earliest_blocker_pos": 4,
+  "per_item": [
+   {
+    "item": 36,
+    "n_blockers": 2
+   }
+  ],
+  "sec": 1.13989348000041
+ },
+ {
+  "label": "A06_1c_40_small",
+  "n_placed": 40,
+  "n_items": 40,
+  "stalled": false,
+  "repairable": false,
+  "sec": 2.5872951639998973
+ },
+ {
+  "label": "A07_1c_40_bulky",
+  "n_placed": 12,
+  "n_items": 40,
+  "stalled": true,
+  "blocker_sec": 0.0011958380000578472,
+  "pool_size": 1,
+  "pool": [
+   31
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 31,
+    "n_blockers": null
+   }
+  ],
+  "sec": 0.41994061100012914
+ },
+ {
+  "label": "A08_2c_140_extreme",
+  "n_placed": 20,
+  "n_items": 140,
+  "stalled": true,
+  "blocker_sec": 0.001957086999937019,
+  "pool_size": 1,
+  "pool": [
+   12
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 12,
+    "n_blockers": null
+   }
+  ],
+  "sec": 1.0686395380002978
+ },
+ {
+  "label": "C01_1c_40_shelf",
+  "n_placed": 23,
+  "n_items": 40,
+  "stalled": true,
+  "blocker_sec": 0.005973458999960712,
+  "pool_size": 5,
+  "pool": [
+   37,
+   19,
+   33,
+   23,
+   15
+  ],
+  "repairable": true,
+  "stall_item": 33,
+  "n_blockers": 6,
+  "blockers": [
+   4,
+   7,
+   12,
+   16,
+   21,
+   29
+  ],
+  "n_blocked_positions": 2,
+  "stall_item_pos": 24,
+  "earliest_blocker_pos": 7,
+  "per_item": [
+   {
+    "item": 37,
+    "n_blockers": null
+   },
+   {
+    "item": 19,
+    "n_blockers": null
+   },
+   {
+    "item": 33,
+    "n_blockers": 6
+   },
+   {
+    "item": 23,
+    "n_blockers": null
+   },
+   {
+    "item": 15,
+    "n_blockers": 7
+   }
+  ],
+  "sec": 4.080326952000178
+ },
+ {
+  "label": "C02_2c_55_shelfprio",
+  "n_placed": 33,
+  "n_items": 55,
+  "stalled": true,
+  "blocker_sec": 0.01258633599991299,
+  "pool_size": 5,
+  "pool": [
+   47,
+   4,
+   2,
+   9,
+   8
+  ],
+  "repairable": true,
+  "stall_item": 8,
+  "n_blockers": 2,
+  "blockers": [
+   7,
+   21
+  ],
+  "n_blocked_positions": 5,
+  "stall_item_pos": 37,
+  "earliest_blocker_pos": 4,
+  "per_item": [
+   {
+    "item": 47,
+    "n_blockers": null
+   },
+   {
+    "item": 4,
+    "n_blockers": null
+   },
+   {
+    "item": 2,
+    "n_blockers": null
+   },
+   {
+    "item": 9,
+    "n_blockers": null
+   },
+   {
+    "item": 8,
+    "n_blockers": 2
+   }
+  ],
+  "sec": 7.032034164999914
+ },
+ {
+  "label": "C03_2c_80_prio",
+  "n_placed": 26,
+  "n_items": 80,
+  "stalled": true,
+  "blocker_sec": 0.005213857000399003,
+  "pool_size": 5,
+  "pool": [
+   46,
+   6,
+   70,
+   38,
+   14
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 46,
+    "n_blockers": null
+   },
+   {
+    "item": 6,
+    "n_blockers": null
+   },
+   {
+    "item": 70,
+    "n_blockers": null
+   },
+   {
+    "item": 38,
+    "n_blockers": null
+   },
+   {
+    "item": 14,
+    "n_blockers": null
+   }
+  ],
+  "sec": 6.588628580999739
+ },
+ {
+  "label": "D01_A_1c_40_softheavy",
+  "n_placed": 21,
+  "n_items": 40,
+  "stalled": true,
+  "blocker_sec": 0.0019025260003218136,
+  "pool_size": 1,
+  "pool": [
+   11
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 11,
+    "n_blockers": null
+   }
+  ],
+  "sec": 0.8358811140001308
+ },
+ {
+  "label": "D02_A_1c_40_prioheavy_nocont",
+  "n_placed": 27,
+  "n_items": 40,
+  "stalled": true,
+  "blocker_sec": 0.0013977050002722535,
+  "pool_size": 1,
+  "pool": [
+   25
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 25,
+    "n_blockers": null
+   }
+  ],
+  "sec": 1.1662621780001245
+ },
+ {
+  "label": "D03_A_2c_60_prioheavy_cont",
+  "n_placed": 30,
+  "n_items": 60,
+  "stalled": true,
+  "blocker_sec": 0.002224555999873701,
+  "pool_size": 1,
+  "pool": [
+   27
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 27,
+    "n_blockers": null
+   }
+  ],
+  "sec": 1.559497753999949
+ },
+ {
+  "label": "D04_A_1c_40_flat",
+  "n_placed": 25,
+  "n_items": 40,
+  "stalled": true,
+  "blocker_sec": 0.0018644049996510148,
+  "pool_size": 1,
+  "pool": [
+   1
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 1,
+    "n_blockers": null
+   }
+  ],
+  "sec": 1.0762628560000849
+ },
+ {
+  "label": "D05_A_1c_40_tall",
+  "n_placed": 13,
+  "n_items": 40,
+  "stalled": true,
+  "blocker_sec": 0.0028418759998203313,
+  "pool_size": 1,
+  "pool": [
+   39
+  ],
+  "repairable": true,
+  "stall_item": 39,
+  "n_blockers": 2,
+  "blockers": [
+   30,
+   32
+  ],
+  "n_blocked_positions": 1,
+  "stall_item_pos": 13,
+  "earliest_blocker_pos": 8,
+  "per_item": [
+   {
+    "item": 39,
+    "n_blockers": 2
+   }
+  ],
+  "sec": 0.4867554170000403
+ },
+ {
+  "label": "P01_A_1c_pre6",
+  "n_placed": 19,
+  "n_items": 34,
+  "stalled": true,
+  "blocker_sec": 0.001277640999887808,
+  "pool_size": 1,
+  "pool": [
+   5
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 5,
+    "n_blockers": null
+   }
+  ],
+  "sec": 1.02286597300008
+ },
+ {
+  "label": "P02_A_1c_pre10",
+  "n_placed": 23,
+  "n_items": 40,
+  "stalled": true,
+  "blocker_sec": 0.0037080729998706374,
+  "pool_size": 1,
+  "pool": [
+   1
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 1,
+    "n_blockers": null
+   }
+  ],
+  "sec": 1.2988476430000446
+ },
+ {
+  "label": "P03_A_2c_pre8_prio",
+  "n_placed": 27,
+  "n_items": 60,
+  "stalled": true,
+  "blocker_sec": 0.0027799699996648997,
+  "pool_size": 1,
+  "pool": [
+   59
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 59,
+    "n_blockers": null
+   }
+  ],
+  "sec": 1.7132725909996225
+ },
+ {
+  "label": "P05_C_2c_pre8_shelfprio",
+  "n_placed": 19,
+  "n_items": 50,
+  "stalled": true,
+  "blocker_sec": 0.01448203600011766,
+  "pool_size": 5,
+  "pool": [
+   8,
+   4,
+   46,
+   45,
+   27
+  ],
+  "repairable": true,
+  "stall_item": 45,
+  "n_blockers": 1,
+  "blockers": [
+   41
+  ],
+  "n_blocked_positions": 3,
+  "stall_item_pos": 20,
+  "earliest_blocker_pos": 22,
+  "per_item": [
+   {
+    "item": 8,
+    "n_blockers": null
+   },
+   {
+    "item": 4,
+    "n_blockers": null
+   },
+   {
+    "item": 46,
+    "n_blockers": null
+   },
+   {
+    "item": 45,
+    "n_blockers": 1
+   },
+   {
+    "item": 27,
+    "n_blockers": 1
+   }
+  ],
+  "sec": 4.668823457000144
+ },
+ {
+  "label": "P06_A_1c_pre12_dense",
+  "n_placed": 16,
+  "n_items": 30,
+  "stalled": true,
+  "blocker_sec": 0.0014221999999790569,
+  "pool_size": 1,
+  "pool": [
+   4
+  ],
+  "repairable": false,
+  "per_item": [
+   {
+    "item": 4,
+    "n_blockers": null
+   }
+  ],
+  "sec": 1.1497312639999109
+ }
+]

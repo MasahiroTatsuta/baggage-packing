@@ -255,6 +255,184 @@ def fit_and_reach(masks, remaining, cdict, voxel=VOXEL):
     return out
 
 
+def _sweep_boxes(masks, cdict, key, ok_sup, voxel):
+    """ok_sup の各 True 位置について、掃引箱(p1: y掃引 / p2: x掃引)の座標配列を返す。
+
+    fit_and_reach の「厳密な搬入経路」ブロックから、障害物との判定に必要な幾何量だけを
+    切り出したもの(判定式は一切変えていない)。戻り値は
+    (pi, pj, pk, geom) で、geom は障害物1個との衝突判定に必要な配列の dict。
+    """
+    xs = masks['xs']; ys = masks['ys']
+    di, dj, dk = key
+    nx, ny, nz = masks['empty'].shape
+    K = nz - dk + 1
+    pi, pj, pk = np.nonzero(ok_sup)
+    if pi.size == 0:
+        return None
+    z0_arr, z1_arr = _corridor_geometry(cdict, dk, K, voxel)
+    x0 = xs[pi] - voxel / 2.0
+    x1 = x0 + di * voxel
+    y0 = ys[pj] - voxel / 2.0
+    y1 = y0 + dj * voxel
+    x_min_w, x_max_w = geo.transport_x_bounds(cdict, di * voxel / 2.0)
+    if x_min_w > x_max_w:
+        return None
+    cxp = (x0 + x1) / 2.0
+    scx = np.clip(cxp, x_min_w, x_max_w)
+    needs_x = np.abs(scx - cxp) > 1e-9
+    sx0 = scx - di * voxel / 2.0
+    sx1 = scx + di * voxel / 2.0
+    geom = {
+        'x0': x0, 'x1': x1, 'y0': y0, 'y1': y1,
+        'cz0': z0_arr[pk], 'cz1': z1_arr[pk],
+        'sx0': sx0, 'sx1': sx1, 'needs_x': needs_x,
+        'x2lo': np.minimum(sx0, x0), 'x2hi': np.maximum(sx1, x1),
+        'y_entry': -cdict['width'] / 2.0,
+    }
+    return pi, pj, pk, geom
+
+
+def _hits(geom, oc, oh):
+    """障害物 (center, half) が掃引箱に当たる位置の bool 配列(fit_and_reach と同式)。"""
+    mxy = geo.SAFETY_MARGIN_XY
+    mz = geo.SWEEP_Z_MARGIN
+    fz = (geom['cz1'] + mz > oc[2] - oh[2]) & (oc[2] + oh[2] + mz > geom['cz0'])
+    fy_far = (oc[1] + oh[1] + mxy > geom['y_entry'])
+    p1 = (fz & (geom['sx1'] + mxy > oc[0] - oh[0]) & (oc[0] + oh[0] + mxy > geom['sx0'])
+          & (geom['y1'] + mxy > oc[1] - oh[1]) & fy_far)
+    p2 = (geom['needs_x'] & fz & (geom['x2hi'] + mxy > oc[0] - oh[0])
+          & (oc[0] + oh[0] + mxy > geom['x2lo'])
+          & (geom['y1'] + mxy > oc[1] - oh[1]) & (oc[1] + oh[1] + mxy > geom['y0']))
+    return p1 | p2
+
+
+def _fit_positions(masks, cdict, item, voxel):
+    """荷物 item の全 orientation について (key, ok_sup) を返す(fit_and_reach と同じ判定)。"""
+    empty = masks['empty']
+    nx, ny, nz = empty.shape
+    A = _pad3(~empty)
+    solid_below = masks['occupied'] | ~masks['in_container']
+    Ab = np.pad(solid_below.astype(np.int32).cumsum(0).cumsum(1), ((1, 0), (1, 0), (0, 0)),
+                mode='constant')
+    lwh = (item['length'], item['width'], item['height'])
+    seen = set()
+    out = []
+    for oi in range(6):
+        half = geo.half_extent(lwh, oi)
+        key = tuple(max(1, int(math.ceil(2 * h / voxel - 1e-9))) for h in half)
+        if key in seen:
+            continue
+        seen.add(key)
+        di, dj, dk = key
+        if di > nx or dj > ny or dk > nz:
+            continue
+        I, J, K = nx - di + 1, ny - dj + 1, nz - dk + 1
+        tot = (A[di:di + I, dj:dj + J, dk:dk + K]
+               - A[0:I, dj:dj + J, dk:dk + K]
+               - A[di:di + I, 0:J, dk:dk + K]
+               - A[di:di + I, dj:dj + J, 0:K]
+               + A[0:I, 0:J, dk:dk + K]
+               + A[0:I, dj:dj + J, 0:K]
+               + A[di:di + I, 0:J, 0:K]
+               - A[0:I, 0:J, 0:K])
+        ok = tot == 0
+        if not ok.any():
+            continue
+        foot = (Ab[di:di + I, dj:dj + J, :] - Ab[0:I, dj:dj + J, :]
+                - Ab[di:di + I, 0:J, :] + Ab[0:I, 0:J, :])
+        need = SUPPORT_RATIO * di * dj
+        sup_ok = np.zeros_like(ok)
+        below = np.arange(K) - 1
+        v = below >= 0
+        if v.any():
+            sup_ok[:, :, v] = foot[:, :, below[v]] >= need
+        sup_ok[:, :, ~v] = True
+        ok_sup = ok & sup_ok
+        if ok_sup.any():
+            out.append((key, ok_sup))
+    return out
+
+
+def item_blockers(containers, item, voxel=VOXEL, masks_cache=None):
+    """荷物 X ひとつについて「開ければ置けるようになる既配置荷物の集合」を返す。
+
+    Phase29: Phase24/28 が測っていたのは *体積* だけで、封鎖している **荷物の同定** は
+    していなかった(監査ツールは経路上の障害物 *個数* までは数えていた)。ここは同じ
+    判定式(`_hits` = fit_and_reach の p1|p2)に障害物の identity を持たせただけの拡張である。
+
+    手順:
+      1. X が幾何的に収まり支持もある位置(= supported)を全 orientation で列挙する
+      2. そのうち搬入経路が塞がれている位置に絞る
+      3. **棚(静的障害物)が当たっている位置は除く** —— 棚は順序で動かせないので、
+         そこを開けることは原理的にできない
+      4. 残った位置のうち **ブロッカー数が最小** の位置を選び、その位置を塞いでいる
+         既配置荷物の index 集合を返す
+
+    戻り値 None は「順序の修正では開けられない」(収まる位置が無い/棚が塞いでいる/
+    そもそも経路は空いている=別の理由で置けなかった)の意。
+    """
+    best = None
+    for ci, cdict in enumerate(containers):
+        if masks_cache is not None and ci in masks_cache:
+            masks = masks_cache[ci]
+        else:
+            masks = build_masks(cdict, voxel=voxel)
+            if masks_cache is not None:
+                masks_cache[ci] = masks
+        if not masks['empty'].any():
+            continue
+        packed = [it for it in cdict.get('packed_items', [])
+                  if it.get('pos') is not None and it.get('orn') is not None]
+        obs = [(geo.item_world_aabb(it), int(it['index'])) for it in packed]
+        static = list(geo.static_obstacles(cdict))
+        for key, ok_sup in _fit_positions(masks, cdict, item, voxel):
+            got = _sweep_boxes(masks, cdict, key, ok_sup, voxel)
+            if got is None:
+                continue
+            pi, pj, pk, geom = got
+            n = pi.shape[0]
+            shelf_hit = np.zeros(n, dtype=bool)
+            for (oc, oh) in static:
+                shelf_hit |= _hits(geom, oc, oh)
+            nobs = np.zeros(n, dtype=np.int32)
+            for (oc, oh), _idx in obs:
+                nobs += _hits(geom, oc, oh)
+            cand = (~shelf_hit) & (nobs >= 1)
+            if not cand.any():
+                continue
+            masked = np.where(cand, nobs, np.iinfo(np.int32).max)
+            p = int(np.argmin(masked))       # C順の最初の最小 = 決定的
+            cnt = int(nobs[p])
+            if best is not None and cnt >= best['n_blockers']:
+                continue
+            one = {k: (v[p:p + 1] if isinstance(v, np.ndarray) else v)
+                   for k, v in geom.items()}
+            ids = [idx for (oc, oh), idx in obs if bool(_hits(one, oc, oh)[0])]
+            best = {'container_idx': ci, 'n_blockers': cnt, 'blockers': sorted(ids),
+                    'n_blocked_positions': int(cand.sum())}
+    return best
+
+
+def stall_blockers(containers, pool_items, voxel=VOXEL):
+    """行き詰まり時点のプール(=置けなかった荷物)について、ブロッカーを同定する。
+
+    戻り値は「ブロッカー数が最小、同数ならプール順」で選んだ1件(順序修正の対象)と、
+    プール全件の内訳。順序修正で開けられる衝突が1件も無ければ candidate は None。
+    """
+    cache: dict = {}
+    per_item = []
+    for pos, item in enumerate(pool_items):
+        b = item_blockers(containers, item, voxel=voxel, masks_cache=cache)
+        per_item.append({'item_index': int(item['index']), 'pool_pos': pos,
+                         'result': b})
+    ranked = [r for r in per_item if r['result'] is not None]
+    ranked.sort(key=lambda r: (r['result']['n_blockers'], r['pool_pos']))
+    # コストのユニット換算用(決定的な量: voxel 数 × 評価した荷物数)。
+    cells = sum(int(m['empty'].size) for m in cache.values())
+    return {'candidate': ranked[0] if ranked else None, 'per_item': per_item,
+            'grid_cells': cells, 'n_shapes': max(1, len(pool_items))}
+
+
 def stall_reachability(containers, remaining, voxel=VOXEL):
     """行き詰まり時点の到達可能性を1スカラーにまとめて返す。
 

@@ -1,0 +1,112 @@
+[
+ {
+  "fill_strict": 32.20807592808142,
+  "fill_loose": 48.01916416519588,
+  "num_placed": 27,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 64.8733619555465,
+  "stability_score": 97.72143356080151,
+  "label": "C03_2c_80_prio",
+  "name": "base"
+ },
+ {
+  "fill_strict": 34.904399340050944,
+  "fill_loose": 52.66450983235235,
+  "num_placed": 29,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 58.84406968114922,
+  "stability_score": 98.07499498855226,
+  "label": "C03_2c_80_prio",
+  "name": "advance_to_front"
+ },
+ {
+  "fill_strict": 24.786075745936756,
+  "fill_loose": 38.033198494481276,
+  "num_placed": 28,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 72.27525482289052,
+  "stability_score": 98.58476948269512,
+  "label": "P05_C_2c_pre8_shelfprio",
+  "name": "base"
+ },
+ {
+  "fill_strict": 24.786075745936756,
+  "fill_loose": 38.03319849448127,
+  "num_placed": 28,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 71.26607251906978,
+  "stability_score": 98.540273442025,
+  "label": "P05_C_2c_pre8_shelfprio",
+  "name": "advance_before"
+ },
+ {
+  "fill_strict": 29.58476812029998,
+  "fill_loose": 43.25546780241772,
+  "num_placed": 35,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 65.95864656629887,
+  "stability_score": 98.4132226025992,
+  "label": "P05_C_2c_pre8_shelfprio",
+  "name": "delay_blockers"
+ },
+ {
+  "fill_strict": 25.451173397448848,
+  "fill_loose": 37.5710993344182,
+  "num_placed": 25,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 68.00806469456896,
+  "stability_score": 98.66774516893497,
+  "label": "P05_C_2c_pre8_shelfprio",
+  "name": "advance_to_front"
+ },
+ {
+  "fill_strict": 31.53175988575923,
+  "fill_loose": 37.31433460045679,
+  "num_placed": 21,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 66.30353412102204,
+  "stability_score": 98.57586306668213,
+  "label": "D01_A_1c_40_softheavy",
+  "name": "base"
+ },
+ {
+  "fill_strict": 18.753082798599237,
+  "fill_loose": 27.822562525954726,
+  "num_placed": 17,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 79.09551069130015,
+  "stability_score": 98.39038116520169,
+  "label": "D01_A_1c_40_softheavy",
+  "name": "advance_before"
+ },
+ {
+  "fill_strict": 19.67289834029452,
+  "fill_loose": 24.809314505502392,
+  "num_placed": 17,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 69.3494089165289,
+  "stability_score": 98.56439598888723,
+  "label": "D01_A_1c_40_softheavy",
+  "name": "delay_blockers"
+ },
+ {
+  "fill_strict": 16.394361808006835,
+  "fill_loose": 28.900130447499553,
+  "num_placed": 17,
+  "placement_score": 100.0,
+  "soft_item_score": 100.0,
+  "cog_score": 71.66947913000898,
+  "stability_score": 98.46768558607697,
+  "label": "D01_A_1c_40_softheavy",
+  "name": "advance_to_front"
+ }
+]

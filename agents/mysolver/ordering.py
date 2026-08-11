@@ -31,6 +31,7 @@ import numpy as np
 
 from . import geometry as geo
 from . import planner
+from . import reach
 from . import simulate
 
 # optimize() 全体の壁時計制限(180s、本番の実効上限は170s)に対する、実際に使う探索時間予算。
@@ -328,6 +329,115 @@ STABILITY_PENALTY_WEIGHT = float(os.environ.get('MYSOLVER_STABILITY_W', '0.0'))
 # 下げてから判定すること。
 BEAM_WIDTH = int(os.environ.get('MYSOLVER_BEAM_WIDTH', '1'))
 
+# ---------------------------------------------------------------------------
+# Phase29: 衝突駆動リスタート(conflict-driven ordering repair)
+# ---------------------------------------------------------------------------
+# Phase24(候補側で構築中に効かせる)と Phase28(順序側で事後に効かせる)は、いずれも
+# **到達可能性を目的関数の項として足す**路線であり、どちらも「シーン横断で使える重みの区間が
+# 存在しない」という同じ壁で失敗した(Phase18・Phase26 と合わせて3敗)。
+#
+# ここは目的関数を一切変えない。**重みを導入しない**ので崖も尺度問題も起きない。
+# 変えるのは「次に試す順序をどう作るか」だけである:
+#
+#   1. ロールアウトが行き詰まったら、その瞬間の状態(simulate.simulate_order の stall_info)を取る
+#   2. 置けなかった荷物 X について、掃引経路を塞いでいる既配置荷物 Y1..Yn を同定する
+#      (reach.item_blockers。判定式は Phase24 の監査ツールと同一で、障害物に identity を
+#       持たせただけ。棚が塞いでいる位置は「順序では動かせない」として除外する)
+#   3. **X を Y1..Yn すべてより前へ動かした**順序を作って評価しなおす
+#      (1手スワップではなく多手移動。Phase24 が見積もった単発スワップの上限
+#        (経路上の障害物1個のケース=(a)の23.6%)を超えて、障害物3個以上の55%にも届きうる)
+#   4. 改善しなければその修正は捨て、次の衝突へ移る
+#
+# 予算について: リスタート回数は**増やさない**。フェーズ1/フェーズ2のループは
+# 「満額の枠が入らないなら新しいリスタートを始めない」ため、必ず端数の予算が余って捨てられて
+# いる(実測 §ステップ1)。修正の試行はこの **余り** の中だけで行うので、
+# 総予算も、既存のリスタートの内容も、その決定的な系列も一切変わらない
+# (=Phase17 で確立した「小さい予算の系列は大きい予算の系列の接頭辞」も保たれる)。
+#
+# **既定は無効(0)**。無効時は stall_info を渡さないので simulate 側の計算経路にも入らず、
+# Phase28 までの出力とビット単位で同一(決定的5シーン+A01-A03 の 8/8 で検証済み)。
+#
+# ---------------------------------------------------------------------------
+# 【結果: 不採用】到達したのは **26シーン中2シーン**(C03, P05)だけで、採点指標が動いたのは
+# **1シーン**(C03: fill_strict 32.208 -> 34.904)。26シーン平均 +0.104 / σ=0.529 / SE=0.104 /
+# **t=+1.000** で、2×SE(0.207)を超えない(results/phase29_report.md)。
+#
+#  ・**主因は Phase24 の (a) の読み違い**(本フェーズ最大の成果): (a)=搬入経路が封鎖された
+#    空き 29.993 m³ は「残荷物の **どれか** が入る空間」の合計である。しかし評価は sudden death
+#    なので、エピソードを止めるのは常に **次の1個(X)** だけ。実測では **21シーン中13シーンで
+#    X はそもそもどこにも入らない**(支持付きで収まる位置がゼロ。voxel を 0.10->0.05->0.025 と
+#    細かくしてもゼロのまま)。つまり (a) の大半は「X 以外の荷物のための空間」で、
+#    X の順序を直しても取りに行けない。**Phase24 の 13.14pt は順序修正の射程内に無い。**
+#  ・衝突が同定できた6シーンでも、4シーンではどの修正手も悪化した(-0.50〜-12.51pt)。
+#    X を前に出すと、開く通路より壊れる層のほうが大きい。目的関数はこれを正しく全て棄却した。
+#  ・**機構自体は動いている**: C03 で実測 +2.696pt、P05 の delay_blockers で実測 +4.799pt。
+#    効かない理由は機構ではなく母数なので、ブロッカー同定(reach.item_blockers)は残す。
+#  ・副産物: P05 では目的関数が採用した手が実機 ±0.000 で、棄却した手が +4.799 だった。
+#    影シミュレータは P05 の base を placed 19個と予測するが実機は28個。Phase20 は
+#    「代理誤差はあるが順位=意思決定は変わらない」と結論していたが、**1手差の粒度では
+#    順位が変わる**。次に代理精度を触るならこれが具体的な足がかりになる。
+# ---------------------------------------------------------------------------
+REPAIR = os.environ.get('MYSOLVER_REPAIR', '0') == '1'
+# 1回の build_order で試す修正の上限(予算が先に尽きるのが普通なので、暴走止めの意味合い)。
+REPAIR_MAX = int(os.environ.get('MYSOLVER_REPAIR_MAX', '12'))
+# ブロッカー同定に使う voxel。Phase28 の集計用既定(0.10)は「残荷物のどれかが入る空間」を
+# 測るには足りるが、**特定の1個の荷物**が入る位置を数えるには粗すぎる(voxel は少しでも
+# 重なれば occupied 側に倒れるので、細い隙間が丸ごと消える)。実測 tools/phase29_diag.py:
+# D01 は 0.10 で sup=0(=修正不能)だが 0.05 で sup=2・0.025 で sup=12 と、いずれも
+# 既配置荷物だけが塞いでいる位置だった。1回あたり数十msなので 0.05 を既定にする。
+REPAIR_VOXEL = float(os.environ.get('MYSOLVER_REPAIR_VOXEL', '0.05'))
+_DEBUG = os.environ.get('MYSOLVER_DEBUG_BUDGET') == '1'
+
+
+def _advance_before(order: list[int], x: int, blockers: list[int]) -> list[int] | None:
+    """x を「order 上で最も早いブロッカー」の直前へ移動した順序を返す。
+
+    これが本フェーズの主役の多手移動である(「1手入れ替え」ではない)。x を1つ前へ出すと、
+    その間にあった荷物はすべて1つ後ろへずれる。
+    """
+    pos = {v: i for i, v in enumerate(order)}
+    if x not in pos:
+        return None
+    tgt = min((pos[b] for b in blockers if b in pos), default=None)
+    if tgt is None or tgt >= pos[x]:
+        return None
+    rest = [v for v in order if v != x]
+    return rest[:tgt] + [x] + rest[tgt:]
+
+
+def _advance_to_front(order: list[int], x: int, blockers: list[int]) -> list[int] | None:
+    """x を先頭へ移動する(「全ブロッカーより前」の最も強い形)。
+
+    lookahead_k>1 のシーンでは、プールの中から planner が置く順を選ぶので、**ブロッカーが
+    ストリーム順では x より後ろに居ることがある**(置かれた順と流れてきた順が一致しない)。
+    この場合 `_advance_before` も `_delay_blockers` も「もう x のほうが前にある」と判断して
+    None を返してしまい、修正手が1つも作れない。実測(tools/phase29_repair_probe.py)では
+    C03 がこれに該当し、唯一作れるこの手が代理fill +5.79pt だった。
+    """
+    if x not in order or order[0] == x:
+        return None
+    return [x] + [v for v in order if v != x]
+
+
+def _delay_blockers(order: list[int], x: int, blockers: list[int]) -> list[int] | None:
+    """ブロッカー群を x の直後へまとめて移動した順序を返す(相対順序は保つ)。
+
+    `_advance_before` と同じ「x が全ブロッカーより前」を達成する別経路。x を前に出すと
+    x より前の積み方まで丸ごと変わってしまうのに対し、こちらは x までの積み方を保ったまま
+    ブロッカーだけを後ろへ回すので、破壊が小さい。どちらが効くかは事前には決められないため
+    両方を決定的な順番で試す。
+    """
+    bset = {b for b in blockers if b in set(order)}
+    if not bset:
+        return None
+    pos = {v: i for i, v in enumerate(order)}
+    if x not in pos or all(pos[b] > pos[x] for b in bset):
+        return None
+    bs = [v for v in order if v in bset]
+    rest = [v for v in order if v not in bset]
+    i = rest.index(x)
+    return rest[:i + 1] + bs + rest[i + 1:]
+
 
 def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
                  time_budget: float = DEFAULT_TIME_BUDGET) -> list[int]:
@@ -376,10 +486,17 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # indexはそのまま引き継がれるので、以降の全シミュレーション呼び出しに対して有効)。
     prepacked_ids = geo.initial_prepacked_ids(container_list)
 
-    def validate(order: list[int]) -> tuple[float, int] | None:
+    # Phase29: 1回の validate が実際に消費したユニット(名目秒ではなく実測)。
+    # 修正フェーズが「端数の予算で1回ぶん回るか」を判定するのに使う。MAX_VALIDATE_SLICE(12s)は
+    # あくまで上限であって実費ではない(実測 0.37〜8.84 名目秒とシーンで20倍以上ちがう)。
+    max_validate_units = [0.0]
+
+    def validate(order: list[int], stall_info: dict | None = None,
+                  slice_units: float | None = None) -> tuple[float, int] | None:
         """戻り値 None は「予算切れで評価できなかった」の意(比較対象にしない)。"""
         if total_budget.exhausted():
             return None
+        used_before = total_budget.used
         # Phase18: stability の幾何代理は risk_adjusted_volume 自体(荷物ごとの割引)に
         # 織り込み済み(simulate.simulate_order の stability_weight 引数)。ここで返る
         # stability_risk_ratio は診断用(coverageの平均リスク)であり目的関数には使わない。
@@ -389,8 +506,12 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         placed_ids, placed_volume, risk_adjusted_volume, violation_ratio, stability_risk_ratio = \
             simulate.simulate_order(
                 container_list, items_by_index, order, k,
-                total_budget.child_seconds(max_validate_slice), prepacked_ids=prepacked_ids,
-                stability_weight=STABILITY_PENALTY_WEIGHT, reach_info=reach_info)
+                (total_budget.child(slice_units) if slice_units is not None
+                 else total_budget.child_seconds(max_validate_slice)),
+                prepacked_ids=prepacked_ids,
+                stability_weight=STABILITY_PENALTY_WEIGHT, reach_info=reach_info,
+                stall_info=stall_info)
+        max_validate_units[0] = max(max_validate_units[0], total_budget.used - used_before)
         count = len(placed_ids)
         penalty = PLACEMENT_PENALTY_WEIGHT * total_container_volume * violation_ratio
         # Phase28: 自己封鎖した順序を割り引く。**加算ペナルティにしてはならない**。
@@ -404,10 +525,14 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             return (risk_adjusted_volume * discount - penalty, count)
         return (risk_adjusted_volume - penalty, count)
 
+    # Phase29: 最良順序が「どこで・何に阻まれて」行き詰まったかを持ち回る(REPAIR時のみ)。
+    best_stall: dict | None = None
+
     try:
-        score = validate(heuristic_order)
+        stall: dict | None = {} if REPAIR else None
+        score = validate(heuristic_order, stall)
         if score is not None and (best_score is None or _better(score, best_score)):
-            best_order, best_score = heuristic_order, score
+            best_order, best_score, best_stall = heuristic_order, score, stall
     except Exception:
         pass
 
@@ -422,7 +547,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     all_indices = set(items_by_index.keys())
 
     def try_construct(seed_items, window, use_noise, slice_units):
-        nonlocal best_order, best_score
+        nonlocal best_order, best_score, best_stall
         if slice_units <= 0:
             return
         try:
@@ -437,9 +562,10 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                 beam_width=BEAM_WIDTH,
             )
             if set(order) == all_indices:
-                score = validate(order)
+                stall: dict | None = {} if REPAIR else None
+                score = validate(order, stall)
                 if score is not None and (best_score is None or _better(score, best_score)):
-                    best_order, best_score = order, score
+                    best_order, best_score, best_stall = order, score, stall
         except Exception:
             pass
 
@@ -475,5 +601,91 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
         _, seed_items = strategy_orders[int(rng.integers(0, len(strategy_orders)))]
         try_construct(seed_items, window, use_noise=True, slice_units=phase2_units)
+
+    # フェーズ3(Phase29): 衝突駆動の順序修正。
+    #
+    # ここへ来た時点で「新しいリスタート1回分(construct+validate)には足りない端数の予算」が
+    # 必ず残っており、従来はそれを捨てていた。修正の試行は validate 1回だけで済む
+    # (構築をやり直さない)ので、この端数に収まる。**リスタート回数も総予算も増やさない。**
+    if os.environ.get('MYSOLVER_DEBUG_BUDGET') == '1':
+        print(f'[budget] limit={total_budget.limit / u:.1f}s used={total_budget.used / u:.1f}s '
+              f'remaining={total_budget.remaining() / u:.1f}s '
+              f'(1リスタート={construct_units / u:.1f}s+検証, 端数の下限={final_margin_units / u:.1f}s, '
+              f'validate実費最大={max_validate_units[0] / u:.2f}s)', flush=True)
+
+    if REPAIR:
+        # 1回の修正に必要な予算 = validate 1回の**実費**(このシーンでの実測最大)。
+        # MAX_VALIDATE_SLICE(12s)は上限であって実費ではないので、それで判定すると
+        # 実費 1.5s のシーンでも「端数が足りない」と誤判定して修正が一度も回らない。
+        max_validate_units_cap = max_validate_slice * u
+        tried: set[tuple[int, ...]] = {tuple(best_order)}
+        skip_items: set[int] = set()
+        n_repairs = 0
+        while n_repairs < REPAIR_MAX:
+            if total_budget.exhausted():
+                break
+            # FINAL_MARGIN は「最後のリスタートの validate だけが残予算で切り詰められると、
+            # そのリスタートの評価値が総予算に依存してしまう」ことを防ぐための取り置きである
+            # (FINAL_MARGIN のコメント参照)。修正フェーズには当てはまらない: 切り詰められた
+            # 評価は体積が過小に出るだけで、採用は厳密改善のときにしか起きないため、
+            # **安全側にしか倒れない**。壁時計の安全弁とも無関係(総ユニット予算は不変で、
+            # 従来 捨てていた端数を使うだけ。実測の壁時計は 75〜112s で上限 165s に対し余裕がある)。
+            # 実測: この取り置きを残すと C03(端数8.5s・validate実費7.34s)と
+            # P05(9.4s・7.09s)がどちらも1回も試行できず、修正の到達シーンが 2 -> 0 になる。
+            avail = total_budget.remaining()
+            if avail < max_validate_units[0]:
+                break
+            if not best_stall or not best_stall.get('stalled'):
+                break   # 行き詰まらずに全件流し切った(=衝突が無い)
+            pool = [it for it in best_stall.get('pool', [])
+                    if int(it['index']) not in skip_items]
+            if not pool:
+                break
+            try:
+                sb = reach.stall_blockers(best_stall['containers'], pool, voxel=REPAIR_VOXEL)
+            except Exception:
+                break
+            # 到達可能性の計算コストも決定的な量でユニット予算へ計上する(壁時計だけが伸びて
+            # 非常用安全弁を踏むのを防ぐ。simulate.REACH_UNIT_COST と同じ扱い)。
+            total_budget.spend(simulate.REACH_UNIT_COST * sb['grid_cells'] * sb['n_shapes'])
+            cand = sb['candidate']
+            if cand is None:
+                break   # 順序では開けられない(棚が塞いでいる/そもそも収まらない)
+            x = cand['item_index']
+            blockers = cand['result']['blockers']
+            if _DEBUG:
+                print(f'[repair] 衝突: X={x} をブロックしているのは {blockers} '
+                      f'(塞がれた位置 {cand["result"]["n_blocked_positions"]}箇所, '
+                      f'残予算 {total_budget.remaining() / u:.1f}s)', flush=True)
+            skip_items.add(x)   # 同じ X で堂々巡りしない(改善すれば下で解除する)
+            improved = False
+            for maker in (_advance_before, _delay_blockers, _advance_to_front):
+                avail = total_budget.remaining()
+                if avail < max_validate_units[0]:
+                    break
+                cur_best = best_order
+                repaired = maker(cur_best, x, blockers)
+                if repaired is None or tuple(repaired) in tried:
+                    continue
+                tried.add(tuple(repaired))
+                n_repairs += 1
+                stall = {}
+                try:
+                    # 途中で切られた評価は体積が過小に出るだけで、採用は厳密改善のときしか
+                    # 起きないため、誤って悪い順序を採用することはない(安全側に倒れる)。
+                    score = validate(repaired, stall,
+                                     slice_units=min(max_validate_units_cap, avail))
+                except Exception:
+                    break
+                if _DEBUG:
+                    print(f'[repair]   {maker.__name__}: score={score} (現best={best_score})',
+                          flush=True)
+                if score is not None and (best_score is None or _better(score, best_score)):
+                    best_order, best_score, best_stall = repaired, score, stall
+                    improved = True
+                    break
+            if improved:
+                # 改善したら新しい行き詰まり地点から測り直す(X も再度対象に戻す)。
+                skip_items.clear()
 
     return best_order

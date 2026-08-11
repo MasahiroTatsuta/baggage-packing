@@ -1,0 +1,265 @@
+[
+ {
+  "label": "A05_2c_80_prio",
+  "base_score": 2.377294744744995,
+  "base_placed": 24,
+  "base_fill": 41.43278630817853,
+  "variants": [
+   {
+    "name": "advance_before",
+    "score": 2.031393788899995,
+    "placed": 17,
+    "fill": 34.954818808497976,
+    "better": false
+   },
+   {
+    "name": "delay_blockers",
+    "score": 2.0869455829449954,
+    "placed": 21,
+    "fill": 36.66471624736459,
+    "better": false
+   },
+   {
+    "name": "advance_to_front",
+    "score": 2.121300170598992,
+    "placed": 18,
+    "fill": 36.975172935899785,
+    "better": false
+   },
+   {
+    "name": "advance_before_44",
+    "score": 2.258710523434995,
+    "placed": 22,
+    "fill": 39.57159653564184,
+    "better": false
+   },
+   {
+    "name": "advance_before_73",
+    "score": 2.1101168446849945,
+    "placed": 20,
+    "fill": 37.426868753394075,
+    "better": false
+   },
+   {
+    "name": "advance_before_9",
+    "score": 2.031393788899995,
+    "placed": 17,
+    "fill": 34.954818808497976,
+    "better": false
+   }
+  ],
+  "repairable": true,
+  "x": 36,
+  "blockers": [
+   9,
+   44,
+   73
+  ],
+  "sec": 8.289405204000104
+ },
+ {
+  "label": "C01_1c_40_shelf",
+  "base_score": 1.3890372504079989,
+  "base_placed": 23,
+  "base_fill": 42.33973925062666,
+  "variants": [
+   {
+    "name": "advance_before",
+    "score": 1.1057206184079986,
+    "placed": 21,
+    "fill": 34.42922457447238,
+    "better": false
+   },
+   {
+    "name": "delay_blockers",
+    "score": 1.1322489144079986,
+    "placed": 21,
+    "fill": 35.099564390110764,
+    "better": false
+   },
+   {
+    "name": "advance_to_front",
+    "score": 1.0554466235579985,
+    "placed": 20,
+    "fill": 32.71840836500363,
+    "better": false
+   },
+   {
+    "name": "advance_before_4",
+    "score": 1.1057206184079986,
+    "placed": 21,
+    "fill": 34.42922457447238,
+    "better": false
+   }
+  ],
+  "repairable": true,
+  "x": 15,
+  "blockers": [
+   4
+  ],
+  "sec": 19.929062549000264
+ },
+ {
+  "label": "C02_2c_55_shelfprio",
+  "base_score": 2.6746956081719966,
+  "base_placed": 33,
+  "base_fill": 44.24256890818306,
+  "variants": [
+   {
+    "name": "advance_before",
+    "score": 2.5664049216449962,
+    "placed": 33,
+    "fill": 43.74380020922616,
+    "better": false
+   },
+   {
+    "name": "delay_blockers",
+    "score": 2.531916885399998,
+    "placed": 33,
+    "fill": 42.60782824250018,
+    "better": false
+   },
+   {
+    "name": "advance_to_front",
+    "score": 2.215600428658997,
+    "placed": 27,
+    "fill": 39.12434892253577,
+    "better": false
+   },
+   {
+    "name": "advance_before_33",
+    "score": 2.5664049216449962,
+    "placed": 33,
+    "fill": 43.74380020922616,
+    "better": false
+   }
+  ],
+  "repairable": true,
+  "x": 8,
+  "blockers": [
+   33
+  ],
+  "sec": 35.518146668000554
+ },
+ {
+  "label": "C03_2c_80_prio",
+  "base_score": 2.759610660768036,
+  "base_placed": 26,
+  "base_fill": 45.68315950731922,
+  "variants": [
+   {
+    "name": "advance_to_front",
+    "score": 3.136565916070036,
+    "placed": 29,
+    "fill": 51.47581716236882,
+    "better": true
+   }
+  ],
+  "repairable": true,
+  "x": 38,
+  "blockers": [
+   0
+  ],
+  "sec": 14.598530397999639
+ },
+ {
+  "label": "D01_A_1c_40_softheavy",
+  "base_score": 1.414669750057998,
+  "base_placed": 21,
+  "base_fill": 40.29362751361625,
+  "variants": [
+   {
+    "name": "advance_before",
+    "score": 0.9684477154999985,
+    "placed": 17,
+    "fill": 28.900130447499556,
+    "better": false
+   },
+   {
+    "name": "delay_blockers",
+    "score": 0.9569800853579986,
+    "placed": 17,
+    "fill": 27.78860741866185,
+    "better": false
+   },
+   {
+    "name": "advance_to_front",
+    "score": 0.8698521821499979,
+    "placed": 17,
+    "fill": 28.900130447499553,
+    "better": false
+   },
+   {
+    "name": "advance_before_13",
+    "score": 1.2651136972579984,
+    "placed": 20,
+    "fill": 36.36479379961347,
+    "better": false
+   },
+   {
+    "name": "advance_before_30",
+    "score": 0.9825070072579984,
+    "placed": 18,
+    "fill": 29.311926749748437,
+    "better": false
+   },
+   {
+    "name": "advance_before_22",
+    "score": 0.9684477154999985,
+    "placed": 17,
+    "fill": 28.900130447499556,
+    "better": false
+   }
+  ],
+  "repairable": true,
+  "x": 11,
+  "blockers": [
+   13,
+   22,
+   30
+  ],
+  "sec": 5.34033380999972
+ },
+ {
+  "label": "P05_C_2c_pre8_shelfprio",
+  "base_score": 1.961624691069995,
+  "base_placed": 19,
+  "base_fill": 35.05149693994097,
+  "variants": [
+   {
+    "name": "advance_before",
+    "score": 2.215304384199994,
+    "placed": 23,
+    "fill": 38.7636888240883,
+    "better": true
+   },
+   {
+    "name": "delay_blockers",
+    "score": 2.097464848349994,
+    "placed": 19,
+    "fill": 36.012553582619056,
+    "better": true
+   },
+   {
+    "name": "advance_to_front",
+    "score": 2.168879047449996,
+    "placed": 17,
+    "fill": 35.79459735333952,
+    "better": true
+   },
+   {
+    "name": "advance_before_40",
+    "score": 2.215304384199994,
+    "placed": 23,
+    "fill": 38.7636888240883,
+    "better": true
+   }
+  ],
+  "repairable": true,
+  "x": 45,
+  "blockers": [
+   40
+  ],
+  "sec": 24.943469647999336
+ }
+]

@@ -1,0 +1,44 @@
+[
+ {
+  "label": "A05_2c_80_prio",
+  "changed": false,
+  "sec_off": 90.67691181499958,
+  "sec_on": 93.42060800400031,
+  "n_repair_attempts": 3
+ },
+ {
+  "label": "C01_1c_40_shelf",
+  "changed": false,
+  "sec_off": 100.96158623300016,
+  "sec_on": 116.41762938899956,
+  "n_repair_attempts": 4
+ },
+ {
+  "label": "C02_2c_55_shelfprio",
+  "changed": false,
+  "sec_off": 105.57555393300026,
+  "sec_on": 106.28044710599988,
+  "n_repair_attempts": 0
+ },
+ {
+  "label": "C03_2c_80_prio",
+  "changed": true,
+  "sec_off": 101.56734231800056,
+  "sec_on": 104.74773848499899,
+  "n_repair_attempts": 1
+ },
+ {
+  "label": "D01_A_1c_40_softheavy",
+  "changed": false,
+  "sec_off": 74.35115412899904,
+  "sec_on": 76.20898944299915,
+  "n_repair_attempts": 3
+ },
+ {
+  "label": "P05_C_2c_pre8_shelfprio",
+  "changed": true,
+  "sec_off": 102.65542653000011,
+  "sec_on": 107.45069973799946,
+  "n_repair_attempts": 1
+ }
+]

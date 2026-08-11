@@ -60,7 +60,8 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
                     lookahead_k: int, budget: planner.SearchBudget, per_step_time_budget: float = 0.7,
                     prepacked_ids: dict | None = None,
                     stability_weight: float = 1.0,
-                    reach_info: dict | None = None) -> tuple[list[int], float, float]:
+                    reach_info: dict | None = None,
+                    stall_info: dict | None = None) -> tuple[list[int], float, float]:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
@@ -148,6 +149,15 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
         action = planner.plan(containers, pool, info=info, prepacked_ids=prepacked_ids,
                                budget=budget.child_seconds(per_step_time_budget))
         if action is None:
+            # Phase29: 行き詰まった瞬間の状態(その時点のコンテナと、置けなかったプール)を
+            # 呼び出し側へ渡す。**dict を渡さなければ何も起きない**(既定 None)ので、
+            # Phase28 までの経路とビット単位で同一。containers/pool はこのループを抜けた
+            # あとは読み取り専用にしかならないため、複製せず参照をそのまま渡す。
+            if stall_info is not None:
+                stall_info['containers'] = containers
+                stall_info['pool'] = list(pool)
+                stall_info['n_placed'] = len(placed_ids)
+                stall_info['stalled'] = True
             break
         item = pool.pop(action['item_idx'])
         container = containers[action['container_idx']]
