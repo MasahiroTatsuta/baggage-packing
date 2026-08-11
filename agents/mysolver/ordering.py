@@ -219,6 +219,46 @@ def _better(candidate: tuple[float, int], current: tuple[float, int]) -> bool:
 # (=placement 1pt は fill 0.5pt 相当。D03 の 20pt 減点は fill 10pt 相当の価値)。
 PLACEMENT_PENALTY_WEIGHT = 0.5
 
+# ---------------------------------------------------------------------------
+# Phase28: 自己封鎖した順序を割り引く重み(到達可能性の項)
+# ---------------------------------------------------------------------------
+# Phase24 が特定した corridor_penalty の構造的限界(時間方向の myopia: 既に置かれた障害物の
+# 上の通路しか守れないが、封鎖の主因である中間高さ帯・上部の通路はその後の積み上げで初めて
+# 生まれる)を、**順序探索の側**で外すための項。影シミュレータは順序を最後まで流し切るので、
+# 行き詰まり時点で「支持はあるが搬入経路が死んでいる空間」= Phase24 の (a) を事後に観測できる。
+# 判定は agents/mysolver/reach.py(tools/phase24_corridor_audit.py からの忠実な移植)。
+#
+# **既定 0.0(無効)**。0 のときは reach_info を作らないので計算経路にすら入らず、
+# Phase27 までの出力とビット単位で同一(決定的5シーンで検証済み)。
+#
+# 適用は加算ペナルティではなく **乗算の割引**((1 - W*blocked_ratio) を risk調整済み体積に
+# 掛ける)。Phase18 で加算ペナルティが「達成可能な体積より罰則が大きく、何も置かないほうが
+# 得」という退化解を生んだ(suite_A07 で fill 28.07->0.00)ため、その構造を繰り返さない。
+#
+# ---------------------------------------------------------------------------
+# 【結果: 不採用】W=0.25 の26シーン測定で fill_strict 24.413 -> 24.763(+0.350)、
+# σ=1.784 / SE=0.350 / **t=+1.000**。動いたのは **26シーン中1シーン(A03 +9.10)** だけで、
+# 残り25シーンはビット単位で不変だった(results/phase28_report.md)。
+#
+#  ・**t=1.000 は構造的な上限**: 25シーンが0・1シーンだけが d のとき mean=d/26、SE=d/26 と
+#    なり t は d に依らず 1.000 に固定される。単一シーン効果はどれだけ大きくても t>2 を
+#    原理的に通過できない(Phase25a の採否基準が意図どおり働いた例)。
+#  ・**重み区間が存在しない**(本フェーズの主成果、tools/phase28_rerank.py で定量化):
+#    「採用される順序が変わる最小の W」はシーンごとに 0.23 / 0.39 / 1.04 / 2.29 と10倍
+#    散らばる。一方 A03 は W=0.5〜1.0 に崖を持ち W=1.0 で 11.55(ベースライン17.78以下)。
+#    **A03 が壊れる W < A02 が反応し始める W(1.04)** なので、広く効かせる W と
+#    どのシーンも壊さない W の共通区間が無い。Phase18 と同型の結論が別の項で再現した。
+#  ・**構造的な原因**: 再ランクが起きると必ず配置個数の少ない順序が選ばれる
+#    (A02 21->4, A03 26->10, A04 28->19)。荷物を置くたびに通路を塞ぐ可能性が生まれるので、
+#    「通路を開けておく」と「たくさん詰める」は原理的に競合する。分母を empty ではなく
+#    supported にしたことで最悪の退化(fill 0 崩壊)は防げたが、弱い偏りは消せなかった。
+#  ・コストは実測 +9.9%(optimize有効21シーン平均 +7.75s)かかっており、効果が無い以上は純損失。
+#
+# Phase24 の具体案2「ビームサーチのスコアに同じ項を入れる」は、閾値のばらつきが**項の性質**
+# であって入れる場所の問題ではないため、同じ重み区間問題に必ずぶつかる。推奨しない。
+# ---------------------------------------------------------------------------
+REACH_WEIGHT = float(os.environ.get('MYSOLVER_REACH_WEIGHT', '0.0'))
+
 # Phase18: 順序探索の目的関数に stability の幾何代理(geo.stacking_instability_risk)を
 # 組み込む重み。Phase17 で決定性を確保したことで gen_2containers_priority の探索が
 # 「影シミュレータの目的関数(risk調整済み体積 − placementペナルティ)は改善するが実
@@ -343,13 +383,25 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         # Phase18: stability の幾何代理は risk_adjusted_volume 自体(荷物ごとの割引)に
         # 織り込み済み(simulate.simulate_order の stability_weight 引数)。ここで返る
         # stability_risk_ratio は診断用(coverageの平均リスク)であり目的関数には使わない。
+        # Phase28: REACH_WEIGHT>0 のときだけ到達可能性を測る(既定0は dict を渡さないので
+        # simulate_order 側の計算経路にも入らず、Phase27 までとビット単位で同一)。
+        reach_info: dict | None = {} if REACH_WEIGHT > 0.0 else None
         placed_ids, placed_volume, risk_adjusted_volume, violation_ratio, stability_risk_ratio = \
             simulate.simulate_order(
                 container_list, items_by_index, order, k,
                 total_budget.child_seconds(max_validate_slice), prepacked_ids=prepacked_ids,
-                stability_weight=STABILITY_PENALTY_WEIGHT)
+                stability_weight=STABILITY_PENALTY_WEIGHT, reach_info=reach_info)
         count = len(placed_ids)
         penalty = PLACEMENT_PENALTY_WEIGHT * total_container_volume * violation_ratio
+        # Phase28: 自己封鎖した順序を割り引く。**加算ペナルティにしてはならない**。
+        # Phase18 の実測(suite_A07 で 40個中1個しか置かない順序が選ばれ fill 28.07->0.00)が
+        # 示したとおり、達成可能な体積より罰則が大きくなるシーンでは「何も置かないほうが
+        # 目的関数上は得」という退化解に収束する。ここは stability_discount と同じ
+        # **乗算による割引**にして、常に 0 以上・達成体積を超えて罰しない形にする。
+        # blocked_ratio の分母を supported にしてある点も同じ目的(reach.py のdocstring参照)。
+        if reach_info:
+            discount = max(0.0, 1.0 - REACH_WEIGHT * reach_info.get('blocked_ratio', 0.0))
+            return (risk_adjusted_volume * discount - penalty, count)
         return (risk_adjusted_volume - penalty, count)
 
     try:

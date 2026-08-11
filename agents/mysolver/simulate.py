@@ -13,6 +13,8 @@ container dict / item dict は get_init_states() / get_info_for_optimization() �
 生の dict をそのまま複製して使う。既配置荷物の姿勢は ORNS[orn_idx] に対応する
 クオータニオンを直接組み立てて付与するため、pybullet の物理クライアントは一切不要。
 """
+import os
+
 import pybullet as p
 
 from . import geometry as geo
@@ -20,6 +22,17 @@ from . import planner
 from src.ground_handling.utils import ORNS
 
 _ORN_QUATS = [p.getQuaternionFromEuler(e) for e in ORNS]
+
+# Phase28: 到達可能性評価(reach.stall_reachability)1回あたりのコストを、SearchBudget の
+# ユニット系へ換算する係数。生コストは「voxel格子数 × 評価したユニーク形状数」にほぼ比例する
+# (どちらも numpy のベクトル演算の反復回数を決める量)。planner.CANDIDATE_BUILD_COST と
+# 同じ考え方で、実測時間 × UNITS_PER_SEC が同じユニット数になるよう較正する。
+# 較正値の実測根拠は results/phase28_report.md §3。3シーン×2反復の実測(voxel=0.10)は
+#   A01: 3990cells×93shapes=0.082s / A02: 3990×215=0.118s / A03: 3990×87=0.074s
+# で、集計 (総units / 総(cells*shapes)) = 2.69。planner.UNITS_PER_SEC とは逆に、この定数は
+# **大きめに置くほど保守的**(名目予算を早めに使い切る=壁時計の安全弁を踏みにくい)なので、
+# 集計値をわずかに上回る 3.0 を採用する。
+REACH_UNIT_COST = float(os.environ.get('MYSOLVER_REACH_UNIT_COST', '3.0'))
 
 
 def clone_containers(container_list: list[dict]) -> list[dict]:
@@ -46,7 +59,8 @@ def _place(container: dict, item: dict, action: dict) -> dict:
 def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], order: list[int],
                     lookahead_k: int, budget: planner.SearchBudget, per_step_time_budget: float = 0.7,
                     prepacked_ids: dict | None = None,
-                    stability_weight: float = 1.0) -> tuple[list[int], float, float]:
+                    stability_weight: float = 1.0,
+                    reach_info: dict | None = None) -> tuple[list[int], float, float]:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
@@ -167,6 +181,32 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
         risk_adjusted_volume += (item_volume * geo.fill_risk_factor(risk_slack)
                                   * stability_discount)
         refill()
+
+    # Phase28: 行き詰まり時点の到達可能性を **1回だけ** 測る。
+    #
+    # corridor_penalty(planner._corridor_excess)は候補1手ごとに、その時点の障害物に対して
+    # しか罰則を課せないため「これから積み上がる荷物が作る通路」を守れない(時間方向の myopia、
+    # results/phase24_report.md §2.3)。ここは順序を最後まで流し切った**後**なので、
+    # 「その順序が最終的に自己封鎖したか」を直接観測できる —— myopia の原因そのものを外す。
+    #
+    # 毎ステップ回すと1ロールアウトのコストが跳ね上がり、同じ予算で回せる順序候補が減って
+    # 逆効果になる(Phase22 の RETRY_GRID_DENSITY 4->8 と同型の失敗)。必ずこの1回だけにすること。
+    # reach_info=None(既定)なら計算自体を行わないので、Phase27 までと完全に等価な no-op。
+    if reach_info is not None:
+        from . import reach as _reach
+        remaining_items = list(pool)
+        seen_idx = {int(it['index']) for it in remaining_items}
+        for idx in idx_iter:          # プールにまだ引き込まれていない残りの荷物
+            if idx not in seen_idx:
+                remaining_items.append(items_by_index[idx])
+                seen_idx.add(idx)
+        stats = _reach.stall_reachability(containers, remaining_items)
+        reach_info.update(stats)
+        # コストをユニット予算へ計上する。壁時計ではなく決定的な量(格子数×形状数)で課金する
+        # ので、Phase17 で確立した決定性は保たれる。ここを計上しないと「ユニットは増えないのに
+        # 壁時計だけ伸びる」状態になり、非常用安全弁(hard_deadline)を踏んで決定性が壊れる
+        # (beam_construct_order の clone_containers に関する注意書きと同じ理由)。
+        budget.spend(REACH_UNIT_COST * stats['grid_cells'] * max(1, stats['n_shapes']))
 
     violation_ratio = n_prio_misrouted / n_prio_placed if n_prio_placed else 0.0
     stability_risk_ratio = stacking_risk_sum / n_stacked if n_stacked else 0.0

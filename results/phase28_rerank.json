@@ -1,0 +1,30 @@
+[
+ {
+  "label": "A01_1c_40_plain",
+  "n_cand": 6,
+  "base_rel_spread": 0.326028733522027,
+  "br_spread": 0.5632839224629418,
+  "flip_w": 2.29
+ },
+ {
+  "label": "A02_1c_80_plain",
+  "n_cand": 7,
+  "base_rel_spread": 0.7209463168332394,
+  "br_spread": 0.35090682403790213,
+  "flip_w": 1.04
+ },
+ {
+  "label": "A03_1c_40_shelf",
+  "n_cand": 6,
+  "base_rel_spread": 0.2975975194089301,
+  "br_spread": 0.4570361145703611,
+  "flip_w": 0.23
+ },
+ {
+  "label": "A04_2c_80_noprio",
+  "n_cand": 6,
+  "base_rel_spread": 0.29278202051553304,
+  "br_spread": 0.4467638671613105,
+  "flip_w": 0.39
+ }
+]
