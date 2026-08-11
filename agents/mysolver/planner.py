@@ -61,6 +61,67 @@ RETRY_GRID_DENSITY = int(os.environ.get('MYSOLVER_RETRY_DENSITY', '4'))
 # 「奥がまだ空いているのに手前を先に埋める」配置そのものを生成しなくなる。
 Y_SLICE_COUNT = 2
 Y_SLICE_EPS = 0.01
+# ---------------------------------------------------------------------------
+# Phase26: 壁積み(wall stacking)
+# ---------------------------------------------------------------------------
+# Phase9 の層規律(上記)は「奥側から level+1 個分の層だけを開放する」という構造そのもので、
+# 分割数を増やせばそのまま「奥から手前へ壁を1枚ずつ積む」構築になる。実際 Phase9 は
+# 固定4分割を試しているが**悪化して差し戻された**。README §課題表の記録によれば理由は
+# 「小物が最も狭い層を埋めて逆効果」——つまり width/4 = 0.3625m の層には大きい荷物が
+# そもそも入らず、貪欲が「その層に入る小物」だけを選んで奥を小物で埋め尽くし、
+# 後続の大物の置き場所を潰したためである。
+#
+# 本フェーズはこの失敗要因を「壁の厚みが荷物サイズ分布と無関係な固定値だったこと」と
+# 特定し、**厚みをプールの荷物サイズ分布から決める**ことで構造的に回避する。
+# 荷物は6向きすべてが試されるので、「ある荷物が厚み T の壁に入りうる」条件は
+#     min(length, width, height) <= T
+# である(最小辺をy方向に向ければよい)。したがってプール内の最小辺の分布の
+# WALL_QUANTILE 分位点を T に取れば、**プールの WALL_QUANTILE 割の荷物はどれも壁1枚に
+# 収まる**ことが保証され、Phase9 の「大物が入らない層」は発生しない。
+# 分割数は「厚みが T を下回らない」最大値、すなわち floor(width / T) とする
+# (ceil にすると width/n < T となり保証が壊れる)。
+#
+# ---------------------------------------------------------------------------
+# 【結果: 不採用】26シーンで fill_strict 24.413 -> 21.457(**-2.956**)、
+# σ=6.580 / SE=1.290 / **t=-2.291**。採否基準 t>2 を**負の方向に**超えており、
+# 「効果なし」ではなく統計的に有意な悪化である(results/phase26_report.md)。
+#
+# 失敗の内訳が2つの独立した知見を与えた:
+#
+#  (1) 実装上の欠陥: 壁の厚みを「その時点のプール」から計算していたため、offline の
+#      貪欲構築で大物から消費されると残りプールの分位点が下がり、**終盤に壁が勝手に
+#      薄くなって Phase9 の失敗モードが再発する**。初期壁枚数 n0 で層別すると
+#      「壁積みが発動しないはずの n0=2 群」が最悪(-4.64, t=-2.27)という、欠陥を直接
+#      指す結果になった。壁の厚みはシーンの属性でありプールの属性ではないので、
+#      本来は初期の全荷物リストから一度だけ決めて固定すべきだった。
+#  (2) ただし修正しても勝てる見込みは無い: 汚染を受けていない n0>=3 群も
+#      -1.51(σ=5.99, t=-0.94)で符号は負。n0=2 群が完全に無変化になったとしても
+#      26シーン平均は概算 -0.82 で符号は負のまま。
+#
+# 機序: fill_**loose** は +1.246 と増えており(A01 +23.11)、壁積みは実際により多くの
+# 体積を詰め込んでいる。しかし loose-strict のギャップが 12.18 -> 16.38(+4.20)に開く
+# ——増分がコンテナ境界から15mm以内に集中し、沈降後の厳マージン判定で計上から漏れる。
+# 壁積みは荷物を壁面へ押し付ける方向に働くため inclusion_slack がほぼ0の配置が構造的に
+# 増え、既存の boundary_term(fill_risk_factor * 1.5)では抑えきれなかった。
+# なお緩レジームでも t=+0.729 と基準に遠く届かないため、**本番の内包判定レジームが
+# 厳/緩どちらであっても不採用の結論は変わらない**。
+#
+# Y_SLICE 構造への介入は Phase9/13/14 に続き**4連敗**。今回は失敗要因(固定厚み)を
+# 特定したうえで設計し直しても負けたので、この構造への介入は打ち切ること。
+# ---------------------------------------------------------------------------
+# 既定は無効(WALL_MODE=False)。無効時は n_y_slices=Y_SLICE_COUNT のままで、
+# 追加の計算も一切行わないため Phase25a のアンカー構成とビット単位で同一の出力になる。
+WALL_MODE = os.environ.get('MYSOLVER_WALL_MODE', '0') != '0'
+# 壁の厚みに使う「プール内の最小辺」の分位点。1.0 にすると「全荷物が壁1枚に収まる」を
+# 厳密に保証できるが、外れ値1個で厚みが決まってしまい実質 Y_SLICE_COUNT=2 に退化する
+# (26シーンの実測で max(min辺) は 0.30〜0.68m、width=1.45m に対し floor は大半が2)。
+WALL_QUANTILE = float(os.environ.get('MYSOLVER_WALL_Q', '0.9'))
+# 分割数の上限。level ループは合法手が見つかった時点で break するが、コンテナが奥から
+# 埋まりきると「level 0..k-1 を空振りしてから level k で見つける」ため、1手あたりの
+# 評価コストが最悪 O(分割数) 倍になる。予算(SearchBudget)は決定的に消費されるので
+# 安全性は損なわれないが、同じ名目予算で回れる組合せが減る(Phase22 §3.3 の失敗と同型)
+# ため上限を設ける。
+WALL_MAX_SLICES = int(os.environ.get('MYSOLVER_WALL_MAX', '6'))
 # Phase14(ターゲット2): 「大棚のあるコンテナでは Y_SLICE の奥層が棚の占有域とほぼ一致するので
 # 分割自体をやめる」案を shelf系7シーン×3回で実測したが、fill_strict 23.24->21.49 /
 # fill_loose 32.24->29.43 と両レジームで明確に悪化した(run間stdは0.43/0.31なのでノイズではない)。
@@ -271,7 +332,7 @@ CANDIDATE_BUILD_COST = 18.2
 # 安全だが、この分散の大きさでは26シーンの平均改善が隠しテスト(別シーン集合)に
 # 一般化する保証がない(Phase23 b=3の教訓と同型)。1.05e7を据え置き、以後の変更は
 # この値をアンカーにdiffで評価する。
-UNITS_PER_SEC = float(os.environ.get('MYSOLVER_UNITS_PER_SEC', '1.55e7'))
+UNITS_PER_SEC = float(os.environ.get('MYSOLVER_UNITS_PER_SEC', '2.00e7'))
 # 非常用安全弁の壁時計チェック間隔(exhausted() 呼び出し回数)。毎回 perf_counter() を
 # 呼ぶとホットループのオーバーヘッドになるため間引く。決定性には影響しない
 # (安全弁が発火しない限り結果に関与しないため)。
@@ -486,11 +547,23 @@ def _extreme_points(container, half, obstacles):
     return points
 
 
+# Phase26(フォールバック版): 候補生成の「走査順」だけを壁の外側(奥)から内側(手前)へ変え、
+# 選択ロジック(_evaluate_candidates の argmax)は現状維持する案の検証用フック。
+# 'back_first' で候補配列を y 降順(奥が先)に並べ替える。既定 'default' は従来どおり
+# (x,y) 昇順。§results/phase26_report.md §5 のとおり、この変更は数学的にほぼ no-op である
+# (_evaluate_candidates は全候補をベクトル演算でスコアリングして argmax を取るため、
+#  行の並び替えは「スコアが厳密に同値な候補が複数ある場合にどれが選ばれるか」しか変えない)。
+CANDIDATE_ORDER = os.environ.get('MYSOLVER_CAND_ORDER', 'default')
+
+
 def _candidate_xy(container, half, obstacles, grid_density: int = 1):
     grid_pts = _grid_point_frozenset(container['length'], container['width'], grid_density)
     pts = grid_pts | _extreme_points(container, half, obstacles)
     if not pts:
         return np.zeros((0, 2), dtype=np.float64)
+    if CANDIDATE_ORDER == 'back_first':
+        # 奥(y大)から手前へ、同一yでは |x| の小さい順(中央から外へ)
+        return np.array(sorted(pts, key=lambda p: (-p[1], abs(p[0]), p[0])), dtype=np.float64)
     return np.array(sorted(pts), dtype=np.float64)
 
 
@@ -1038,6 +1111,30 @@ def _y_slice_bounds(container, n_slices: int):
     return bounds
 
 
+def _wall_slice_count(container, pool_list, n_pool):
+    """Phase26: プールの荷物サイズ分布から壁(yスライス)の枚数を決める。
+
+    詳細な根拠は WALL_MODE 定義部のコメント参照。要点は
+      T = quantile_{WALL_QUANTILE}( min(l,w,h) over pool )   … 壁1枚の目標厚み
+      n = clamp(floor(width / T), Y_SLICE_COUNT, WALL_MAX_SLICES)
+    で、floor を使うことで実際の厚み width/n >= T を保証する(=プールの
+    WALL_QUANTILE 割の荷物は最小辺をy方向に向ければ壁1枚に収まる)。
+
+    プールは配置が進むと縮む(offline は残り全件、online は lookahead ウィンドウ)ため
+    n は手番ごとに変わりうるが、pool_list の内容だけから決まる純粋関数なので
+    同一入力に対しては常に同一の値を返す(決定性は保たれる)。
+    """
+    if n_pool <= 0:
+        return Y_SLICE_COUNT
+    mins = sorted(min(it['length'], it['width'], it['height']) for it in pool_list[:n_pool])
+    idx = min(len(mins) - 1, int(WALL_QUANTILE * len(mins)))
+    thickness_target = mins[idx]
+    if thickness_target <= 1e-6:
+        return Y_SLICE_COUNT
+    n = int(container['width'] / thickness_target)
+    return max(Y_SLICE_COUNT, min(WALL_MAX_SLICES, n))
+
+
 def _apply_y_slice_filter(candidate_xy, half_y, y_active_lo):
     """候補のうち、手前側の端(local_y - half_y)がy_active_lo以上(=開放層内)のものだけを残す。"""
     if candidate_xy.shape[0] == 0:
@@ -1084,7 +1181,13 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
         obstacles = _collect_obstacles(container)
         corridor_obstacles = _collect_corridor_obstacles(container, prepacked_ids)
         supports = _landing_supports(container)
-        y_bounds = _y_slice_bounds(container, n_y_slices)
+        # Phase26(壁積み): 呼び出し元が既定(Y_SLICE_COUNT)のままの場合に限り、荷物サイズ
+        # 分布から決めた壁枚数へ差し替える。plan() の最終リトライなど明示的に別値を渡す
+        # 経路には介入しない。WALL_MODE=False なら分岐そのものが no-op。
+        n_slices = n_y_slices
+        if WALL_MODE and n_y_slices == Y_SLICE_COUNT:
+            n_slices = _wall_slice_count(container, pool_list, n_pool)
+        y_bounds = _y_slice_bounds(container, n_slices)
         # (pool_idx, orn_idx) -> (half, 全域候補xy)。層のlevelを上げてもgrid/extreme point自体は
         # 変わらないため、y絞り込みだけをlevelごとにやり直せるようキャッシュして再計算を避ける。
         candidate_cache: dict = {}
