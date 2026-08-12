@@ -1,0 +1,1369 @@
+[
+ {
+  "label": "A01_1c_40_plain",
+  "lookahead_k": 1,
+  "n_items": 40,
+  "n_placed": 26,
+  "total_vol": 4.234036553,
+  "residual_vol": 2.466728225,
+  "stalled": true,
+  "pool_items": [
+   13
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 13,
+      "volume": 0.3372930599999999,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 13,
+    "rep_volume": 0.3372930599999999
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 13,
+      "volume": 0.3372930599999999,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 13,
+    "rep_volume": 0.3372930599999999
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 13,
+  "rep_volume": 0.3372930599999999
+ },
+ {
+  "label": "A02_1c_80_plain",
+  "lookahead_k": 1,
+  "n_items": 80,
+  "n_placed": 21,
+  "total_vol": 9.107534581,
+  "residual_vol": 7.144731157999999,
+  "stalled": true,
+  "pool_items": [
+   52
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 52,
+      "volume": 0.36198792,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 52,
+    "rep_volume": 0.36198792
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 52,
+      "volume": 0.36198792,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 52,
+    "rep_volume": 0.36198792
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 52,
+  "rep_volume": 0.36198792
+ },
+ {
+  "label": "A03_1c_40_shelf",
+  "lookahead_k": 1,
+  "n_items": 40,
+  "n_placed": 26,
+  "total_vol": 4.23056877,
+  "residual_vol": 2.395704198,
+  "stalled": true,
+  "pool_items": [
+   13
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 13,
+      "volume": 0.277709166,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 13,
+    "rep_volume": 0.277709166
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 13,
+      "volume": 0.277709166,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 13,
+    "rep_volume": 0.277709166
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 13,
+  "rep_volume": 0.277709166
+ },
+ {
+  "label": "A04_2c_80_noprio",
+  "lookahead_k": 1,
+  "n_items": 80,
+  "n_placed": 28,
+  "total_vol": 9.484279397,
+  "residual_vol": 6.163636601,
+  "stalled": true,
+  "pool_items": [
+   8
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 8,
+      "volume": 0.375508224,
+      "fit_nosupport": 244,
+      "fit_support": 1,
+      "open": 0,
+      "shelf_blocked": 1,
+      "item_blocked": 0,
+      "category": "iv"
+     }
+    ],
+    "scene_category": "iv",
+    "rep_item": 8,
+    "rep_volume": 0.375508224
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 8,
+      "volume": 0.375508224,
+      "fit_nosupport": 550,
+      "fit_support": 6,
+      "open": 0,
+      "shelf_blocked": 3,
+      "item_blocked": 3,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 8,
+    "rep_volume": 0.375508224
+   }
+  },
+  "scene_category": "iii",
+  "rep_item": 8,
+  "rep_volume": 0.375508224
+ },
+ {
+  "label": "A05_2c_80_prio",
+  "lookahead_k": 1,
+  "n_items": 80,
+  "n_placed": 24,
+  "total_vol": 8.807947503,
+  "residual_vol": 5.487543895999999,
+  "stalled": true,
+  "pool_items": [
+   36
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 36,
+      "volume": 0.260673312,
+      "fit_nosupport": 613,
+      "fit_support": 7,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 7,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 36,
+    "rep_volume": 0.260673312
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 36,
+      "volume": 0.260673312,
+      "fit_nosupport": 3172,
+      "fit_support": 26,
+      "open": 0,
+      "shelf_blocked": 4,
+      "item_blocked": 22,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 36,
+    "rep_volume": 0.260673312
+   }
+  },
+  "scene_category": "iii",
+  "rep_item": 36,
+  "rep_volume": 0.260673312
+ },
+ {
+  "label": "A06_1c_40_small",
+  "lookahead_k": 1,
+  "n_items": 40,
+  "n_placed": 40,
+  "total_vol": 0.757237548,
+  "residual_vol": 0.0,
+  "stalled": false,
+  "scene_category": "v",
+  "reason": "not_stalled"
+ },
+ {
+  "label": "A07_1c_40_bulky",
+  "lookahead_k": 1,
+  "n_items": 40,
+  "n_placed": 12,
+  "total_vol": 11.170291876,
+  "residual_vol": 8.797657737,
+  "stalled": true,
+  "pool_items": [
+   31
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 31,
+      "volume": 0.20329220599999995,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 31,
+    "rep_volume": 0.20329220599999995
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 31,
+      "volume": 0.20329220599999995,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 31,
+    "rep_volume": 0.20329220599999995
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 31,
+  "rep_volume": 0.20329220599999995
+ },
+ {
+  "label": "A08_2c_140_extreme",
+  "lookahead_k": 1,
+  "n_items": 140,
+  "n_placed": 20,
+  "total_vol": 16.701022764,
+  "residual_vol": 13.036247073000002,
+  "stalled": true,
+  "pool_items": [
+   12
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 12,
+      "volume": 0.4014433,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 12,
+    "rep_volume": 0.4014433
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 12,
+      "volume": 0.4014433,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 12,
+    "rep_volume": 0.4014433
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 12,
+  "rep_volume": 0.4014433
+ },
+ {
+  "label": "C01_1c_40_shelf",
+  "lookahead_k": 5,
+  "n_items": 40,
+  "n_placed": 23,
+  "total_vol": 4.393434146,
+  "residual_vol": 2.717864369,
+  "stalled": true,
+  "pool_items": [
+   37,
+   19,
+   33,
+   23,
+   15
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 37,
+      "volume": 0.32221516799999994,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 19,
+      "volume": 0.204097075,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 33,
+      "volume": 0.20016192,
+      "fit_nosupport": 2,
+      "fit_support": 2,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 2,
+      "category": "iii"
+     },
+     {
+      "item": 23,
+      "volume": 0.16728075,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 15,
+      "volume": 0.162737322,
+      "fit_nosupport": 16,
+      "fit_support": 13,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 13,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 33,
+    "rep_volume": 0.20016192
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 37,
+      "volume": 0.32221516799999994,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 19,
+      "volume": 0.204097075,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 33,
+      "volume": 0.20016192,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 23,
+      "volume": 0.16728075,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 15,
+      "volume": 0.162737322,
+      "fit_nosupport": 81,
+      "fit_support": 27,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 27,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 15,
+    "rep_volume": 0.162737322
+   }
+  },
+  "scene_category": "iii",
+  "rep_item": 15,
+  "rep_volume": 0.162737322
+ },
+ {
+  "label": "C02_2c_55_shelfprio",
+  "lookahead_k": 5,
+  "n_items": 55,
+  "n_placed": 33,
+  "total_vol": 6.049180795,
+  "residual_vol": 2.547434557,
+  "stalled": true,
+  "pool_items": [
+   47,
+   4,
+   2,
+   9,
+   8
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 47,
+      "volume": 0.424814156,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 4,
+      "volume": 0.39800829600000004,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 2,
+      "volume": 0.390249234,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 9,
+      "volume": 0.25904736,
+      "fit_nosupport": 16,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "ii"
+     },
+     {
+      "item": 8,
+      "volume": 0.033829488,
+      "fit_nosupport": 3384,
+      "fit_support": 178,
+      "open": 0,
+      "shelf_blocked": 48,
+      "item_blocked": 130,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 8,
+    "rep_volume": 0.033829488
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 47,
+      "volume": 0.424814156,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 4,
+      "volume": 0.39800829600000004,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 2,
+      "volume": 0.390249234,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 9,
+      "volume": 0.25904736,
+      "fit_nosupport": 64,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "ii"
+     },
+     {
+      "item": 8,
+      "volume": 0.033829488,
+      "fit_nosupport": 22641,
+      "fit_support": 444,
+      "open": 0,
+      "shelf_blocked": 163,
+      "item_blocked": 281,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 8,
+    "rep_volume": 0.033829488
+   }
+  },
+  "scene_category": "iii",
+  "rep_item": 8,
+  "rep_volume": 0.033829488
+ },
+ {
+  "label": "C03_2c_80_prio",
+  "lookahead_k": 5,
+  "n_items": 80,
+  "n_placed": 26,
+  "total_vol": 8.930116543,
+  "residual_vol": 5.269090068000001,
+  "stalled": true,
+  "pool_items": [
+   46,
+   6,
+   70,
+   38,
+   14
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 46,
+      "volume": 0.33887882,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 6,
+      "volume": 0.330811416,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 70,
+      "volume": 0.26765046,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 38,
+      "volume": 0.18720629199999997,
+      "fit_nosupport": 210,
+      "fit_support": 73,
+      "open": 0,
+      "shelf_blocked": 12,
+      "item_blocked": 61,
+      "category": "iii"
+     },
+     {
+      "item": 14,
+      "volume": 0.1627478,
+      "fit_nosupport": 151,
+      "fit_support": 55,
+      "open": 0,
+      "shelf_blocked": 15,
+      "item_blocked": 40,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 38,
+    "rep_volume": 0.18720629199999997
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 46,
+      "volume": 0.33887882,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 6,
+      "volume": 0.330811416,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 70,
+      "volume": 0.26765046,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 38,
+      "volume": 0.18720629199999997,
+      "fit_nosupport": 907,
+      "fit_support": 236,
+      "open": 0,
+      "shelf_blocked": 50,
+      "item_blocked": 186,
+      "category": "iii"
+     },
+     {
+      "item": 14,
+      "volume": 0.1627478,
+      "fit_nosupport": 1339,
+      "fit_support": 398,
+      "open": 0,
+      "shelf_blocked": 122,
+      "item_blocked": 276,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 38,
+    "rep_volume": 0.18720629199999997
+   }
+  },
+  "scene_category": "iii",
+  "rep_item": 38,
+  "rep_volume": 0.18720629199999997
+ },
+ {
+  "label": "D01_A_1c_40_softheavy",
+  "lookahead_k": 1,
+  "n_items": 40,
+  "n_placed": 21,
+  "total_vol": 4.8194204659999995,
+  "residual_vol": 3.2048644819999996,
+  "stalled": true,
+  "pool_items": [
+   11
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 11,
+      "volume": 0.20318565300000002,
+      "fit_nosupport": 48,
+      "fit_support": 2,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 2,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 11,
+    "rep_volume": 0.20318565300000002
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 11,
+      "volume": 0.20318565300000002,
+      "fit_nosupport": 360,
+      "fit_support": 12,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 12,
+      "category": "iii"
+     }
+    ],
+    "scene_category": "iii",
+    "rep_item": 11,
+    "rep_volume": 0.20318565300000002
+   }
+  },
+  "scene_category": "iii",
+  "rep_item": 11,
+  "rep_volume": 0.20318565300000002
+ },
+ {
+  "label": "D02_A_1c_40_prioheavy_nocont",
+  "lookahead_k": 1,
+  "n_items": 40,
+  "n_placed": 27,
+  "total_vol": 3.867738293,
+  "residual_vol": 1.907894711,
+  "stalled": true,
+  "pool_items": [
+   25
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 25,
+      "volume": 0.367125425,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 25,
+    "rep_volume": 0.367125425
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 25,
+      "volume": 0.367125425,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 25,
+    "rep_volume": 0.367125425
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 25,
+  "rep_volume": 0.367125425
+ },
+ {
+  "label": "D03_A_2c_60_prioheavy_cont",
+  "lookahead_k": 1,
+  "n_items": 60,
+  "n_placed": 30,
+  "total_vol": 6.260568016000001,
+  "residual_vol": 3.1601868100000003,
+  "stalled": true,
+  "pool_items": [
+   27
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 27,
+      "volume": 0.34094268000000005,
+      "fit_nosupport": 67,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "ii"
+     }
+    ],
+    "scene_category": "ii",
+    "rep_item": 27,
+    "rep_volume": 0.34094268000000005
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 27,
+      "volume": 0.34094268000000005,
+      "fit_nosupport": 180,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "ii"
+     }
+    ],
+    "scene_category": "ii",
+    "rep_item": 27,
+    "rep_volume": 0.34094268000000005
+   }
+  },
+  "scene_category": "ii",
+  "rep_item": 27,
+  "rep_volume": 0.34094268000000005
+ },
+ {
+  "label": "D04_A_1c_40_flat",
+  "lookahead_k": 1,
+  "n_items": 40,
+  "n_placed": 25,
+  "total_vol": 3.386102383,
+  "residual_vol": 1.8870697689999998,
+  "stalled": true,
+  "pool_items": [
+   1
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 1,
+      "volume": 0.181332,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 1,
+    "rep_volume": 0.181332
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 1,
+      "volume": 0.181332,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 1,
+    "rep_volume": 0.181332
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 1,
+  "rep_volume": 0.181332
+ },
+ {
+  "label": "D05_A_1c_40_tall",
+  "lookahead_k": 1,
+  "n_items": 40,
+  "n_placed": 13,
+  "total_vol": 3.5997328989999997,
+  "residual_vol": 1.8302517399999998,
+  "stalled": true,
+  "pool_items": [
+   39
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 39,
+      "volume": 0.07716794399999999,
+      "fit_nosupport": 539,
+      "fit_support": 53,
+      "open": 0,
+      "shelf_blocked": 53,
+      "item_blocked": 0,
+      "category": "iv"
+     }
+    ],
+    "scene_category": "iv",
+    "rep_item": 39,
+    "rep_volume": 0.07716794399999999
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 39,
+      "volume": 0.07716794399999999,
+      "fit_nosupport": 4047,
+      "fit_support": 268,
+      "open": 0,
+      "shelf_blocked": 268,
+      "item_blocked": 0,
+      "category": "iv"
+     }
+    ],
+    "scene_category": "iv",
+    "rep_item": 39,
+    "rep_volume": 0.07716794399999999
+   }
+  },
+  "scene_category": "iv",
+  "rep_item": 39,
+  "rep_volume": 0.07716794399999999
+ },
+ {
+  "label": "P01_A_1c_pre6",
+  "lookahead_k": 1,
+  "n_items": 34,
+  "n_placed": 19,
+  "total_vol": 4.313296319,
+  "residual_vol": 2.952681976,
+  "stalled": true,
+  "pool_items": [
+   5
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 5,
+      "volume": 0.45253668,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 5,
+    "rep_volume": 0.45253668
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 5,
+      "volume": 0.45253668,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 5,
+    "rep_volume": 0.45253668
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 5,
+  "rep_volume": 0.45253668
+ },
+ {
+  "label": "P02_A_1c_pre10",
+  "lookahead_k": 1,
+  "n_items": 40,
+  "n_placed": 23,
+  "total_vol": 4.072014095,
+  "residual_vol": 2.76143409,
+  "stalled": true,
+  "pool_items": [
+   1
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 1,
+      "volume": 0.24662044799999996,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 1,
+    "rep_volume": 0.24662044799999996
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 1,
+      "volume": 0.24662044799999996,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 1,
+    "rep_volume": 0.24662044799999996
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 1,
+  "rep_volume": 0.24662044799999996
+ },
+ {
+  "label": "P03_A_2c_pre8_prio",
+  "lookahead_k": 1,
+  "n_items": 60,
+  "n_placed": 27,
+  "total_vol": 6.3706334799999995,
+  "residual_vol": 3.8690937629999995,
+  "stalled": true,
+  "pool_items": [
+   59
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 59,
+      "volume": 0.4127580899999999,
+      "fit_nosupport": 185,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "ii"
+     }
+    ],
+    "scene_category": "ii",
+    "rep_item": 59,
+    "rep_volume": 0.4127580899999999
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 59,
+      "volume": 0.4127580899999999,
+      "fit_nosupport": 757,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "ii"
+     }
+    ],
+    "scene_category": "ii",
+    "rep_item": 59,
+    "rep_volume": 0.4127580899999999
+   }
+  },
+  "scene_category": "ii",
+  "rep_item": 59,
+  "rep_volume": 0.4127580899999999
+ },
+ {
+  "label": "P05_C_2c_pre8_shelfprio",
+  "lookahead_k": 5,
+  "n_items": 50,
+  "n_placed": 19,
+  "total_vol": 6.292815505,
+  "residual_vol": 3.518531584,
+  "stalled": true,
+  "pool_items": [
+   8,
+   4,
+   46,
+   45,
+   27
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 8,
+      "volume": 0.42825381200000007,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 4,
+      "volume": 0.36974883000000003,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 46,
+      "volume": 0.25912655999999995,
+      "fit_nosupport": 4,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "ii"
+     },
+     {
+      "item": 45,
+      "volume": 0.0953901,
+      "fit_nosupport": 2663,
+      "fit_support": 218,
+      "open": 72,
+      "shelf_blocked": 42,
+      "item_blocked": 104,
+      "category": "v"
+     },
+     {
+      "item": 27,
+      "volume": 0.073413378,
+      "fit_nosupport": 4138,
+      "fit_support": 201,
+      "open": 61,
+      "shelf_blocked": 2,
+      "item_blocked": 138,
+      "category": "v"
+     }
+    ],
+    "scene_category": "v",
+    "rep_item": 45,
+    "rep_volume": 0.0953901
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 8,
+      "volume": 0.42825381200000007,
+      "fit_nosupport": 12,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "ii"
+     },
+     {
+      "item": 4,
+      "volume": 0.36974883000000003,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     },
+     {
+      "item": 46,
+      "volume": 0.25912655999999995,
+      "fit_nosupport": 376,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "ii"
+     },
+     {
+      "item": 45,
+      "volume": 0.0953901,
+      "fit_nosupport": 23034,
+      "fit_support": 1011,
+      "open": 359,
+      "shelf_blocked": 95,
+      "item_blocked": 557,
+      "category": "v"
+     },
+     {
+      "item": 27,
+      "volume": 0.073413378,
+      "fit_nosupport": 26607,
+      "fit_support": 656,
+      "open": 235,
+      "shelf_blocked": 16,
+      "item_blocked": 405,
+      "category": "v"
+     }
+    ],
+    "scene_category": "v",
+    "rep_item": 45,
+    "rep_volume": 0.0953901
+   }
+  },
+  "scene_category": "v",
+  "rep_item": 45,
+  "rep_volume": 0.0953901
+ },
+ {
+  "label": "P06_A_1c_pre12_dense",
+  "lookahead_k": 1,
+  "n_items": 30,
+  "n_placed": 16,
+  "total_vol": 3.600462304,
+  "residual_vol": 2.364418841,
+  "stalled": true,
+  "pool_items": [
+   4
+  ],
+  "by_voxel": {
+   "0.05": {
+    "per_item": [
+     {
+      "item": 4,
+      "volume": 0.36254304,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 4,
+    "rep_volume": 0.36254304
+   },
+   "0.025": {
+    "per_item": [
+     {
+      "item": 4,
+      "volume": 0.36254304,
+      "fit_nosupport": 0,
+      "fit_support": 0,
+      "open": 0,
+      "shelf_blocked": 0,
+      "item_blocked": 0,
+      "category": "i"
+     }
+    ],
+    "scene_category": "i",
+    "rep_item": 4,
+    "rep_volume": 0.36254304
+   }
+  },
+  "scene_category": "i",
+  "rep_item": 4,
+  "rep_volume": 0.36254304
+ }
+]
