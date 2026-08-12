@@ -15,6 +15,7 @@ container dict / item dict は get_init_states() / get_info_for_optimization() �
 """
 import os
 
+import numpy as np
 import pybullet as p
 
 from . import geometry as geo
@@ -33,6 +34,19 @@ _ORN_QUATS = [p.getQuaternionFromEuler(e) for e in ORNS]
 # **大きめに置くほど保守的**(名目予算を早めに使い切る=壁時計の安全弁を踏みにくい)なので、
 # 集計値をわずかに上回る 3.0 を採用する。
 REACH_UNIT_COST = float(os.environ.get('MYSOLVER_REACH_UNIT_COST', '3.0'))
+
+# Phase31: risk_vol(候補順序を選ぶ目的関数)の壁からの余裕をどの面から測るかを切り替える。
+# 既定 'all' は Phase6 以来の「全面の最悪値」(壁・天井・切り欠きも含む inclusion_slack_batch)。
+# Phase21 の全数監査(results/phase21_report.md)は574件の実際の脱落原因が
+# floor 99.7% / back 0.3% で、側壁・天井・切り欠きによる脱落は実測0件だったと確定している。
+# つまり 'all' は実際にはほぼ起きない側壁接近まで強く罰しており、壁際まで詰めた
+# 密な(=真のfillが高い)配置を誤って割り引いている可能性がある(results/phase31_report.md)。
+# 'floor' は geo.inclusion_slack_batch(floor_only=True) で内床面だけを見る。
+# **この値は risk_vol(=候補順序の選択指標)にのみ影響する。** _score() の boundary_term
+# (online policy() / offline構築の両方が使う配置スコア)や check_inclusion_batch(hard
+# legality)は一切変更しないため、「どこに何を置くか」(=各候補順序の実際の配置内容)は
+# 既定のまま完全に不変で、「作り終えた複数の候補順序のどれを勝者に選ぶか」だけが変わる。
+RISK_SLACK_FACES = os.environ.get('MYSOLVER_RISK_SLACK_FACES', 'all')
 
 
 def clone_containers(container_list: list[dict]) -> list[dict]:
@@ -188,6 +202,16 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
         risk_slack = info.get('settled_slack') if planner.USE_SETTLED_SLACK else None
         if risk_slack is None:
             risk_slack = info.get('slack', geo.REAL_INCLUSION_MARGIN)
+        if RISK_SLACK_FACES == 'floor':
+            # Phase31: risk_vol選択指標だけを内床面基準で測り直す。位置そのものは
+            # planner.plan が既に決めた placed['pos'] を使うだけなので、構築(どの位置に
+            # 置くか)は一切変えていない。
+            floor_half = geo.half_extent(
+                (item['length'], item['width'], item['height']), action['orientation'])
+            floor_slack = geo.inclusion_slack_batch(
+                container, floor_half, np.array([placed['pos']], dtype=np.float64),
+                floor_only=True)
+            risk_slack = float(floor_slack[0])
         risk_adjusted_volume += (item_volume * geo.fill_risk_factor(risk_slack)
                                   * stability_discount)
         refill()

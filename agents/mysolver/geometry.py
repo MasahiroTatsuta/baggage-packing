@@ -74,12 +74,20 @@ def half_extent(lwh, orn_idx: int) -> np.ndarray:
     return np.array(get_half_ext([lwh[0], lwh[1], lwh[2]], orn_idx), dtype=np.float64)
 
 
-def inclusion_slack_batch(container: dict, half: np.ndarray, world_pos: np.ndarray) -> np.ndarray:
+def inclusion_slack_batch(container: dict, half: np.ndarray, world_pos: np.ndarray,
+                           floor_only: bool = False) -> np.ndarray:
     """
     world_pos: shape (N,3)。各候補について、全面のうち最も厳しい(壁に最も近い)
     dot値(validator.check_inclusion と同式)を返す。小さい(より負)ほど壁からの
     余裕が大きく、real evaluatorの厳しいinclusion_margin(-0.005程度)や配置後の
     沈降ドリフトに対して安全であることを意味する。戻り値: shape (N,) float
+
+    floor_only=True(Phase31, 既定False): 全面の最悪値ではなく、内床面(法線が最も
+    下向きの面 = argmin(n_vecs[:,2]))だけの dot値を返す。壁・天井・切り欠きへの
+    接近は無視し、床からの浮きだけを見る。**hard legality判定(check_inclusion_batch)
+    には使わないこと**——側壁・天井を突き抜けた候補を誤って合法とみなしうるため、
+    このフラグを使うのは risk_vol(offlineの候補順序選択指標)側に限定する
+    (results/phase31_report.md 参照)。
     """
     n_vecs = np.array(container['n_vecs'])          # (F,3)
     points = np.array(container['points'])          # (F,3)
@@ -87,6 +95,9 @@ def inclusion_slack_batch(container: dict, half: np.ndarray, world_pos: np.ndarr
     # (N,F) = sum_axis3( n_vecs[f] * (pos[n]-points[f]) )
     diff = world_pos[:, None, :] - points[None, :, :]     # (N,F,3)
     dots = np.einsum('nfc,fc->nf', diff, n_vecs) + bonus[None, :]
+    if floor_only:
+        floor_idx = int(np.argmin(n_vecs[:, 2]))     # 最も下向きの法線 = 内床面
+        return dots[:, floor_idx]
     return np.max(dots, axis=1)
 
 
