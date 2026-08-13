@@ -46,7 +46,11 @@ REACH_UNIT_COST = float(os.environ.get('MYSOLVER_REACH_UNIT_COST', '3.0'))
 # (online policy() / offline構築の両方が使う配置スコア)や check_inclusion_batch(hard
 # legality)は一切変更しないため、「どこに何を置くか」(=各候補順序の実際の配置内容)は
 # 既定のまま完全に不変で、「作り終えた複数の候補順序のどれを勝者に選ぶか」だけが変わる。
-RISK_SLACK_FACES = os.environ.get('MYSOLVER_RISK_SLACK_FACES', 'all')
+# Phase33: ローカルA/Bは t=1.177(単体)で採否基準未達だが、Phase32が機序を独立検証
+# (勝者交代5シーン中4シーンで新勝者の方が過大評価が少ない、Phase21の574件監査+
+# 過大評価分析の2本裏付け)。ローカルSE比でpublicの検出力が約16倍高いため、既定を
+# 'floor' に切り替えてpublicで直接検証する(results/phase33_report.md)。
+RISK_SLACK_FACES = os.environ.get('MYSOLVER_RISK_SLACK_FACES', 'floor')
 
 
 def clone_containers(container_list: list[dict]) -> list[dict]:
@@ -75,7 +79,10 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
                     prepacked_ids: dict | None = None,
                     stability_weight: float = 1.0,
                     reach_info: dict | None = None,
-                    stall_info: dict | None = None) -> tuple[list[int], float, float]:
+                    stall_info: dict | None = None,
+                    resume_state: dict | None = None,
+                    snapshot_after: int | None = None,
+                    snapshot_out: dict | None = None) -> tuple[list[int], float, float]:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
@@ -127,35 +134,80 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     Phase17までの目的関数(risk調整済み体積 − placementペナルティ)には stability の代理が
     一切無く、目的関数上は改善するが実stabilityが悪化する順序に探索が収束する問題があった
     (results/phase17_report.md §3.5)。
+
+    Phase33(調査専用フック、既定無効): `resume_state`/`snapshot_after`/`snapshot_out` は
+    ALNSの「接頭辞再開」が実装可能かを検証するための足場。**どちらも既定Noneで、指定しない限り
+    Phase32までの経路とビット単位で同一**(この3引数を一切使わない呼び出しは無変更)。
+    `snapshot_after=k` を渡すと、k個目を配置した直後(refill後)の完全な内部状態
+    (containers/pool/残order/累積量)を `snapshot_out` に書き込んでそこでループを止める。
+    `resume_state`(`snapshot_out`と同じ形の dict)を渡すと、その状態から続きを流し込む
+    (containers/order を最初から構築し直さない)。resume_state を使う呼び出しでは
+    container_list/order 引数は無視される。
     """
-    containers = clone_containers(container_list)
-    has_prio_container = any(c.get('is_prioritized', False) for c in containers)
-    n_prio_placed = 0
-    n_prio_misrouted = 0
-    for c in containers:
-        for it in c.get('packed_items', []):
-            if it.get('is_prioritized', False):
-                n_prio_placed += 1
-                if has_prio_container and not c.get('is_prioritized', False):
-                    n_prio_misrouted += 1
-    idx_iter = iter(order)
-    pool: list[dict] = []
+    if resume_state is not None:
+        containers = resume_state['containers']
+        has_prio_container = any(c.get('is_prioritized', False) for c in containers)
+        n_prio_placed = resume_state['n_prio_placed']
+        n_prio_misrouted = resume_state['n_prio_misrouted']
+        idx_iter = iter(resume_state['remaining_order'])
+        pool = list(resume_state['pool'])
+        placed_ids = list(resume_state['placed_ids'])
+        placed_volume = resume_state['placed_volume']
+        risk_adjusted_volume = resume_state['risk_adjusted_volume']
+        n_stacked = resume_state['n_stacked']
+        stacking_risk_sum = resume_state['stacking_risk_sum']
 
-    def refill():
-        while len(pool) < lookahead_k:
-            try:
-                pool.append(dict(items_by_index[next(idx_iter)]))
-            except StopIteration:
-                return
+        def refill():
+            while len(pool) < lookahead_k:
+                try:
+                    pool.append(dict(items_by_index[next(idx_iter)]))
+                except StopIteration:
+                    return
+    else:
+        containers = clone_containers(container_list)
+        has_prio_container = any(c.get('is_prioritized', False) for c in containers)
+        n_prio_placed = 0
+        n_prio_misrouted = 0
+        for c in containers:
+            for it in c.get('packed_items', []):
+                if it.get('is_prioritized', False):
+                    n_prio_placed += 1
+                    if has_prio_container and not c.get('is_prioritized', False):
+                        n_prio_misrouted += 1
+        idx_iter = iter(order)
+        pool = []
 
-    refill()
-    placed_ids: list[int] = []
-    placed_volume = 0.0
-    risk_adjusted_volume = 0.0
-    n_stacked = 0
-    stacking_risk_sum = 0.0
+        def refill():
+            while len(pool) < lookahead_k:
+                try:
+                    pool.append(dict(items_by_index[next(idx_iter)]))
+                except StopIteration:
+                    return
+
+        refill()
+        placed_ids: list[int] = []
+        placed_volume = 0.0
+        risk_adjusted_volume = 0.0
+        n_stacked = 0
+        stacking_risk_sum = 0.0
 
     while pool:
+        if (snapshot_after is not None and snapshot_out is not None
+                and len(placed_ids) == snapshot_after):
+            snapshot_out.update({
+                'containers': clone_containers(containers),
+                'pool': [dict(it) for it in pool],
+                'remaining_order': list(idx_iter),
+                'placed_ids': list(placed_ids),
+                'placed_volume': placed_volume,
+                'risk_adjusted_volume': risk_adjusted_volume,
+                'n_stacked': n_stacked,
+                'stacking_risk_sum': stacking_risk_sum,
+                'n_prio_placed': n_prio_placed,
+                'n_prio_misrouted': n_prio_misrouted,
+                'budget_used': budget.used,
+            })
+            break
         # Phase17: 壁時計ではなく親の残ユニットで打ち切る(同一入力なら同じ手数・同じ結果)。
         if budget.exhausted():
             break
