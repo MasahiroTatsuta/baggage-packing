@@ -1,0 +1,212 @@
+[
+ {
+  "label": "A01_1c_40_plain",
+  "winner_idx": 0,
+  "diff_overrank": 0.0,
+  "diff_overz": 0.5327026225832315,
+  "diff_ngap": -2.2,
+  "winner_overrank": 0.0,
+  "winner_overz": 0.44391885215269333,
+  "winner_ngap": 0
+ },
+ {
+  "label": "A02_1c_80_plain",
+  "winner_idx": 3,
+  "diff_overrank": 0.0,
+  "diff_overz": -0.07570316999596169,
+  "diff_ngap": 4,
+  "winner_overrank": 0.0,
+  "winner_overz": -0.06488843142510992,
+  "winner_ngap": 4
+ },
+ {
+  "label": "A03_1c_40_shelf",
+  "winner_idx": 0,
+  "diff_overrank": 0.0,
+  "diff_overz": 0.12540425457056986,
+  "diff_ngap": -3.2,
+  "winner_overrank": 0.0,
+  "winner_overz": 0.1045035454754748,
+  "winner_ngap": 0
+ },
+ {
+  "label": "A04_2c_80_noprio",
+  "winner_idx": 1,
+  "diff_overrank": 0.0,
+  "diff_overz": -0.13272431392157963,
+  "diff_ngap": 0.6,
+  "winner_overrank": 0.0,
+  "winner_overz": -0.11060359493465,
+  "winner_ngap": 0
+ },
+ {
+  "label": "A05_2c_80_prio",
+  "winner_idx": 1,
+  "diff_overrank": 2.4,
+  "diff_overz": 1.471010642833283,
+  "diff_ngap": 1.2,
+  "winner_overrank": 2.0,
+  "winner_overz": 1.2258422023610698,
+  "winner_ngap": 0
+ },
+ {
+  "label": "A06_1c_40_small",
+  "winner_idx": 2,
+  "diff_overrank": 1.2,
+  "diff_overz": 0.7781350023378628,
+  "diff_ngap": 0,
+  "winner_overrank": 1.0,
+  "winner_overz": 0.29489244468827813,
+  "winner_ngap": 0
+ },
+ {
+  "label": "A07_1c_40_bulky",
+  "winner_idx": 9,
+  "diff_overrank": 0.0,
+  "diff_overz": -0.01647572948828542,
+  "diff_ngap": 0,
+  "winner_overrank": 0.0,
+  "winner_overz": -0.014828156539456794,
+  "winner_ngap": 0
+ },
+ {
+  "label": "A08_2c_140_extreme",
+  "winner_idx": 1,
+  "diff_overrank": 1.2,
+  "diff_overz": 0.22369654711224296,
+  "diff_ngap": 0.2,
+  "winner_overrank": 1.0,
+  "winner_overz": 0.18641378926020225,
+  "winner_ngap": 0
+ },
+ {
+  "label": "C01_1c_40_shelf",
+  "winner_idx": 2,
+  "diff_overrank": 4.8,
+  "diff_overz": 3.05637340450656,
+  "diff_ngap": 2.8,
+  "winner_overrank": 4.0,
+  "winner_overz": 2.5469778370887997,
+  "winner_ngap": 3
+ },
+ {
+  "label": "C02_2c_55_shelfprio",
+  "winner_idx": 3,
+  "diff_overrank": 1.25,
+  "diff_overz": 0.9536030946662699,
+  "diff_ngap": 4.5,
+  "winner_overrank": 1.0,
+  "winner_overz": 0.7628824757330167,
+  "winner_ngap": 4
+ },
+ {
+  "label": "C03_2c_80_prio",
+  "winner_idx": 2,
+  "diff_overrank": 0.0,
+  "diff_overz": -0.31540068934639964,
+  "diff_ngap": -0.25,
+  "winner_overrank": 0.0,
+  "winner_overz": -0.25232055147712007,
+  "winner_ngap": -1
+ },
+ {
+  "label": "D01_A_1c_40_softheavy",
+  "winner_idx": 3,
+  "diff_overrank": 3.6,
+  "diff_overz": 1.908497923492423,
+  "diff_ngap": 4,
+  "winner_overrank": 3.0,
+  "winner_overz": 1.5904149362436866,
+  "winner_ngap": 4
+ },
+ {
+  "label": "D02_A_1c_40_prioheavy_nocont",
+  "winner_idx": 1,
+  "diff_overrank": 0.0,
+  "diff_overz": 0.03175284129175212,
+  "diff_ngap": 4.2,
+  "winner_overrank": 0.0,
+  "winner_overz": 0.026460701076460147,
+  "winner_ngap": 6
+ },
+ {
+  "label": "D03_A_2c_60_prioheavy_cont",
+  "winner_idx": 0,
+  "diff_overrank": 1.2,
+  "diff_overz": 0.8373039565316686,
+  "diff_ngap": -1.6,
+  "winner_overrank": 1.0,
+  "winner_overz": 0.6977532971097238,
+  "winner_ngap": -2
+ },
+ {
+  "label": "D04_A_1c_40_flat",
+  "winner_idx": 0,
+  "diff_overrank": 3.6,
+  "diff_overz": 1.4729231756223304,
+  "diff_ngap": -2.6,
+  "winner_overrank": 3.0,
+  "winner_overz": 1.2274359796852747,
+  "winner_ngap": 0
+ },
+ {
+  "label": "D05_A_1c_40_tall",
+  "winner_idx": 0,
+  "diff_overrank": 1.2,
+  "diff_overz": 1.1790880608576109,
+  "diff_ngap": 0.8,
+  "winner_overrank": 1.0,
+  "winner_overz": 0.9825733840480092,
+  "winner_ngap": 1
+ },
+ {
+  "label": "P01_A_1c_pre6",
+  "winner_idx": 3,
+  "diff_overrank": 5.833333333333333,
+  "diff_overz": 2.1161502624485813,
+  "diff_ngap": 4.833333333333333,
+  "winner_overrank": 5.0,
+  "winner_overz": 1.8138430820987836,
+  "winner_ngap": 0
+ },
+ {
+  "label": "P02_A_1c_pre10",
+  "winner_idx": 3,
+  "diff_overrank": 3.6,
+  "diff_overz": 1.2406832704766944,
+  "diff_ngap": 2,
+  "winner_overrank": 3.0,
+  "winner_overz": 1.033902725397245,
+  "winner_ngap": -8
+ },
+ {
+  "label": "P03_A_2c_pre8_prio",
+  "winner_idx": 1,
+  "diff_overrank": 0.0,
+  "diff_overz": -1.0081265072696188,
+  "diff_ngap": 0.1999999999999993,
+  "winner_overrank": 0.0,
+  "winner_overz": -0.840105422724682,
+  "winner_ngap": -8
+ },
+ {
+  "label": "P05_C_2c_pre8_shelfprio",
+  "winner_idx": 0,
+  "diff_overrank": 0.0,
+  "diff_overz": -0.18179069851171087,
+  "diff_ngap": -0.25,
+  "winner_overrank": 0.0,
+  "winner_overz": -0.14543255880936834,
+  "winner_ngap": -9
+ },
+ {
+  "label": "P06_A_1c_pre12_dense",
+  "winner_idx": 1,
+  "diff_overrank": 0.0,
+  "diff_overz": -0.008033986028592517,
+  "diff_ngap": -0.3333333333333339,
+  "winner_overrank": 0.0,
+  "winner_overz": -0.006886273738793691,
+  "winner_ngap": -12
+ }
+]

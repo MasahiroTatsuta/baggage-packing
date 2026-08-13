@@ -1,0 +1,824 @@
+[
+ {
+  "label": "A01_1c_40_plain",
+  "n_cand": 6,
+  "old_winner": 4,
+  "borda_winner": 4,
+  "changed": false,
+  "old_real_fill": 18.486710002755192,
+  "borda_real_fill": 18.486710002755192,
+  "gap": 0.0,
+  "old_real_fill_loose": 28.885146080236066,
+  "borda_real_fill_loose": 28.885146080236066,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.08623345678583,
+  "floor_risk_all_elig": [
+   1.6365955233635685,
+   1.4345770926790817,
+   1.1797613301718741,
+   1.105708909640291,
+   1.6230197800382986,
+   1.3175694560382987
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   10.0,
+   11.0,
+   20.0,
+   22.0,
+   6.0,
+   15.0
+  ]
+ },
+ {
+  "label": "A02_1c_80_plain",
+  "n_cand": 7,
+  "old_winner": 3,
+  "borda_winner": 3,
+  "changed": false,
+  "old_real_fill": 30.319506131307005,
+  "borda_real_fill": 30.319506131307005,
+  "gap": 0.0,
+  "old_real_fill_loose": 40.993884889752266,
+  "borda_real_fill_loose": 40.993884889752266,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 97.94207592511901,
+  "floor_risk_all_elig": [
+   0.8504407092825456,
+   1.5239684588028455,
+   1.5922190330509995,
+   1.7327449464310563,
+   1.4381347503989321,
+   0.45419281008252643,
+   0.8917105717853302
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "borda_sum_all_elig": [
+   23.0,
+   14.0,
+   11.5,
+   5.5,
+   14.5,
+   25.5,
+   18.0
+  ]
+ },
+ {
+  "label": "A03_1c_40_shelf",
+  "n_cand": 6,
+  "old_winner": 1,
+  "borda_winner": 1,
+  "changed": false,
+  "old_real_fill": 17.78497195156464,
+  "borda_real_fill": 17.78497195156464,
+  "gap": 0.0,
+  "old_real_fill_loose": 30.45109249919139,
+  "borda_real_fill_loose": 30.45109249919139,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.29617019007038,
+  "floor_risk_all_elig": [
+   1.580740686518386,
+   1.6265283751290525,
+   1.4994597793922193,
+   1.0784117481767246,
+   1.1804070665736055,
+   1.1479445204695906
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   12.0,
+   5.5,
+   9.5,
+   23.0,
+   16.5,
+   17.5
+  ]
+ },
+ {
+  "label": "A04_2c_80_noprio",
+  "n_cand": 6,
+  "old_winner": 1,
+  "borda_winner": 1,
+  "changed": false,
+  "old_real_fill": 25.64726712862767,
+  "borda_real_fill": 25.64726712862767,
+  "gap": 0.0,
+  "old_real_fill_loose": 41.43577096543627,
+  "borda_real_fill_loose": 41.43577096543627,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 97.90527734082625,
+  "floor_risk_all_elig": [
+   1.9653708342586254,
+   2.7279167009450918,
+   2.1600532641935,
+   2.059616276236689,
+   2.1809892106205337,
+   1.9499593338974586
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   17.0,
+   4.0,
+   12.0,
+   19.5,
+   10.5,
+   21.0
+  ]
+ },
+ {
+  "label": "A05_2c_80_prio",
+  "n_cand": 6,
+  "old_winner": 1,
+  "borda_winner": 1,
+  "changed": false,
+  "old_real_fill": 21.82638028029117,
+  "borda_real_fill": 21.82638028029117,
+  "gap": 0.0,
+  "old_real_fill_loose": 41.43278630817852,
+  "borda_real_fill_loose": 41.43278630817852,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.02783920163247,
+  "floor_risk_all_elig": [
+   1.7289525556911975,
+   2.6122548663888177,
+   2.110697542185521,
+   2.0674901228433216,
+   2.221991616936348,
+   1.6246017431400865
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   21.0,
+   4.0,
+   11.0,
+   16.0,
+   9.0,
+   23.0
+  ]
+ },
+ {
+  "label": "A06_1c_40_small",
+  "n_cand": 6,
+  "old_winner": 5,
+  "borda_winner": 5,
+  "changed": false,
+  "old_real_fill": 11.59476465544091,
+  "borda_real_fill": 11.59476465544091,
+  "gap": 0.0,
+  "old_real_fill_loose": 18.897980621795583,
+  "borda_real_fill_loose": 18.897980621795583,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.24962774287103,
+  "floor_risk_all_elig": [
+   0.6133380459940764,
+   0.6504643388991864,
+   0.6491813713617521,
+   0.6349598876324002,
+   0.6281181606308675,
+   0.6639150470748433
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   21.5,
+   12.5,
+   9.5,
+   13.5,
+   18.5,
+   8.5
+  ]
+ },
+ {
+  "label": "A07_1c_40_bulky",
+  "n_cand": 10,
+  "old_winner": 9,
+  "borda_winner": 9,
+  "changed": false,
+  "old_real_fill": 38.809152862407956,
+  "borda_real_fill": 38.809152862407956,
+  "gap": 0.0,
+  "old_real_fill_loose": 59.212586723753766,
+  "borda_real_fill_loose": 59.212586723753766,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.14719429494356,
+  "floor_risk_all_elig": [
+   0.24610454463752024,
+   1.5607133899262964,
+   1.4244048826712978,
+   1.6340687414795758,
+   1.6231845820549617,
+   1.4986926999058214,
+   0.926907948525391,
+   1.3605673094812323,
+   1.263267468525391,
+   2.004731719792208
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "borda_sum_all_elig": [
+   40.0,
+   19.0,
+   27.0,
+   11.5,
+   12.5,
+   16.5,
+   35.0,
+   24.5,
+   30.0,
+   4.0
+  ]
+ },
+ {
+  "label": "A08_2c_140_extreme",
+  "n_cand": 6,
+  "old_winner": 1,
+  "borda_winner": 1,
+  "changed": false,
+  "old_real_fill": 26.18521230224488,
+  "borda_real_fill": 26.18521230224488,
+  "gap": 0.0,
+  "old_real_fill_loose": 45.72994311670446,
+  "borda_real_fill_loose": 45.72994311670446,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.48959264948803,
+  "floor_risk_all_elig": [
+   2.4253953409417437,
+   2.949783118432454,
+   2.7012810343598934,
+   2.550273598276761,
+   1.6447753118311248,
+   2.4791319069797235
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   19.0,
+   4.5,
+   7.5,
+   14.0,
+   23.0,
+   16.0
+  ]
+ },
+ {
+  "label": "C01_1c_40_shelf",
+  "n_cand": 6,
+  "old_winner": 2,
+  "borda_winner": 2,
+  "changed": false,
+  "old_real_fill": 20.838123761825823,
+  "borda_real_fill": 20.838123761825823,
+  "gap": 0.0,
+  "old_real_fill_loose": 32.372096734252445,
+  "borda_real_fill_loose": 32.372096734252445,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.16586852684983,
+  "floor_risk_all_elig": [
+   1.1971141797735434,
+   1.2881937486665593,
+   1.4970617798563828,
+   1.2181429884224635,
+   1.3259353896985928,
+   1.4742734957067356
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   22.0,
+   18.0,
+   5.0,
+   20.0,
+   12.0,
+   7.0
+  ]
+ },
+ {
+  "label": "C02_2c_55_shelfprio",
+  "n_cand": 5,
+  "old_winner": 3,
+  "borda_winner": 3,
+  "changed": false,
+  "old_real_fill": 25.19420085964664,
+  "borda_real_fill": 25.19420085964664,
+  "gap": 0.0,
+  "old_real_fill_loose": 44.079095172636855,
+  "borda_real_fill_loose": 44.079095172636855,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.30301438247052,
+  "floor_risk_all_elig": [
+   2.523398509062934,
+   2.592049291470195,
+   2.1471742757670174,
+   2.820902730194389,
+   2.856128946851591
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "borda_sum_all_elig": [
+   15.5,
+   11.5,
+   19.5,
+   5.0,
+   8.5
+  ]
+ },
+ {
+  "label": "C03_2c_80_prio",
+  "n_cand": 5,
+  "old_winner": 2,
+  "borda_winner": 2,
+  "changed": false,
+  "old_real_fill": 32.20807592808142,
+  "borda_real_fill": 32.20807592808142,
+  "gap": 0.0,
+  "old_real_fill_loose": 48.01916416519588,
+  "borda_real_fill_loose": 48.01916416519588,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 97.72143356080151,
+  "floor_risk_all_elig": [
+   2.5608361719213915,
+   2.9950078867775956,
+   3.094013008059725,
+   1.8775964153435598,
+   1.9273487924885835
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "borda_sum_all_elig": [
+   14.0,
+   7.0,
+   5.0,
+   18.5,
+   15.5
+  ]
+ },
+ {
+  "label": "D01_A_1c_40_softheavy",
+  "n_cand": 6,
+  "old_winner": 5,
+  "borda_winner": 3,
+  "changed": true,
+  "old_real_fill": 31.53175988575923,
+  "borda_real_fill": 20.757405335095594,
+  "gap": -10.774354550663634,
+  "old_real_fill_loose": 37.31433460045679,
+  "borda_real_fill_loose": 30.869561933987114,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.29204071956447,
+  "floor_risk_all_elig": [
+   0.8527936680599041,
+   1.385886565813,
+   1.290829352682732,
+   1.5312199424960216,
+   1.0796280889803382,
+   1.4565672810646544
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   24.0,
+   14.0,
+   15.5,
+   5.0,
+   18.5,
+   7.0
+  ]
+ },
+ {
+  "label": "D02_A_1c_40_prioheavy_nocont",
+  "n_cand": 6,
+  "old_winner": 1,
+  "borda_winner": 1,
+  "changed": false,
+  "old_real_fill": 32.42354531197591,
+  "borda_real_fill": 32.42354531197591,
+  "gap": 0.0,
+  "old_real_fill_loose": 41.409194464853286,
+  "borda_real_fill_loose": 41.409194464853286,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 97.93519257474273,
+  "floor_risk_all_elig": [
+   1.176418861892992,
+   1.7978198363490805,
+   1.4557323258816113,
+   1.3132400890865148,
+   0.9968695494534511,
+   1.2098237351904426
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   18.0,
+   4.0,
+   9.0,
+   14.0,
+   23.0,
+   16.0
+  ]
+ },
+ {
+  "label": "D03_A_2c_60_prioheavy_cont",
+  "n_cand": 6,
+  "old_winner": 1,
+  "borda_winner": 1,
+  "changed": false,
+  "old_real_fill": 21.134009612236255,
+  "borda_real_fill": 21.134009612236255,
+  "gap": 0.0,
+  "old_real_fill_loose": 42.94165832288487,
+  "borda_real_fill_loose": 42.94165832288487,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.12499500141064,
+  "floor_risk_all_elig": [
+   2.5631510910393267,
+   2.5726676358830334,
+   2.568401370022912
+  ],
+  "elig_idx": [
+   0,
+   1,
+   4
+  ],
+  "borda_sum_all_elig": [
+   9.0,
+   6.0,
+   9.0
+  ]
+ },
+ {
+  "label": "D04_A_1c_40_flat",
+  "n_cand": 6,
+  "old_winner": 1,
+  "borda_winner": 2,
+  "changed": true,
+  "old_real_fill": 18.081641666932864,
+  "borda_real_fill": 26.95034614632081,
+  "gap": 8.868704479387947,
+  "old_real_fill_loose": 26.914920029468608,
+  "borda_real_fill_loose": 36.289792501876725,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.10835120744784,
+  "floor_risk_all_elig": [
+   1.2590231796845825,
+   1.329305806158164,
+   1.4289431556612857,
+   1.3444886199952024,
+   0.9757100255847297,
+   0.954314170983211
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   15.0,
+   9.0,
+   6.0,
+   12.0,
+   19.0,
+   23.0
+  ]
+ },
+ {
+  "label": "D05_A_1c_40_tall",
+  "n_cand": 6,
+  "old_winner": 0,
+  "borda_winner": 4,
+  "changed": true,
+  "old_real_fill": 25.314762030019637,
+  "borda_real_fill": 25.706498990760103,
+  "gap": 0.3917369607404666,
+  "old_real_fill_loose": 41.87814109692696,
+  "borda_real_fill_loose": 32.79793270536184,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.13462032601427,
+  "floor_risk_all_elig": [
+   1.470820321955067,
+   1.0743280823784949,
+   0.764992157191826,
+   1.1789442667149836,
+   1.211754004122016,
+   1.0732812570721815
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   9.0,
+   16.0,
+   23.0,
+   10.0,
+   8.0,
+   18.0
+  ]
+ },
+ {
+  "label": "P01_A_1c_pre6",
+  "n_cand": 7,
+  "old_winner": 3,
+  "borda_winner": 3,
+  "changed": false,
+  "old_real_fill": 11.85929940683448,
+  "borda_real_fill": 11.85929940683448,
+  "gap": 0.0,
+  "old_real_fill_loose": 21.494091978589335,
+  "borda_real_fill_loose": 21.494091978589335,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.45145740342926,
+  "floor_risk_all_elig": [
+   0.5617103216083528,
+   0.7343771518490925,
+   1.0674154616285827,
+   1.2150890623933743,
+   1.1682744466597752,
+   1.2392944153616698,
+   0.8674851495454622
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "borda_sum_all_elig": [
+   28.0,
+   24.0,
+   15.5,
+   5.5,
+   11.5,
+   7.5,
+   20.0
+  ]
+ },
+ {
+  "label": "P02_A_1c_pre10",
+  "n_cand": 6,
+  "old_winner": 3,
+  "borda_winner": 3,
+  "changed": false,
+  "old_real_fill": 22.044325171900205,
+  "borda_real_fill": 22.044325171900205,
+  "gap": 0.0,
+  "old_real_fill_loose": 29.183372573232273,
+  "borda_real_fill_loose": 29.183372573232273,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.74843412316838,
+  "floor_risk_all_elig": [
+   0.6157917359652914,
+   1.1651086173677847,
+   1.156103263300909,
+   1.2433195915750457,
+   0.997084035727846,
+   0.7987679692725724
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   24.0,
+   10.0,
+   9.0,
+   5.0,
+   16.0,
+   20.0
+  ]
+ },
+ {
+  "label": "P03_A_2c_pre8_prio",
+  "n_cand": 6,
+  "old_winner": 1,
+  "borda_winner": 1,
+  "changed": false,
+  "old_real_fill": 20.72601562874346,
+  "borda_real_fill": 20.72601562874346,
+  "gap": 0.0,
+  "old_real_fill_loose": 32.969347919728,
+  "borda_real_fill_loose": 32.969347919728,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.56567414725234,
+  "floor_risk_all_elig": [
+   1.872728319747831,
+   2.119726354764884,
+   1.4395737658574594,
+   1.733364058428332,
+   1.3974777188872933,
+   1.457621589538994
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "borda_sum_all_elig": [
+   12.0,
+   4.0,
+   19.0,
+   12.0,
+   19.0,
+   18.0
+  ]
+ },
+ {
+  "label": "P05_C_2c_pre8_shelfprio",
+  "n_cand": 5,
+  "old_winner": 0,
+  "borda_winner": 0,
+  "changed": false,
+  "old_real_fill": 24.786075745936756,
+  "borda_real_fill": 24.786075745936756,
+  "gap": 0.0,
+  "old_real_fill_loose": 38.033198494481276,
+  "borda_real_fill_loose": 38.033198494481276,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.58476948269512,
+  "floor_risk_all_elig": [
+   2.379761035954175,
+   1.5734373560670878,
+   1.938885404595685,
+   1.8797449114801457,
+   1.6239338621933175
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "borda_sum_all_elig": [
+   8.0,
+   16.5,
+   8.5,
+   11.0,
+   16.0
+  ]
+ },
+ {
+  "label": "P06_A_1c_pre12_dense",
+  "n_cand": 7,
+  "old_winner": 1,
+  "borda_winner": 1,
+  "changed": false,
+  "old_real_fill": 27.243752121300446,
+  "borda_real_fill": 27.243752121300446,
+  "gap": 0.0,
+  "old_real_fill_loose": 36.110909149443366,
+  "borda_real_fill_loose": 36.110909149443366,
+  "borda_placement": 100.0,
+  "borda_soft": 100.0,
+  "borda_stability": 98.50875763839707,
+  "floor_risk_all_elig": [
+   0.48936991402358976,
+   1.139429888060782,
+   1.0018742326417243,
+   0.9512216449685593,
+   1.0671445950607823,
+   1.0671445950607823,
+   0.9172818929208606
+  ],
+  "elig_idx": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "borda_sum_all_elig": [
+   28.0,
+   5.0,
+   16.5,
+   19.5,
+   9.5,
+   9.5,
+   24.0
+  ]
+ }
+]
