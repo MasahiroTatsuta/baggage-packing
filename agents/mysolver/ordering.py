@@ -29,6 +29,7 @@ import time
 
 import numpy as np
 
+from . import alns
 from . import geometry as geo
 from . import planner
 from . import reach
@@ -388,6 +389,40 @@ REPAIR_MAX = int(os.environ.get('MYSOLVER_REPAIR_MAX', '12'))
 REPAIR_VOXEL = float(os.environ.get('MYSOLVER_REPAIR_VOXEL', '0.05'))
 _DEBUG = os.environ.get('MYSOLVER_DEBUG_BUDGET') == '1'
 
+# ---------------------------------------------------------------------------
+# Phase34: ALNS(破壊 → 修復)を接頭辞再開の上で回す
+# ---------------------------------------------------------------------------
+# Phase29(衝突駆動リスタート)が26シーン中2シーンにしか届かなかった原因は2つあった:
+#   (a) 対象が (iii) 搬入経路の封鎖だけで、Phase30 の最大区分 (i) 幾何で入らない
+#       (10/21シーン、残体積の54.8%)に届いていなかった
+#   (b) 1試行が「順序を最初から全部評価し直す」コストで、端数予算に数回しか入らなかった
+# Phase34 は (a) を occupier removal(reach.item_occupiers)で、(b) を接頭辞再開
+# (Phase33 で 9/9 ビット単位一致・1反復コストは全構築の1.6〜4.8%)で外す。
+# 設計と正しさの議論は agents/mysolver/alns.py の docstring を参照。
+#
+# **既定は無効(0)**。無効時はスナップショットも stall_info も収集しないので、
+# 計算経路にすら入らず Phase33 までの出力とビット単位で同一
+# (決定的5シーン + A01-A03 で検証: results/phase34_report.md)。
+#
+# 予算について: Phase29 と同じく **リスタート回数も総ユニット予算も増やさない**。
+# フェーズ1/2 は「満額の枠が入らないなら新しいリスタートを始めない」ため必ず端数が
+# 余って捨てられており、ALNS の反復はその端数の中だけで回す。反復回数は固定値ではなく
+# 「端数に収まるだけ」の anytime 設計にする(端数はシーンによって C02 1.7s 〜 D01 39.7s と
+# 20倍以上ばらつくため、固定回数では意味を成さない)。
+ALNS = os.environ.get('MYSOLVER_ALNS', '0') == '1'
+# 1回の build_order で試す反復の上限(通常は予算が先に尽きる。暴走止め)。
+ALNS_MAX = int(os.environ.get('MYSOLVER_ALNS_MAX', '64'))
+# 占有者・ブロッカー同定の voxel。占有者の同定は「そこに何が居るか」という嵩の問いなので、
+# Phase29 がブロッカー用に 0.05 まで細かくした理由(細い隙間が消えると収まる位置を
+# 見落とす)は当てはまらない。既定は reach.VOXEL と同じ 0.10。
+ALNS_VOXEL = float(os.environ.get('MYSOLVER_ALNS_VOXEL', '0.10'))
+# worst removal で外す個数。
+ALNS_WORST_Q = int(os.environ.get('MYSOLVER_ALNS_WORST_Q', '3'))
+
+# ゲート1(到達シーン数)の計測用。build_order 1回ぶんの診断を書き出すだけで、
+# 探索の挙動には一切影響しない(tools/phase34_gate1.py が読む)。
+ALNS_STATS: dict = {}
+
 
 def _advance_before(order: list[int], x: int, blockers: list[int]) -> list[int] | None:
     """x を「order 上で最も早いブロッカー」の直前へ移動した順序を返す。
@@ -492,7 +527,10 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     max_validate_units = [0.0]
 
     def validate(order: list[int], stall_info: dict | None = None,
-                  slice_units: float | None = None) -> tuple[float, int] | None:
+                  slice_units: float | None = None,
+                  snapshots_out: dict | None = None,
+                  contrib_out: list | None = None,
+                  resume_state: dict | None = None) -> tuple[float, int] | None:
         """戻り値 None は「予算切れで評価できなかった」の意(比較対象にしない)。"""
         if total_budget.exhausted():
             return None
@@ -510,7 +548,8 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                  else total_budget.child_seconds(max_validate_slice)),
                 prepacked_ids=prepacked_ids,
                 stability_weight=STABILITY_PENALTY_WEIGHT, reach_info=reach_info,
-                stall_info=stall_info)
+                stall_info=stall_info, snapshots_out=snapshots_out, contrib_out=contrib_out,
+                resume_state=resume_state)
         max_validate_units[0] = max(max_validate_units[0], total_budget.used - used_before)
         count = len(placed_ids)
         penalty = PLACEMENT_PENALTY_WEIGHT * total_container_volume * violation_ratio
@@ -525,14 +564,26 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             return (risk_adjusted_volume * discount - penalty, count)
         return (risk_adjusted_volume - penalty, count)
 
-    # Phase29: 最良順序が「どこで・何に阻まれて」行き詰まったかを持ち回る(REPAIR時のみ)。
+    # Phase29: 最良順序が「どこで・何に阻まれて」行き詰まったかを持ち回る(REPAIR/ALNS時のみ)。
     best_stall: dict | None = None
+    # Phase34: 最良順序の「全配置数ぶんのスナップショット」と「荷物ごとのrisk割引率」。
+    # **スナップショットの採取はユニット予算を消費しない**ので、ALNS の有効/無効で
+    # フェーズ1/2 のリスタート系列は完全に同一のまま(追加されるのは複製の壁時計だけ)。
+    best_snaps: dict = {}
+    best_contribs: list = []
+
+    def _extras():
+        """ALNS 有効時だけ収集する追加情報の入れ物(無効時は全て None = 経路に入らない)。"""
+        if not ALNS:
+            return ({} if REPAIR else None), None, None
+        return {}, {}, []
 
     try:
-        stall: dict | None = {} if REPAIR else None
-        score = validate(heuristic_order, stall)
+        stall, snaps, contribs = _extras()
+        score = validate(heuristic_order, stall, snapshots_out=snaps, contrib_out=contribs)
         if score is not None and (best_score is None or _better(score, best_score)):
             best_order, best_score, best_stall = heuristic_order, score, stall
+            best_snaps, best_contribs = (snaps or {}), (contribs or [])
     except Exception:
         pass
 
@@ -547,7 +598,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     all_indices = set(items_by_index.keys())
 
     def try_construct(seed_items, window, use_noise, slice_units):
-        nonlocal best_order, best_score, best_stall
+        nonlocal best_order, best_score, best_stall, best_snaps, best_contribs
         if slice_units <= 0:
             return
         try:
@@ -562,10 +613,11 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                 beam_width=BEAM_WIDTH,
             )
             if set(order) == all_indices:
-                stall: dict | None = {} if REPAIR else None
-                score = validate(order, stall)
+                stall, snaps, contribs = _extras()
+                score = validate(order, stall, snapshots_out=snaps, contrib_out=contribs)
                 if score is not None and (best_score is None or _better(score, best_score)):
                     best_order, best_score, best_stall = order, score, stall
+                    best_snaps, best_contribs = (snaps or {}), (contribs or [])
         except Exception:
             pass
 
@@ -687,5 +739,148 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             if improved:
                 # 改善したら新しい行き詰まり地点から測り直す(X も再度対象に戻す)。
                 skip_items.clear()
+
+    # フェーズ4(Phase34): ALNS(破壊 → 修復)を接頭辞再開の上で回す。
+    #
+    # ここへ来た時点で残っているのは「新しいリスタート1回分(構築+検証)には足りない端数」
+    # だけである。ALNS の1反復は **末尾だけの再評価** なので(構築をやり直さない、しかも
+    # 接頭辞は再計算しない)この端数に収まる —— Phase33 の実測で全構築1回の 1.6〜4.8%。
+    # リスタート回数も総ユニット予算も一切増やさない。
+    if ALNS:
+        stats: dict = {
+            'enabled': True,
+            'n_items': len(best_order),
+            'fraction_s': total_budget.remaining() / u,
+            'validate_units_s': max_validate_units[0] / u,
+            'n_snapshots': len(best_snaps),
+            'n_eval': 0, 'n_accept': 0,
+            'ops': {op: {'tried': 0, 'found': 0, 'evaluated': 0, 'accepted': 0}
+                    for op in alns.OPS},
+            'iter_s': [], 'gain': 0.0, 'stopped': None,
+        }
+        score0 = best_score
+        skip_by_op: dict = {op: set() for op in alns.OPS}
+        tried_orders: set = {tuple(best_order)}
+        fit_cache: dict = {}
+        n_total = len(best_order)
+        op_i = 0
+        consecutive_fail = 0
+        while stats['n_eval'] < ALNS_MAX and consecutive_fail < len(alns.OPS):
+            if total_budget.exhausted():
+                stats['stopped'] = 'budget_exhausted'
+                break
+            if not best_stall or not best_stall.get('stalled'):
+                stats['stopped'] = 'no_stall'      # 全件流し切った = 壊すべき衝突が無い
+                break
+            if not best_snaps:
+                stats['stopped'] = 'no_snapshots'
+                break
+            op = alns.OPS[op_i % len(alns.OPS)]
+            op_i += 1
+            stats['ops'][op]['tried'] += 1
+
+            # --- 破壊: 外す荷物の集合を決める ---
+            try:
+                if op == alns.OP_OCCUPIER:
+                    x, removed, info = alns.destroy_occupier(best_stall, ALNS_VOXEL, skip_by_op[op])
+                elif op == alns.OP_BLOCKER:
+                    x, removed, info = alns.destroy_blocker(best_stall, ALNS_VOXEL, skip_by_op[op])
+                else:
+                    x, removed, info = alns.destroy_worst(best_stall, best_contribs,
+                                                          ALNS_WORST_Q, skip_by_op[op])
+            except Exception:
+                consecutive_fail += 1
+                continue
+            # 幾何判定のコストも決定的な量(格子数×形状数)でユニット予算へ計上する
+            # (壁時計だけが伸びて非常用安全弁を踏むのを防ぐ。Phase29 と同じ扱い)。
+            if info.get('grid_cells'):
+                total_budget.spend(simulate.REACH_UNIT_COST * info['grid_cells']
+                                    * info.get('n_shapes', 1))
+            if x is None or not removed:
+                consecutive_fail += 1
+                continue
+            consecutive_fail = 0
+            stats['ops'][op]['found'] += 1
+            skip_by_op[op].add(x)      # 同じ X で堂々巡りしない(改善したら下で解除)
+
+            r_ids = [x] + [i for i in removed if i != x]
+            # 「プールに入っている荷物は動かさない」制約を満たす最大の k
+            # (=再開位置を最も後ろに取る=1反復が最も安い)。alns.py の docstring 参照。
+            k = alns.choose_snapshot_k(best_snaps, best_order, r_ids)
+            if k is None:
+                continue
+            snap = best_snaps[k]
+            # 1反復の見積り = validate 実費 × 末尾の割合。端数がこれを下回ったら打ち切る。
+            est = max_validate_units[0] * max(0.05, len(snap['remaining_order']) / max(1, n_total))
+
+            improved = False
+            for rep in ('greedy', 'regret'):
+                if total_budget.remaining() < est:
+                    stats['stopped'] = 'fraction_exhausted'
+                    break
+                if rep == 'greedy':
+                    r_ordered = alns.repair_greedy(r_ids, items_by_index)
+                else:
+                    ck = (k, tuple(sorted(r_ids)))
+                    if ck not in fit_cache:
+                        try:
+                            counts, cells, shapes = reach.fit_position_counts(
+                                best_stall['containers'],
+                                [items_by_index[i] for i in r_ids], r_ids, voxel=ALNS_VOXEL)
+                        except Exception:
+                            break
+                        total_budget.spend(simulate.REACH_UNIT_COST * cells * shapes)
+                        fit_cache[ck] = counts
+                    r_ordered = alns.repair_regret(r_ids, fit_cache[ck])
+
+                new_order, new_tail = alns.build_new_order(best_order, snap, r_ordered)
+                if len(new_order) != n_total or tuple(new_order) in tried_orders:
+                    continue
+                tried_orders.add(tuple(new_order))
+
+                rs = alns.make_resume_state(snap, new_tail, simulate.clone_containers)
+                stall2: dict = {}
+                snaps2: dict = {}
+                contribs2: list = []
+                used0 = total_budget.used
+                try:
+                    # 途中で切られた評価は体積が過小に出るだけで、採用は厳密改善のときにしか
+                    # 起きないため安全側に倒れる(Phase29 と同じ議論)。
+                    score = validate(new_order, stall2,
+                                     slice_units=min(max_validate_slice * u,
+                                                     total_budget.remaining()),
+                                     snapshots_out=snaps2, contrib_out=contribs2,
+                                     resume_state=rs)
+                except Exception:
+                    break
+                stats['n_eval'] += 1
+                stats['ops'][op]['evaluated'] += 1
+                stats['iter_s'].append((total_budget.used - used0) / u)
+                if _DEBUG:
+                    print(f'[alns] {op}/{rep}: X={x} 外す={removed} k={k} '
+                          f'score={score} (現best={best_score}, 残 {total_budget.remaining() / u:.1f}s)',
+                          flush=True)
+                if score is not None and (best_score is None or _better(score, best_score)):
+                    old_order = best_order
+                    best_order, best_score = new_order, score
+                    best_stall = stall2
+                    # 接頭辞が一致しているので k 以下のスナップショットはそのまま使い回せる
+                    # (末尾の並びだけ差し替える)。k 以上は今の再開ロールアウトが記録済み。
+                    best_snaps = alns.refresh_snapshots(best_snaps, k, old_order, new_order, snaps2)
+                    best_contribs = best_contribs[:k] + contribs2
+                    stats['n_accept'] += 1
+                    stats['ops'][op]['accepted'] += 1
+                    for s in skip_by_op.values():
+                        s.clear()
+                    improved = True
+                    break
+            if improved:
+                continue
+        if stats['stopped'] is None:
+            stats['stopped'] = ('iter_cap' if stats['n_eval'] >= ALNS_MAX else 'no_candidate')
+        if score0 is not None and best_score is not None:
+            stats['gain'] = best_score[0] - score0[0]
+        ALNS_STATS.clear()
+        ALNS_STATS.update(stats)
 
     return best_order

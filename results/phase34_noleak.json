@@ -1,0 +1,38 @@
+[
+ {
+  "label": "A01_1c_40_plain",
+  "optimize": true,
+  "match": true,
+  "n_diff": 0,
+  "old_s": 86.72892837400013,
+  "new_s": 86.70609642399995,
+  "n_items": 40
+ },
+ {
+  "label": "A03_1c_40_shelf",
+  "optimize": true,
+  "match": true,
+  "n_diff": 0,
+  "old_s": 86.2398739349992,
+  "new_s": 85.84092055600013,
+  "n_items": 40
+ },
+ {
+  "label": "C02_2c_55_shelfprio",
+  "optimize": true,
+  "match": true,
+  "n_diff": 0,
+  "old_s": 105.43916132399954,
+  "new_s": 112.24120429499999,
+  "n_items": 55
+ },
+ {
+  "label": "D05_A_1c_40_tall",
+  "optimize": true,
+  "match": true,
+  "n_diff": 0,
+  "old_s": 90.54316232999918,
+  "new_s": 79.43298799599961,
+  "n_items": 40
+ }
+]

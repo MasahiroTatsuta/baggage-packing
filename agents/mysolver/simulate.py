@@ -83,7 +83,9 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
                     stall_info: dict | None = None,
                     resume_state: dict | None = None,
                     snapshot_after: int | None = None,
-                    snapshot_out: dict | None = None) -> tuple[list[int], float, float]:
+                    snapshot_out: dict | None = None,
+                    snapshots_out: dict | None = None,
+                    contrib_out: list | None = None) -> tuple[list[int], float, float]:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
@@ -144,26 +146,37 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     `resume_state`(`snapshot_out`と同じ形の dict)を渡すと、その状態から続きを流し込む
     (containers/order を最初から構築し直さない)。resume_state を使う呼び出しでは
     container_list/order 引数は無視される。
+
+    Phase34(ALNS用フック、既定無効): `snapshots_out` に dict を渡すと、**ロールアウトを
+    止めずに**すべての配置数 k について同じ形の状態を `{k: state}` として記録する
+    (ALNS が任意の接頭辞から再開できるようにするため。1回のロールアウトで全 k 分の
+    スナップショットが揃うので、反復ごとに接頭辞を作り直す必要が無い)。
+    `contrib_out` にリストを渡すと `(item index, risk割引率)` を配置順に記録する
+    (ALNS の worst removal が「最も割引された=無駄の大きい配置」を選ぶのに使う)。
+    どちらも既定 None で、渡さない呼び出しは Phase33 までの経路と完全に同一である。
     """
     if resume_state is not None:
         containers = resume_state['containers']
         has_prio_container = any(c.get('is_prioritized', False) for c in containers)
         n_prio_placed = resume_state['n_prio_placed']
         n_prio_misrouted = resume_state['n_prio_misrouted']
-        idx_iter = iter(resume_state['remaining_order'])
+        _src = list(resume_state['remaining_order'])
         pool = list(resume_state['pool'])
         placed_ids = list(resume_state['placed_ids'])
         placed_volume = resume_state['placed_volume']
         risk_adjusted_volume = resume_state['risk_adjusted_volume']
         n_stacked = resume_state['n_stacked']
         stacking_risk_sum = resume_state['stacking_risk_sum']
+        _cur = 0
 
         def refill():
-            while len(pool) < lookahead_k:
-                try:
-                    pool.append(dict(items_by_index[next(idx_iter)]))
-                except StopIteration:
-                    return
+            # Phase34: 旧実装は iter() を使っていたが、複数スナップショットでは
+            # 「残りの order」を **消費せずに** 読み出す必要があるため、明示的な
+            # リスト+カーソルへ置き換えた(引き込む順序も個数も従来と完全に同一)。
+            nonlocal _cur
+            while len(pool) < lookahead_k and _cur < len(_src):
+                pool.append(dict(items_by_index[_src[_cur]]))
+                _cur += 1
     else:
         containers = clone_containers(container_list)
         has_prio_container = any(c.get('is_prioritized', False) for c in containers)
@@ -175,15 +188,15 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
                     n_prio_placed += 1
                     if has_prio_container and not c.get('is_prioritized', False):
                         n_prio_misrouted += 1
-        idx_iter = iter(order)
+        _src = list(order)
         pool = []
+        _cur = 0
 
         def refill():
-            while len(pool) < lookahead_k:
-                try:
-                    pool.append(dict(items_by_index[next(idx_iter)]))
-                except StopIteration:
-                    return
+            nonlocal _cur
+            while len(pool) < lookahead_k and _cur < len(_src):
+                pool.append(dict(items_by_index[_src[_cur]]))
+                _cur += 1
 
         refill()
         placed_ids: list[int] = []
@@ -192,22 +205,27 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
         n_stacked = 0
         stacking_risk_sum = 0.0
 
+    def _snapshot():
+        return {
+            'containers': clone_containers(containers),
+            'pool': [dict(it) for it in pool],
+            'remaining_order': list(_src[_cur:]),
+            'placed_ids': list(placed_ids),
+            'placed_volume': placed_volume,
+            'risk_adjusted_volume': risk_adjusted_volume,
+            'n_stacked': n_stacked,
+            'stacking_risk_sum': stacking_risk_sum,
+            'n_prio_placed': n_prio_placed,
+            'n_prio_misrouted': n_prio_misrouted,
+            'budget_used': budget.used,
+        }
+
     while pool:
+        if snapshots_out is not None and len(placed_ids) not in snapshots_out:
+            snapshots_out[len(placed_ids)] = _snapshot()
         if (snapshot_after is not None and snapshot_out is not None
                 and len(placed_ids) == snapshot_after):
-            snapshot_out.update({
-                'containers': clone_containers(containers),
-                'pool': [dict(it) for it in pool],
-                'remaining_order': list(idx_iter),
-                'placed_ids': list(placed_ids),
-                'placed_volume': placed_volume,
-                'risk_adjusted_volume': risk_adjusted_volume,
-                'n_stacked': n_stacked,
-                'stacking_risk_sum': stacking_risk_sum,
-                'n_prio_placed': n_prio_placed,
-                'n_prio_misrouted': n_prio_misrouted,
-                'budget_used': budget.used,
-            })
+            snapshot_out.update(_snapshot())
             break
         # Phase17: 壁時計ではなく親の残ユニットで打ち切る(同一入力なら同じ手数・同じ結果)。
         if budget.exhausted():
@@ -265,8 +283,14 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
                 container, floor_half, np.array([placed['pos']], dtype=np.float64),
                 floor_only=True)
             risk_slack = float(floor_slack[0])
+        # **式の形と評価順序は Phase33 までと1文字も変えないこと**(浮動小数点の加算・乗算は
+        # 結合則が成り立たないため、括弧のくくり直しだけでビット単位一致が壊れる)。
         risk_adjusted_volume += (item_volume * geo.fill_risk_factor(risk_slack)
                                   * stability_discount)
+        if contrib_out is not None:
+            # 診断用の副産物なので、こちらは本計算とは独立に別式で求めてよい。
+            contrib_out.append((int(item['index']),
+                                float(geo.fill_risk_factor(risk_slack)) * stability_discount))
         refill()
 
     # Phase28: 行き詰まり時点の到達可能性を **1回だけ** 測る。
@@ -283,7 +307,7 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
         from . import reach as _reach
         remaining_items = list(pool)
         seen_idx = {int(it['index']) for it in remaining_items}
-        for idx in idx_iter:          # プールにまだ引き込まれていない残りの荷物
+        for idx in _src[_cur:]:       # プールにまだ引き込まれていない残りの荷物
             if idx not in seen_idx:
                 remaining_items.append(items_by_index[idx])
                 seen_idx.add(idx)

@@ -1,0 +1,778 @@
+[
+ {
+  "label": "A01_1c_40_plain",
+  "optimize": true,
+  "elapsed_s": 101.67380610000009,
+  "n_items": 40,
+  "fraction_s": 26.950135716129733,
+  "validate_units_s": 1.0927828129032235,
+  "n_snapshots": 27,
+  "n_eval": 6,
+  "n_accept": 1,
+  "gain": 0.12315929600000008,
+  "stopped": "budget_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 2,
+    "evaluated": 2,
+    "accepted": 1
+   },
+   "blocker": {
+    "tried": 1,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 1,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 4.4834619784945104,
+  "iter_s_max": 6.4847680516127,
+  "changed": true
+ },
+ {
+  "label": "A02_1c_80_plain",
+  "optimize": true,
+  "elapsed_s": 98.01439682799992,
+  "n_items": 80,
+  "fraction_s": 6.820310425805092,
+  "validate_units_s": 1.017576877419318,
+  "n_snapshots": 22,
+  "n_eval": 3,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 1.1784669849463278,
+  "iter_s_max": 3.4888626322583383,
+  "changed": false
+ },
+ {
+  "label": "A03_1c_40_shelf",
+  "optimize": true,
+  "elapsed_s": 102.02402471899995,
+  "n_items": 40,
+  "fraction_s": 30.4500947870967,
+  "validate_units_s": 1.026197625806447,
+  "n_snapshots": 27,
+  "n_eval": 4,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 4.238683987096248,
+  "iter_s_max": 4.68664221935446,
+  "changed": false
+ },
+ {
+  "label": "A04_2c_80_noprio",
+  "optimize": true,
+  "elapsed_s": 87.88331315899995,
+  "n_items": 80,
+  "fraction_s": 11.928524464513778,
+  "validate_units_s": 1.9563566967742905,
+  "n_snapshots": 29,
+  "n_eval": 4,
+  "n_accept": 2,
+  "gain": 0.4545659095121328,
+  "stopped": "fraction_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 4,
+    "found": 3,
+    "evaluated": 2,
+    "accepted": 1
+   },
+   "blocker": {
+    "tried": 4,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 4,
+    "found": 3,
+    "evaluated": 2,
+    "accepted": 1
+   }
+  },
+  "iter_s_mean": 2.6461432580645394,
+  "iter_s_max": 3.0931985290325534,
+  "changed": true
+ },
+ {
+  "label": "A05_2c_80_prio",
+  "optimize": true,
+  "elapsed_s": 77.92181526099967,
+  "n_items": 80,
+  "fraction_s": 12.643153161288323,
+  "validate_units_s": 1.464591303225871,
+  "n_snapshots": 25,
+  "n_eval": 1,
+  "n_accept": 1,
+  "gain": 0.02571566896500066,
+  "stopped": "fraction_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 16,
+    "found": 15,
+    "evaluated": 1,
+    "accepted": 1
+   },
+   "blocker": {
+    "tried": 15,
+    "found": 14,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 15,
+    "found": 14,
+    "evaluated": 0,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 6.934802038710071,
+  "iter_s_max": 6.934802038710071,
+  "changed": true
+ },
+ {
+  "label": "A06_1c_40_small",
+  "optimize": true,
+  "elapsed_s": 109.66925262199993,
+  "n_items": 40,
+  "fraction_s": 8.24398265806378,
+  "validate_units_s": 2.3486535225806544,
+  "n_snapshots": 40,
+  "n_eval": 0,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_stall",
+  "ops": {
+   "occupier": {
+    "tried": 0,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 0,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 0,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": null,
+  "iter_s_max": null,
+  "changed": false
+ },
+ {
+  "label": "A07_1c_40_bulky",
+  "optimize": true,
+  "elapsed_s": 55.08182989399984,
+  "n_items": 40,
+  "fraction_s": 37.44005649032099,
+  "validate_units_s": 0.3960929806451797,
+  "n_snapshots": 13,
+  "n_eval": 4,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 0.6413912387096036,
+  "iter_s_max": 1.2598191225804976,
+  "changed": false
+ },
+ {
+  "label": "A08_2c_140_extreme",
+  "optimize": true,
+  "elapsed_s": 80.55825704700055,
+  "n_items": 140,
+  "fraction_s": 15.52213855483755,
+  "validate_units_s": 1.3993334451611426,
+  "n_snapshots": 21,
+  "n_eval": 2,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 4.354502800001352,
+  "iter_s_max": 4.991086761292504,
+  "changed": false
+ },
+ {
+  "label": "B01_1c_40_plain",
+  "optimize": false
+ },
+ {
+  "label": "B02_1c_40_shelf",
+  "optimize": false
+ },
+ {
+  "label": "B03_2c_80_prio",
+  "optimize": false
+ },
+ {
+  "label": "B04_2c_80_noprio",
+  "optimize": false
+ },
+ {
+  "label": "C01_1c_40_shelf",
+  "optimize": true,
+  "elapsed_s": 93.43601930899968,
+  "n_items": 40,
+  "fraction_s": 15.99484433548349,
+  "validate_units_s": 4.285470064516221,
+  "n_snapshots": 24,
+  "n_eval": 5,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "fraction_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 6,
+    "found": 5,
+    "evaluated": 3,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 6,
+    "found": 2,
+    "evaluated": 2,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 6,
+    "found": 5,
+    "evaluated": 0,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 2.9582206967743105,
+  "iter_s_max": 4.036927587097075,
+  "changed": false
+ },
+ {
+  "label": "C02_2c_55_shelfprio",
+  "optimize": true,
+  "elapsed_s": 94.92292515500048,
+  "n_items": 55,
+  "fraction_s": 1.6643261419425626,
+  "validate_units_s": 8.835094890322605,
+  "n_snapshots": 34,
+  "n_eval": 0,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "fraction_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 6,
+    "found": 5,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 6,
+    "found": 1,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 6,
+    "found": 5,
+    "evaluated": 0,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": null,
+  "iter_s_max": null,
+  "changed": false
+ },
+ {
+  "label": "C03_2c_80_prio",
+  "optimize": true,
+  "elapsed_s": 99.15938447999997,
+  "n_items": 80,
+  "fraction_s": 8.54736090323339,
+  "validate_units_s": 7.337265780645413,
+  "n_snapshots": 27,
+  "n_eval": 1,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "budget_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 1,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 0,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 0,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 8.543021161293506,
+  "iter_s_max": 8.543021161293506,
+  "changed": false
+ },
+ {
+  "label": "D01_A_1c_40_softheavy",
+  "optimize": true,
+  "elapsed_s": 86.76915960699989,
+  "n_items": 40,
+  "fraction_s": 39.710276232257876,
+  "validate_units_s": 0.8561998967741382,
+  "n_snapshots": 22,
+  "n_eval": 3,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 4.3141589247308145,
+  "iter_s_max": 4.616279535483391,
+  "changed": false
+ },
+ {
+  "label": "D02_A_1c_40_prioheavy_nocont",
+  "optimize": true,
+  "elapsed_s": 110.52908770500017,
+  "n_items": 40,
+  "fraction_s": 27.820873316128885,
+  "validate_units_s": 0.9762183999999954,
+  "n_snapshots": 28,
+  "n_eval": 3,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 4.167154253763506,
+  "iter_s_max": 4.643953651613174,
+  "changed": false
+ },
+ {
+  "label": "D03_A_2c_60_prioheavy_cont",
+  "optimize": true,
+  "elapsed_s": 105.29667168699962,
+  "n_items": 60,
+  "fraction_s": 11.663058400008325,
+  "validate_units_s": 1.6206534193547464,
+  "n_snapshots": 31,
+  "n_eval": 2,
+  "n_accept": 1,
+  "gain": 0.08926214998000015,
+  "stopped": "budget_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 1,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 1
+   },
+   "blocker": {
+    "tried": 1,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 0,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 5.811503380646091,
+  "iter_s_max": 6.324541729033747,
+  "changed": true
+ },
+ {
+  "label": "D04_A_1c_40_flat",
+  "optimize": true,
+  "elapsed_s": 98.6395289710008,
+  "n_items": 40,
+  "fraction_s": 23.761366193548465,
+  "validate_units_s": 1.058197496774189,
+  "n_snapshots": 26,
+  "n_eval": 3,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 3.8283982279566846,
+  "iter_s_max": 3.9373899612898517,
+  "changed": false
+ },
+ {
+  "label": "D05_A_1c_40_tall",
+  "optimize": true,
+  "elapsed_s": 119.70173633099967,
+  "n_items": 40,
+  "fraction_s": 28.154455690323523,
+  "validate_units_s": 0.9779118451612534,
+  "n_snapshots": 14,
+  "n_eval": 29,
+  "n_accept": 2,
+  "gain": 0.22755736614711064,
+  "stopped": "budget_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 12,
+    "found": 12,
+    "evaluated": 8,
+    "accepted": 1
+   },
+   "blocker": {
+    "tried": 11,
+    "found": 7,
+    "evaluated": 10,
+    "accepted": 1
+   },
+   "worst": {
+    "tried": 11,
+    "found": 11,
+    "evaluated": 11,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 0.9566030878754103,
+  "iter_s_max": 2.8429692903222117,
+  "changed": true
+ },
+ {
+  "label": "P01_A_1c_pre6",
+  "optimize": true,
+  "elapsed_s": 100.15880392500003,
+  "n_items": 34,
+  "fraction_s": 32.880378038710084,
+  "validate_units_s": 0.893268,
+  "n_snapshots": 20,
+  "n_eval": 4,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 2.936812929032464,
+  "iter_s_max": 3.377485754839036,
+  "changed": false
+ },
+ {
+  "label": "P02_A_1c_pre10",
+  "optimize": true,
+  "elapsed_s": 102.52494555399971,
+  "n_items": 40,
+  "fraction_s": 27.25969006451768,
+  "validate_units_s": 1.0108901677419446,
+  "n_snapshots": 24,
+  "n_eval": 3,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 1.6727593892471457,
+  "iter_s_max": 1.9738286193541557,
+  "changed": false
+ },
+ {
+  "label": "P03_A_2c_pre8_prio",
+  "optimize": true,
+  "elapsed_s": 106.07838212499973,
+  "n_items": 60,
+  "fraction_s": 11.898578632263169,
+  "validate_units_s": 1.8449825806450229,
+  "n_snapshots": 28,
+  "n_eval": 1,
+  "n_accept": 1,
+  "gain": 0.23926350606699964,
+  "stopped": "fraction_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 21,
+    "found": 20,
+    "evaluated": 1,
+    "accepted": 1
+   },
+   "blocker": {
+    "tried": 20,
+    "found": 13,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 20,
+    "found": 19,
+    "evaluated": 0,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 9.185662838710046,
+  "iter_s_max": 9.185662838710046,
+  "changed": true
+ },
+ {
+  "label": "P04_B_1c_pre8_shelf",
+  "optimize": false
+ },
+ {
+  "label": "P05_C_2c_pre8_shelfprio",
+  "optimize": true,
+  "elapsed_s": 109.36542136299977,
+  "n_items": 50,
+  "fraction_s": 9.410937703234149,
+  "validate_units_s": 7.0875484903223365,
+  "n_snapshots": 20,
+  "n_eval": 1,
+  "n_accept": 1,
+  "gain": 0.22962126072999967,
+  "stopped": "budget_exhausted",
+  "ops": {
+   "occupier": {
+    "tried": 1,
+    "found": 1,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 1,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 1
+   },
+   "worst": {
+    "tried": 0,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 9.39693994838893,
+  "iter_s_max": 9.39693994838893,
+  "changed": true
+ },
+ {
+  "label": "P06_A_1c_pre12_dense",
+  "optimize": true,
+  "elapsed_s": 93.41440312000032,
+  "n_items": 30,
+  "fraction_s": 33.29091971612942,
+  "validate_units_s": 0.8759235870967603,
+  "n_snapshots": 17,
+  "n_eval": 3,
+  "n_accept": 0,
+  "gain": 0.0,
+  "stopped": "no_candidate",
+  "ops": {
+   "occupier": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 1,
+    "accepted": 0
+   },
+   "blocker": {
+    "tried": 2,
+    "found": 0,
+    "evaluated": 0,
+    "accepted": 0
+   },
+   "worst": {
+    "tried": 2,
+    "found": 1,
+    "evaluated": 2,
+    "accepted": 0
+   }
+  },
+  "iter_s_mean": 0.695718399999957,
+  "iter_s_max": 1.0399710451612165,
+  "changed": false
+ }
+]

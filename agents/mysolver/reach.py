@@ -413,6 +413,176 @@ def item_blockers(containers, item, voxel=VOXEL, masks_cache=None):
     return best
 
 
+def item_occupiers(containers, item, voxel=VOXEL, masks_cache=None):
+    """荷物 X ひとつについて「X の居場所を奪っている既配置荷物の集合」を返す(Phase34)。
+
+    `item_blockers` との違いは **見ている失敗の種類** である:
+
+      - `item_blockers` は「X は収まるし支持もあるが、**搬入経路**が塞がれている」位置を探す
+        (Phase30 の分類 (iii))。掃引箱に当たっている荷物を返す。
+      - `item_occupiers` は「X が**そもそも収まらない**」場合に、X が収まりうる位置を
+        **占有している**荷物を返す(Phase30 の分類 (i) = 21シーン中10シーンの最大区分)。
+
+    Phase30 §5.1 が「現在の `raw_fit_count` は入るか否かしか持たず、**占有者の identity が
+    無い**」と指摘した欠落を埋めるのが本関数である。判定に使う部品(`build_masks` /
+    支持判定 / `_pad3` の箱和)はすべて `item_blockers` / `_fit_positions` と共通で、
+    新規に書き起こした幾何判定は「候補箱と既配置荷物AABBの重なり」だけである
+    (voxel化せず連続座標の区間重なりで判定するので、格子解像度による取りこぼしが無い)。
+
+    手順:
+      1. X の各 orientation について、**静的障害物(棚)・容器外に一切かからない**位置を
+         列挙する —— 棚・壁は順序では動かせないので、そこに掛かる位置は原理的に不可能
+      2. そのうち **現状態で支持がある**位置に絞る(`_fit_positions` と同じ支持判定)。
+         支持を現状態基準で見るのは、空中の無意味な位置を候補にしないための足切りである
+         (占有者を除去すると支持も消えることはあるが、除去した荷物はロールアウトが
+          後段で置き直すので、ここでは近似として現状態の支持を使う)
+      3. 各位置について、AABB が重なっている既配置荷物の数を数える
+      4. **重なり数が最小(かつ1以上)** の位置を選び、その荷物 index 集合を返す
+
+    戻り値 None は「順序の修正では開けられない」(棚・壁だけが理由で入らない/
+    既に空きに収まる=別の理由で置けなかった)の意。
+    """
+    lwh = (item['length'], item['width'], item['height'])
+    best = None
+    for ci, cdict in enumerate(containers):
+        if masks_cache is not None and ci in masks_cache:
+            masks = masks_cache[ci]
+        else:
+            masks = build_masks(cdict, voxel=voxel)
+            if masks_cache is not None:
+                masks_cache[ci] = masks
+        packed = [it for it in cdict.get('packed_items', [])
+                  if it.get('pos') is not None and it.get('orn') is not None]
+        if not packed:
+            continue
+        obs = [(geo.item_world_aabb(it), int(it['index'])) for it in packed]
+
+        nx, ny, nz = masks['empty'].shape
+        xs, ys, zs = masks['xs'], masks['ys'], masks['zs']
+        # 「順序では動かせない障害物」= 容器外 + 棚(in_container は inside & ~struct)。
+        A = _pad3(~masks['in_container'])
+        solid_below = masks['occupied'] | ~masks['in_container']
+        Ab = np.pad(solid_below.astype(np.int32).cumsum(0).cumsum(1), ((1, 0), (1, 0), (0, 0)),
+                    mode='constant')
+
+        seen = set()
+        for oi in range(6):
+            half = geo.half_extent(lwh, oi)
+            key = tuple(max(1, int(math.ceil(2 * h / voxel - 1e-9))) for h in half)
+            if key in seen:
+                continue
+            seen.add(key)
+            di, dj, dk = key
+            if di > nx or dj > ny or dk > nz:
+                continue
+            I, J, K = nx - di + 1, ny - dj + 1, nz - dk + 1
+
+            # --- 棚・容器外に一切かからない位置 ---
+            tot = (A[di:di + I, dj:dj + J, dk:dk + K]
+                   - A[0:I, dj:dj + J, dk:dk + K]
+                   - A[di:di + I, 0:J, dk:dk + K]
+                   - A[di:di + I, dj:dj + J, 0:K]
+                   + A[0:I, 0:J, dk:dk + K]
+                   + A[0:I, dj:dj + J, 0:K]
+                   + A[di:di + I, 0:J, 0:K]
+                   - A[0:I, 0:J, 0:K])
+            ok = tot == 0
+            if not ok.any():
+                continue
+
+            # --- 支持(_fit_positions と同式) ---
+            foot = (Ab[di:di + I, dj:dj + J, :] - Ab[0:I, dj:dj + J, :]
+                    - Ab[di:di + I, 0:J, :] + Ab[0:I, 0:J, :])
+            need = SUPPORT_RATIO * di * dj
+            sup_ok = np.zeros_like(ok)
+            below = np.arange(K) - 1
+            v = below >= 0
+            if v.any():
+                sup_ok[:, :, v] = foot[:, :, below[v]] >= need
+            sup_ok[:, :, ~v] = True
+            ok = ok & sup_ok
+            if not ok.any():
+                continue
+
+            # --- 既配置荷物との重なり(連続座標の区間重なり、分離可能) ---
+            x_lo = xs[:I] - voxel / 2.0
+            y_lo = ys[:J] - voxel / 2.0
+            z_lo = zs[:K] - voxel / 2.0
+            nocc = np.zeros((I, J, K), dtype=np.int32)
+            hits = []
+            for (oc, oh), idx in obs:
+                mi = (x_lo < oc[0] + oh[0]) & (x_lo + di * voxel > oc[0] - oh[0])
+                if not mi.any():
+                    continue
+                mj = (y_lo < oc[1] + oh[1]) & (y_lo + dj * voxel > oc[1] - oh[1])
+                if not mj.any():
+                    continue
+                mk = (z_lo < oc[2] + oh[2]) & (z_lo + dk * voxel > oc[2] - oh[2])
+                if not mk.any():
+                    continue
+                nocc += (mi[:, None, None] & mj[None, :, None] & mk[None, None, :])
+                hits.append((idx, mi, mj, mk))
+
+            cand = ok & (nocc >= 1)
+            if not cand.any():
+                continue
+            masked = np.where(cand, nocc, np.iinfo(np.int32).max)
+            p = int(np.argmin(masked))       # C順の最初の最小 = 決定的
+            pi, pj, pk = np.unravel_index(p, masked.shape)
+            cnt = int(nocc[pi, pj, pk])
+            if best is not None and cnt >= best['n_occupiers']:
+                continue
+            ids = sorted(idx for idx, mi, mj, mk in hits if mi[pi] and mj[pj] and mk[pk])
+            best = {'container_idx': ci, 'n_occupiers': cnt, 'occupiers': ids,
+                    'n_positions': int(cand.sum())}
+    return best
+
+
+def stall_occupiers(containers, pool_items, voxel=VOXEL):
+    """行き詰まり時点のプール全件について占有者を同定し、最小1件を返す(stall_blockers と同型)。"""
+    cache: dict = {}
+    per_item = []
+    for pos, item in enumerate(pool_items):
+        r = item_occupiers(containers, item, voxel=voxel, masks_cache=cache)
+        per_item.append({'item_index': int(item['index']), 'pool_pos': pos, 'result': r})
+    ranked = [r for r in per_item if r['result'] is not None]
+    ranked.sort(key=lambda r: (r['result']['n_occupiers'], r['pool_pos']))
+    cells = sum(int(m['empty'].size) for m in cache.values())
+    return {'candidate': ranked[0] if ranked else None, 'per_item': per_item,
+            'grid_cells': cells, 'n_shapes': max(1, len(pool_items))}
+
+
+def fit_position_counts(containers, items, exclude_ids, voxel=VOXEL):
+    """`exclude_ids` を取り除いた状態で、各荷物が「収まり支持もある」位置の数を数える。
+
+    Phase34 の regret 修復オペレータ用。「除去した荷物たちを戻すとき、置き場所の選択肢が
+    少ないものから先に戻す(most-constrained-first)」という順序づけに使う。
+    戻り値: ({item_index: 位置数}, grid_cells, n_shapes)。
+    """
+    ex = {int(i) for i in exclude_ids}
+    stripped = []
+    for c in containers:
+        cc = dict(c)
+        cc['packed_items'] = [it for it in c.get('packed_items', [])
+                              if int(it.get('index', -1)) not in ex]
+        stripped.append(cc)
+    counts = {int(it['index']): 0 for it in items}
+    cells = 0
+    shapes = 0
+    for cdict in stripped:
+        masks = build_masks(cdict, voxel=voxel)
+        cells += int(masks['empty'].size)
+        if not masks['empty'].any():
+            continue
+        for it in items:
+            n = 0
+            for key, ok_sup in _fit_positions(masks, cdict, it, voxel):
+                n += int(ok_sup.sum())
+                shapes += 1
+            counts[int(it['index'])] += n
+    return counts, cells, max(1, shapes)
+
+
 def stall_blockers(containers, pool_items, voxel=VOXEL):
     """行き詰まり時点のプール(=置けなかった荷物)について、ブロッカーを同定する。
 
