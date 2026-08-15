@@ -33,6 +33,7 @@ from . import alns
 from . import geometry as geo
 from . import planner
 from . import reach
+from . import replica
 from . import simulate
 
 # optimize() 全体の壁時計制限(180s、本番の実効上限は170s)に対する、実際に使う探索時間予算。
@@ -423,6 +424,37 @@ ALNS_WORST_Q = int(os.environ.get('MYSOLVER_ALNS_WORST_Q', '3'))
 # 探索の挙動には一切影響しない(tools/phase34_gate1.py が読む)。
 ALNS_STATS: dict = {}
 
+# ---------------------------------------------------------------------------
+# Phase35: ρ-test(複製評価器による受理ゲート)
+# ---------------------------------------------------------------------------
+# Phase34 が測った決定的な事実: ALNS が採用した手は**定義上すべて代理目的関数を改善して
+# いる**のに、実fillの改善は7シーン中4シーン、代理gainと実fill差の順位相関は ρ=−0.321。
+# 代理 = 実 + ノイズ なら、代理gainが大きい手を選ぶことは**ノイズが正に大きい手を選ぶこと**
+# であり、現在の代理関数を山登りするあらゆる手法(Phase24/28/29/34 の4連敗)が失敗する。
+#
+# ここは代理を良くするのではなく、**代理を信じない**。候補順序を最後に
+# 本物と同じ pybullet/validator/evaluator(agents/mysolver/replica.py)で実際に走らせ、
+# **実 fill の argmax** を勝者にする。構築ロジックには一切触れない。
+#
+# 適用範囲: `replica.is_applicable`(既積み荷物が無いシーンだけ)。既積みがあると
+# 復元できない物理の内部状態のせいで本物とずれることを実測済み(replica.py の docstring)。
+#
+# 予算: **総予算は増やさない**(Phase25b で飽和済み・増やすと悪化)。複製評価に回す分だけ
+# 構築の予算を減らす。減らす副作用が小さいことは Phase25b のスイープが示している
+# (1.55e7 → 2.0e7 で public 53.61 → 53.64 と、25%減らしても 0.03 しか動かない)。
+# 【採用】26シーンA/B(1.55e7)で fill_strict 24.413 → 26.263(**+1.850**)、σ=3.060 /
+# SE=0.600 / **t=3.082** と採用基準 t>2 を通過し、**悪化したシーンが1件も無かった**
+# (改善9 / 不変17)。Phase23 以来はじめて t>2 を満たした変更である
+# (results/phase35_report.md §3)。既定を有効にする。
+REPLICA_SELECT = os.environ.get('MYSOLVER_REPLICA_SELECT', '1') == '1'
+# 実評価に回す候補数(上位K件、代理スコア降順)。**固定値**にしてあるのは決定性のため
+# (「残り時間で入るだけ」にすると машина速度で結果が変わり、Phase17 で確保した
+#  決定性が壊れる)。壁時計の保険は別途 deadline で持つ。
+REPLICA_TOPK = int(os.environ.get('MYSOLVER_REPLICA_TOPK', '4'))
+# 複製評価のために取り置く壁時計[秒]。構築側はこの分だけ早く切り上げる。
+REPLICA_RESERVE_S = float(os.environ.get('MYSOLVER_REPLICA_RESERVE_S', '45.0'))
+REPLICA_STATS: dict = {}
+
 
 def _advance_before(order: list[int], x: int, blockers: list[int]) -> list[int] | None:
     """x を「order 上で最も早いブロッカー」の直前へ移動した順序を返す。
@@ -477,10 +509,28 @@ def _delay_blockers(order: list[int], x: int, blockers: list[int]) -> list[int] 
 def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
                  time_budget: float = DEFAULT_TIME_BUDGET) -> list[int]:
     start = time.perf_counter()
-    # Phase17: 探索の総量は「秒」ではなく決定的なユニット数で持つ。壁時計は
-    # 非常用の最終安全弁(hard_deadline)としてのみ使い、通常は発火しない。
-    hard_deadline = start + min(HARD_WALL_LIMIT, time_budget * HARD_WALL_FACTOR)
-    total_budget = planner.SearchBudget.from_seconds(time_budget, hard_deadline=hard_deadline)
+    # Phase35: 複製評価器を使うシーンでは、その分の**壁時計**を先に取り置き、構築側の
+    # ユニット予算と壁時計の両方を減らす。総予算を増やさない(Phase25b: 飽和済み)ための処置。
+    use_replica = False
+    if REPLICA_SELECT and container_list:
+        try:
+            use_replica = replica.is_applicable(container_list)
+        except Exception:
+            use_replica = False
+    reserve_s = REPLICA_RESERVE_S if use_replica else 0.0
+    # **取り置きは壁時計からだけ引き、ユニット予算からは引かない。**
+    #
+    # 初版は `time_budget - reserve` でユニット予算そのものを削っていたが、これは誤りだった。
+    # 構築の大半のシーンは壁時計ではなく **ユニット予算を使い切って先に終わる**
+    # (Phase31 実測で optimize の壁時計は mean 51s / max 152s、上限165sに対して余裕がある)。
+    # そのためユニット予算を削ると、**取り置きを実際には使い切らないシーンでも**構築の質が
+    # 落ちる。実測(§3.2)では A07 が構築側 −10.74、D01 が −10.77 とこの副作用で大きく損した。
+    # 壁時計だけを縮めれば、ユニット予算で先に終わるシーンは**一切損をせず**、
+    # 壁際まで走るシーンだけが取り置きぶん早く切り上げられる。
+    build_budget_s = time_budget
+    hard_deadline = start + min(HARD_WALL_LIMIT - reserve_s,
+                                 build_budget_s * HARD_WALL_FACTOR)
+    total_budget = planner.SearchBudget.from_seconds(build_budget_s, hard_deadline=hard_deadline)
 
     # Phase17(ターゲット2): 1リスタートあたりの配分・検証枠・最終マージンはすべて
     # **総予算に依存しない固定値**にする(理由は CONSTRUCT_SLICE のコメント参照)。
@@ -491,8 +541,10 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # 何も構築せずヒューリスティック順を返してしまうのを避けるため予算に比例させる
     # (本フェーズの掃引水準 30/60/120/165 はすべて固定値側に入るので、単調性の
     #  検証には影響しない)。
-    construct_slice = CONSTRUCT_SLICE if time_budget >= CONSTRUCT_SLICE else max(1.0, time_budget * 0.5)
-    final_margin = FINAL_MARGIN if time_budget >= CONSTRUCT_SLICE else max(0.2, time_budget * 0.05)
+    construct_slice = (CONSTRUCT_SLICE if build_budget_s >= CONSTRUCT_SLICE
+                       else max(1.0, build_budget_s * 0.5))
+    final_margin = (FINAL_MARGIN if build_budget_s >= CONSTRUCT_SLICE
+                    else max(0.2, build_budget_s * 0.05))
     max_validate_slice = MAX_VALIDATE_SLICE
     u = planner.UNITS_PER_SEC
     # Phase23: ビーム幅bのとき1構築あたりの探索量はb倍になるため、1リスタートの枠もb倍にする
@@ -571,6 +623,9 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # フェーズ1/2 のリスタート系列は完全に同一のまま(追加されるのは複製の壁時計だけ)。
     best_snaps: dict = {}
     best_contribs: list = []
+    # Phase35: 複製評価器で選び直すための候補プール((代理スコア, 順序))。
+    # 収集はリストへの append だけで、探索の挙動にも予算にも一切影響しない。
+    cand_pool: list = []
 
     def _extras():
         """ALNS 有効時だけ収集する追加情報の入れ物(無効時は全て None = 経路に入らない)。"""
@@ -581,6 +636,8 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     try:
         stall, snaps, contribs = _extras()
         score = validate(heuristic_order, stall, snapshots_out=snaps, contrib_out=contribs)
+        if score is not None and use_replica:
+            cand_pool.append((score, list(heuristic_order)))
         if score is not None and (best_score is None or _better(score, best_score)):
             best_order, best_score, best_stall = heuristic_order, score, stall
             best_snaps, best_contribs = (snaps or {}), (contribs or [])
@@ -615,6 +672,8 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             if set(order) == all_indices:
                 stall, snaps, contribs = _extras()
                 score = validate(order, stall, snapshots_out=snaps, contrib_out=contribs)
+                if score is not None and use_replica:
+                    cand_pool.append((score, list(order)))
                 if score is not None and (best_score is None or _better(score, best_score)):
                     best_order, best_score, best_stall = order, score, stall
                     best_snaps, best_contribs = (snaps or {}), (contribs or [])
@@ -882,5 +941,59 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             stats['gain'] = best_score[0] - score0[0]
         ALNS_STATS.clear()
         ALNS_STATS.update(stats)
+
+    # フェーズ5(Phase35): ρ-test —— 代理の argmax ではなく **実 fill の argmax** で選び直す。
+    #
+    # ここまでで作った候補順序を、本物と同じ pybullet/validator/evaluator(replica.py)で
+    # 実際に走らせ、実 fill が最大のものを勝者にする。構築は一切変えていない。
+    # 予算は冒頭で取り置いた reserve_s(壁時計)の中だけで使う。
+    if use_replica and cand_pool:
+        rstats: dict = {'enabled': True, 'n_cand': len(cand_pool), 'reserve_s': reserve_s,
+                        'evaluated': 0, 'changed': False, 'rows': [], 'stopped': None}
+        # 代理スコア降順に並べ、重複順序を除いて上位K件だけ実評価する。
+        seen: set = set()
+        ranked = []
+        for sc, od in sorted(cand_pool, key=lambda t: t[0], reverse=True):
+            key = tuple(od)
+            if key in seen:
+                continue
+            seen.add(key)
+            ranked.append((sc, od))
+        ranked = ranked[:max(1, REPLICA_TOPK)]
+        rstats['n_ranked'] = len(ranked)
+        deadline = start + min(HARD_WALL_LIMIT, time_budget * HARD_WALL_FACTOR)
+        best_real = None
+        try:
+            with replica.ReplicaEvaluator(container_list, k,
+                                          prepacked_ids=prepacked_ids) as rep:
+                for rank, (sc, od) in enumerate(ranked):
+                    if time.perf_counter() >= deadline:
+                        rstats['stopped'] = 'wall_deadline'
+                        break
+                    got = rep.evaluate(item_list, od, deadline=deadline)
+                    if got is None:
+                        rstats['stopped'] = 'wall_deadline'
+                        break
+                    rstats['evaluated'] += 1
+                    rstats['rows'].append({'rank': rank, 'surrogate': sc[0],
+                                            'real_fill': got['fill'],
+                                            'num_placed': got['num_placed']})
+                    # 同点なら代理順位が上(=rank が小さい)ほうを残す = 決定的
+                    if best_real is None or got['fill'] > best_real[0] + 1e-12:
+                        best_real = (got['fill'], od, rank)
+        except Exception:
+            rstats['stopped'] = 'error'
+            best_real = None
+        if best_real is not None:
+            rstats['winner_rank'] = best_real[2]
+            rstats['winner_fill'] = best_real[0]
+            if best_real[2] != 0:
+                # 代理の1位とは違う候補が実評価で勝った = ρ-test が効いた瞬間
+                rstats['changed'] = True
+                best_order = best_real[1]
+        if rstats['stopped'] is None:
+            rstats['stopped'] = 'done'
+        REPLICA_STATS.clear()
+        REPLICA_STATS.update(rstats)
 
     return best_order

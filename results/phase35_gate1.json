@@ -1,0 +1,709 @@
+[
+ {
+  "label": "A01_1c_40_plain",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 64.82707235599992,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 0,
+  "winner_fill": 27.216063360499284,
+  "changed": false,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 1.3989521056259964,
+    "real_fill": 27.216063360499284,
+    "num_placed": 10
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.2549255536088229,
+    "real_fill": 25.358792640634718,
+    "num_placed": 22
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.0473023629699987,
+    "real_fill": 22.61077825272724,
+    "num_placed": 19
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.0162878137056102,
+    "real_fill": 24.385717433795456,
+    "num_placed": 22
+   }
+  ]
+ },
+ {
+  "label": "A02_1c_80_plain",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 59.20633502400051,
+  "n_cand": 5,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 0,
+  "winner_fill": 30.319506131307005,
+  "changed": false,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 1.6018784534474984,
+    "real_fill": 30.319506131307005,
+    "num_placed": 17
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.5142418876679968,
+    "real_fill": 30.254894863358295,
+    "num_placed": 11
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.480442171099998,
+    "real_fill": 25.62073299166254,
+    "num_placed": 10
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.2569724430714986,
+    "real_fill": 27.016551858558675,
+    "num_placed": 21
+   }
+  ]
+ },
+ {
+  "label": "A03_1c_40_shelf",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 81.65667716499956,
+  "n_cand": 5,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 2,
+  "winner_fill": 26.881381347537793,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 1.466177800641998,
+    "real_fill": 17.78497195156464,
+    "num_placed": 19
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.44112796488861,
+    "real_fill": 24.412779953707442,
+    "num_placed": 23
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.4145726440999982,
+    "real_fill": 26.881381347537793,
+    "num_placed": 10
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.0701953944314984,
+    "real_fill": 11.546210858534806,
+    "num_placed": 19
+   }
+  ]
+ },
+ {
+  "label": "A04_2c_80_noprio",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 78.30736764799985,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 0,
+  "winner_fill": 25.64726712862767,
+  "changed": false,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 2.4644326527628624,
+    "real_fill": 25.64726712862767,
+    "num_placed": 28
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.939373357874996,
+    "real_fill": 17.980277882872265,
+    "num_placed": 22
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.8563848159799958,
+    "real_fill": 13.994539672810616,
+    "num_placed": 13
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.7428910812624965,
+    "real_fill": 16.867246821543223,
+    "num_placed": 19
+   }
+  ]
+ },
+ {
+  "label": "A05_2c_80_prio",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 73.71776717600005,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 2,
+  "winner_fill": 25.708027774561156,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 2.377294744744995,
+    "real_fill": 21.82638028029117,
+    "num_placed": 24
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.9527468149829954,
+    "real_fill": 21.867614006173223,
+    "num_placed": 21
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.8772729406513324,
+    "real_fill": 25.708027774561156,
+    "num_placed": 20
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.5720509573999966,
+    "real_fill": 10.186079726956185,
+    "num_placed": 11
+   }
+  ]
+ },
+ {
+  "label": "A06_1c_40_small",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 162.87267636999968,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 1,
+  "winner_fill": 13.045394831414013,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 0.6149421896269992,
+    "real_fill": 12.306759336716766,
+    "num_placed": 40
+   },
+   {
+    "rank": 1,
+    "surrogate": 0.6041011689694991,
+    "real_fill": 13.045394831414013,
+    "num_placed": 40
+   },
+   {
+    "rank": 2,
+    "surrogate": 0.5909139299489993,
+    "real_fill": 11.099178906986216,
+    "num_placed": 40
+   },
+   {
+    "rank": 3,
+    "surrogate": 0.5698476105829992,
+    "real_fill": 11.020920190188312,
+    "num_placed": 40
+   }
+  ]
+ },
+ {
+  "label": "A07_1c_40_bulky",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 37.24717910200161,
+  "n_cand": 6,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 1,
+  "winner_fill": 31.127706679550855,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 1.4462465293374978,
+    "real_fill": 28.0654102744813,
+    "num_placed": 9
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.437355258799998,
+    "real_fill": 31.127706679550855,
+    "num_placed": 10
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.4289296031519967,
+    "real_fill": 27.17882642671181,
+    "num_placed": 7
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.409098995507998,
+    "real_fill": 30.353843871288472,
+    "num_placed": 10
+   }
+  ]
+ },
+ {
+  "label": "A08_2c_140_extreme",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 70.67066589699971,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 2,
+  "winner_fill": 29.594917725985873,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 2.710180419099996,
+    "real_fill": 26.18521230224488,
+    "num_placed": 20
+   },
+   {
+    "rank": 1,
+    "surrogate": 2.4217807934799964,
+    "real_fill": 23.180781055339484,
+    "num_placed": 20
+   },
+   {
+    "rank": 2,
+    "surrogate": 2.3305327996049945,
+    "real_fill": 29.594917725985873,
+    "num_placed": 19
+   },
+   {
+    "rank": 3,
+    "surrogate": 2.188663214129993,
+    "real_fill": 15.706637249636632,
+    "num_placed": 12
+   }
+  ]
+ },
+ {
+  "label": "B01_1c_40_plain",
+  "optimize": false,
+  "changed": false
+ },
+ {
+  "label": "B02_1c_40_shelf",
+  "optimize": false,
+  "changed": false
+ },
+ {
+  "label": "B03_2c_80_prio",
+  "optimize": false,
+  "changed": false
+ },
+ {
+  "label": "B04_2c_80_noprio",
+  "optimize": false,
+  "changed": false
+ },
+ {
+  "label": "C01_1c_40_shelf",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 82.78557843199997,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 3,
+  "winner_fill": 29.865146357241045,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 1.3890372504079989,
+    "real_fill": 20.838123761825823,
+    "num_placed": 20
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.1952322984569983,
+    "real_fill": 25.8305557885906,
+    "num_placed": 20
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.075498276992681,
+    "real_fill": 24.476983453950023,
+    "num_placed": 21
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.0549254569999995,
+    "real_fill": 29.865146357241045,
+    "num_placed": 15
+   }
+  ]
+ },
+ {
+  "label": "C02_2c_55_shelfprio",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 101.72389134699915,
+  "n_cand": 3,
+  "n_ranked": 3,
+  "evaluated": 3,
+  "winner_rank": 2,
+  "winner_fill": 23.238023848750704,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 2.426872387247996,
+    "real_fill": 18.273483489326434,
+    "num_placed": 29
+   },
+   {
+    "rank": 1,
+    "surrogate": 2.2684862874199974,
+    "real_fill": 21.812452064971286,
+    "num_placed": 28
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.891655218583997,
+    "real_fill": 23.238023848750704,
+    "num_placed": 28
+   }
+  ]
+ },
+ {
+  "label": "C03_2c_80_prio",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 90.78610747199855,
+  "n_cand": 3,
+  "n_ranked": 3,
+  "evaluated": 3,
+  "winner_rank": 0,
+  "winner_fill": 32.20807592808142,
+  "changed": false,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 2.759610660768036,
+    "real_fill": 32.20807592808142,
+    "num_placed": 27
+   },
+   {
+    "rank": 1,
+    "surrogate": 2.708218674328035,
+    "real_fill": 26.470620088565532,
+    "num_placed": 27
+   },
+   {
+    "rank": 2,
+    "surrogate": 2.3955296854349952,
+    "real_fill": 20.456849379681827,
+    "num_placed": 19
+   }
+  ]
+ },
+ {
+  "label": "D01_A_1c_40_softheavy",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 76.47177129299962,
+  "n_cand": 5,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 1,
+  "winner_fill": 28.451383437285365,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 1.4031828534799995,
+    "real_fill": 20.757405335095594,
+    "num_placed": 19
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.261639118072998,
+    "real_fill": 28.451383437285365,
+    "num_placed": 16
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.166440545146498,
+    "real_fill": 26.489147401931024,
+    "num_placed": 19
+   },
+   {
+    "rank": 3,
+    "surrogate": 0.9484603067079987,
+    "real_fill": 19.253129791643374,
+    "num_placed": 18
+   }
+  ]
+ },
+ {
+  "label": "D02_A_1c_40_prioheavy_nocont",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 72.89774639899952,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 0,
+  "winner_fill": 32.42354531197591,
+  "changed": false,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 1.5967206614544285,
+    "real_fill": 32.42354531197591,
+    "num_placed": 21
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.3453493436999984,
+    "real_fill": 29.253823456891173,
+    "num_placed": 26
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.1453966850399984,
+    "real_fill": 18.575939286883674,
+    "num_placed": 21
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.1343279681499971,
+    "real_fill": 14.059158876918653,
+    "num_placed": 8
+   }
+  ]
+ },
+ {
+  "label": "D03_A_2c_60_prioheavy_cont",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 90.38782193800034,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 2,
+  "winner_fill": 23.180612723909498,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 2.3166287080624954,
+    "real_fill": 21.134009612236255,
+    "num_placed": 31
+   },
+   {
+    "rank": 1,
+    "surrogate": 2.257635376589889,
+    "real_fill": 21.39679949418214,
+    "num_placed": 20
+   },
+   {
+    "rank": 2,
+    "surrogate": 2.1820963193647613,
+    "real_fill": 23.180612723909498,
+    "num_placed": 26
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.708396771913923,
+    "real_fill": 21.386346449292432,
+    "num_placed": 25
+   }
+  ]
+ },
+ {
+  "label": "D04_A_1c_40_flat",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 71.45941739599948,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 1,
+  "winner_fill": 26.95034614632081,
+  "changed": true,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 1.245258094928999,
+    "real_fill": 18.081641666932864,
+    "num_placed": 20
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.2434781252146498,
+    "real_fill": 26.95034614632081,
+    "num_placed": 25
+   },
+   {
+    "rank": 2,
+    "surrogate": 1.2161385373949984,
+    "real_fill": 20.601560278873645,
+    "num_placed": 21
+   },
+   {
+    "rank": 3,
+    "surrogate": 1.1272363326910895,
+    "real_fill": 19.191878164481142,
+    "num_placed": 14
+   }
+  ]
+ },
+ {
+  "label": "D05_A_1c_40_tall",
+  "optimize": true,
+  "applicable": true,
+  "elapsed_s": 66.13813182000013,
+  "n_cand": 4,
+  "n_ranked": 4,
+  "evaluated": 4,
+  "winner_rank": 0,
+  "winner_fill": 25.314762030019637,
+  "changed": false,
+  "stopped": "done",
+  "rows": [
+   {
+    "rank": 0,
+    "surrogate": 1.4103087697709968,
+    "real_fill": 25.314762030019637,
+    "num_placed": 12
+   },
+   {
+    "rank": 1,
+    "surrogate": 1.1163576246459987,
+    "real_fill": 24.180386456020702,
+    "num_placed": 22
+   },
+   {
+    "rank": 2,
+    "surrogate": 0.9747219910729981,
+    "real_fill": 20.449116266231687,
+    "num_placed": 20
+   },
+   {
+    "rank": 3,
+    "surrogate": 0.670936760199999,
+    "real_fill": 12.145152429163538,
+    "num_placed": 16
+   }
+  ]
+ },
+ {
+  "label": "P01_A_1c_pre6",
+  "optimize": true,
+  "applicable": false,
+  "elapsed_s": 87.29086145499969,
+  "n_cand": null,
+  "n_ranked": null,
+  "evaluated": 0,
+  "winner_rank": null,
+  "winner_fill": null,
+  "changed": false,
+  "stopped": null,
+  "rows": null
+ },
+ {
+  "label": "P02_A_1c_pre10",
+  "optimize": true,
+  "applicable": false,
+  "elapsed_s": 98.02029058900007,
+  "n_cand": null,
+  "n_ranked": null,
+  "evaluated": 0,
+  "winner_rank": null,
+  "winner_fill": null,
+  "changed": false,
+  "stopped": null,
+  "rows": null
+ },
+ {
+  "label": "P03_A_2c_pre8_prio",
+  "optimize": true,
+  "applicable": false,
+  "elapsed_s": 97.79355868899984,
+  "n_cand": null,
+  "n_ranked": null,
+  "evaluated": 0,
+  "winner_rank": null,
+  "winner_fill": null,
+  "changed": false,
+  "stopped": null,
+  "rows": null
+ },
+ {
+  "label": "P04_B_1c_pre8_shelf",
+  "optimize": false,
+  "changed": false
+ },
+ {
+  "label": "P05_C_2c_pre8_shelfprio",
+  "optimize": true,
+  "applicable": false,
+  "elapsed_s": 100.07360975700067,
+  "n_cand": null,
+  "n_ranked": null,
+  "evaluated": 0,
+  "winner_rank": null,
+  "winner_fill": null,
+  "changed": false,
+  "stopped": null,
+  "rows": null
+ },
+ {
+  "label": "P06_A_1c_pre12_dense",
+  "optimize": true,
+  "applicable": false,
+  "elapsed_s": 89.75693511099962,
+  "n_cand": null,
+  "n_ranked": null,
+  "evaluated": 0,
+  "winner_rank": null,
+  "winner_fill": null,
+  "changed": false,
+  "stopped": null,
+  "rows": null
+ }
+]
