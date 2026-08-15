@@ -89,12 +89,45 @@ ASSUMED_MAX_SPACE = 1
 SCORE_MARGIN = ASSUMED_VALIDATOR['inclusion_margin']
 
 
+# ---------------------------------------------------------------------------
+# Phase36(タスク1-4): 障害注入フック。**既定無効**(空文字)。
+# {import, init, runtime, deadline} のいずれかを指定すると、その段階で失敗を強制する。
+# 本番経路には一切影響しない(この定数が空なら分岐にすら入らない)。
+# ---------------------------------------------------------------------------
+FORCE_FAIL = os.environ.get('MYSOLVER_REPLICA_FORCE_FAIL', '')
+
+
 def is_applicable(container_list: list[dict]) -> bool:
     """複製評価器を使ってよいシーンか(既積み荷物が1つも無いこと)。"""
+    if FORCE_FAIL == 'import':
+        # import 失敗と同じ「構築前に判明する失敗」として扱う(ordering 側で
+        # 取り置きが解除され、ρ-test 無効時とビット単位一致の経路へ落ちる)。
+        return False
     for c in container_list:
         if c.get('packed_items'):
             return False
     return True
+
+
+def preflight() -> bool:
+    """**構築を始める前に** pybullet を実際に初期化できるか確かめる(タスク1-2a)。
+
+    ここで False を返すと `build_order` は取り置き(REPLICA_RESERVE_S)を 0 に戻すので、
+    構築予算は満額のまま = ρ-test 無効時と完全に同じ経路になる。
+    逆にこの確認を省くと、「複製評価はできないのに構築の締切だけ45秒早い」という
+    **一番損な状態**になる。所要は数ミリ秒なので構築予算への影響は無視できる。
+    """
+    if FORCE_FAIL in ('import', 'init'):
+        return False
+    try:
+        c = bullet_client.BulletClient(connection_mode=p.DIRECT)
+        try:
+            c.disconnect()
+        except Exception:
+            pass
+        return True
+    except Exception:
+        return False
 
 
 class ReplicaEvaluator:
@@ -218,5 +251,9 @@ class ReplicaEvaluator:
                 'num_placed': sum(len(c.packed_items) for c in containers)}
 
     def evaluate(self, all_item_infos, order, deadline=None):
+        if FORCE_FAIL == 'runtime':
+            raise RuntimeError('MYSOLVER_REPLICA_FORCE_FAIL=runtime (障害注入)')
+        if FORCE_FAIL == 'deadline':
+            return None          # 壁時計 deadline 超過と同じ扱い(評価できなかった)
         self.reset()
         return self.run_order(all_item_infos, order, deadline=deadline)

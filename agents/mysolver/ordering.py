@@ -33,8 +33,18 @@ from . import alns
 from . import geometry as geo
 from . import planner
 from . import reach
-from . import replica
 from . import simulate
+
+# Phase36(タスク1-1): 複製評価器の import は **失敗しても致命傷にしない**。
+# replica.py は src.ground_handling(本物の env 実装)を引くため、提出先の環境構成が
+# 想定と違えば ImportError になりうる。素朴に `from . import replica` と書くと
+# **ordering.py 自体が import できなくなり、エージェントが丸ごと起動しない**
+# (=全シーン全損)。ここで握って None にしておけば、複製評価器を使わないだけで
+# Phase34 相当の挙動に自動で落ちる。
+try:
+    from . import replica as _replica_mod
+except Exception:      # ImportError に限定しない(依存の初期化失敗も拾う)
+    _replica_mod = None
 
 # optimize() 全体の壁時計制限(180s、本番の実効上限は170s)に対する、実際に使う探索時間予算。
 # Phase6: 15/30/60/120/165秒でスイープ計測した結果、非単調な挙動(30秒付近がピークで
@@ -509,12 +519,18 @@ def _delay_blockers(order: list[int], x: int, blockers: list[int]) -> list[int] 
 def build_order(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
                  time_budget: float = DEFAULT_TIME_BUDGET) -> list[int]:
     start = time.perf_counter()
-    # Phase35: 複製評価器を使うシーンでは、その分の**壁時計**を先に取り置き、構築側の
-    # ユニット予算と壁時計の両方を減らす。総予算を増やさない(Phase25b: 飽和済み)ための処置。
+    # Phase35: 複製評価器を使うシーンでは、その分の**壁時計**を先に取り置く。
+    #
+    # Phase36(タスク1-2a): **取り置きを決める前に、使えるかどうかを確定させる。**
+    # import 失敗・pybullet 初期化失敗のような「構築を始める前に判明する失敗」で
+    # 取り置きだけ残ると、複製評価をしないのに構築の締切だけ45秒早いという
+    # 最悪の状態になる。preflight() をここで通し、駄目なら取り置きを 0 に戻して
+    # **ρ-test 無効時とビット単位で同一の経路**へ落とす。
     use_replica = False
-    if REPLICA_SELECT and container_list:
+    if REPLICA_SELECT and container_list and _replica_mod is not None:
         try:
-            use_replica = replica.is_applicable(container_list)
+            use_replica = (_replica_mod.is_applicable(container_list)
+                           and _replica_mod.preflight())
         except Exception:
             use_replica = False
     reserve_s = REPLICA_RESERVE_S if use_replica else 0.0
@@ -961,18 +977,44 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             ranked.append((sc, od))
         ranked = ranked[:max(1, REPLICA_TOPK)]
         rstats['n_ranked'] = len(ranked)
+        rstats['latched'] = False
         deadline = start + min(HARD_WALL_LIMIT, time_budget * HARD_WALL_FACTOR)
         best_real = None
+
+        # Phase36(タスク1): 失敗しても **静かに代理の勝者へ落ちる**。
+        # 設計上の要点が3つある:
+        #   1. **握った例外で best_real を捨てない**。K件のうち途中まで実評価できていれば、
+        #      その結果は本物の測定値なので使ってよい(初版は except で None に戻していて、
+        #      4件目が失敗すると1〜3件目の正しい勝者まで捨てていた)。
+        #   2. **ラッチ**: 同一シーンで1度でも失敗したら、以降そのシーンでは複製評価をしない。
+        #      pybullet の初期化に失敗するような環境ではK件すべてで同じ失敗が起きるので、
+        #      リトライは壁時計を焼くだけで、余裕が約15秒しかない現状では timeout の引き金になる。
+        #   3. **disconnect は finally で保証する**。except の中に置くと、正常終了時と
+        #      break 脱出時に漏れる。
+        rep = None
         try:
-            with replica.ReplicaEvaluator(container_list, k,
-                                          prepacked_ids=prepacked_ids) as rep:
+            rep = _replica_mod.ReplicaEvaluator(
+                container_list, k, prepacked_ids=prepacked_ids).open()
+        except Exception:
+            rep = None
+            rstats['stopped'] = 'open_failed'
+            rstats['latched'] = True
+        if rep is not None:
+            try:
                 for rank, (sc, od) in enumerate(ranked):
                     if time.perf_counter() >= deadline:
                         rstats['stopped'] = 'wall_deadline'
+                        rstats['latched'] = True
                         break
-                    got = rep.evaluate(item_list, od, deadline=deadline)
-                    if got is None:
+                    try:
+                        got = rep.evaluate(item_list, od, deadline=deadline)
+                    except Exception:
+                        rstats['stopped'] = 'runtime_error'
+                        rstats['latched'] = True
+                        break
+                    if got is None:      # 壁時計 deadline 超過
                         rstats['stopped'] = 'wall_deadline'
+                        rstats['latched'] = True
                         break
                     rstats['evaluated'] += 1
                     rstats['rows'].append({'rank': rank, 'surrogate': sc[0],
@@ -981,9 +1023,15 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                     # 同点なら代理順位が上(=rank が小さい)ほうを残す = 決定的
                     if best_real is None or got['fill'] > best_real[0] + 1e-12:
                         best_real = (got['fill'], od, rank)
-        except Exception:
-            rstats['stopped'] = 'error'
-            best_real = None
+            finally:
+                try:
+                    rep.close()
+                except Exception:
+                    pass
+        if rstats['latched'] and _DEBUG:
+            print(f'[replica] ラッチ発動: {rstats["stopped"]} '
+                  f'(実評価 {rstats["evaluated"]}/{len(ranked)} 件で打ち切り、'
+                  f'以降このシーンでは複製評価器を使わない)', flush=True)
         if best_real is not None:
             rstats['winner_rank'] = best_real[2]
             rstats['winner_fill'] = best_real[0]

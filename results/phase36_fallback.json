@@ -1,0 +1,160 @@
+{
+ "bitwise": [
+  {
+   "label": "A01_1c_40_plain",
+   "base_elapsed": 73.75856410400229,
+   "import": {
+    "match": true,
+    "n_diff": 0,
+    "elapsed": 73.52495499600263
+   },
+   "init": {
+    "match": true,
+    "n_diff": 0,
+    "elapsed": 73.18050795700037
+   }
+  },
+  {
+   "label": "A02_1c_80_plain",
+   "base_elapsed": 87.11537654700078,
+   "import": {
+    "match": true,
+    "n_diff": 0,
+    "elapsed": 87.68986548500106
+   },
+   "init": {
+    "match": true,
+    "n_diff": 0,
+    "elapsed": 89.27043126100034
+   }
+  },
+  {
+   "label": "A03_1c_40_shelf",
+   "base_elapsed": 74.50978717700127,
+   "import": {
+    "match": true,
+    "n_diff": 0,
+    "elapsed": 77.05756536999979
+   },
+   "init": {
+    "match": true,
+    "n_diff": 0,
+    "elapsed": 83.92581873400195
+   }
+  }
+ ],
+ "runtime": [
+  {
+   "label": "A07_1c_40_bulky",
+   "run1_degradation": -10.74,
+   "runtime": {
+    "order_same": true,
+    "stopped": "runtime_error",
+    "latched": true,
+    "evaluated": 0,
+    "elapsed": 59.74914063599863
+   },
+   "deadline": {
+    "order_same": true,
+    "stopped": "wall_deadline",
+    "latched": true,
+    "evaluated": 0,
+    "elapsed": 60.01706108600047
+   }
+  },
+  {
+   "label": "D01_A_1c_40_softheavy",
+   "run1_degradation": -10.77,
+   "runtime": {
+    "order_same": true,
+    "stopped": "runtime_error",
+    "latched": true,
+    "evaluated": 0,
+    "elapsed": 67.3216186560021
+   },
+   "deadline": {
+    "order_same": true,
+    "stopped": "wall_deadline",
+    "latched": true,
+    "evaluated": 0,
+    "elapsed": 67.28012571799991
+   }
+  },
+  {
+   "label": "C02_2c_55_shelfprio",
+   "run1_degradation": -6.92,
+   "runtime": {
+    "order_same": true,
+    "stopped": "runtime_error",
+    "latched": true,
+    "evaluated": 0,
+    "elapsed": 97.5514591909996
+   },
+   "deadline": {
+    "order_same": true,
+    "stopped": "wall_deadline",
+    "latched": true,
+    "evaluated": 0,
+    "elapsed": 95.41173182299826
+   }
+  }
+ ],
+ "latch": [],
+ "clients": [
+  {
+   "i": 0,
+   "mode": null,
+   "clients_before": 0,
+   "clients_after": 0,
+   "evaluated": 4,
+   "latched": false,
+   "stopped": "done",
+   "peak_mb": 102.23046875
+  },
+  {
+   "i": 1,
+   "mode": "runtime",
+   "clients_before": 0,
+   "clients_after": 0,
+   "evaluated": 0,
+   "latched": true,
+   "stopped": "runtime_error",
+   "peak_mb": 102.23046875
+  },
+  {
+   "i": 2,
+   "mode": null,
+   "clients_before": 0,
+   "clients_after": 0,
+   "evaluated": 4,
+   "latched": false,
+   "stopped": "done",
+   "peak_mb": 102.23046875
+  },
+  {
+   "i": 3,
+   "mode": "deadline",
+   "clients_before": 0,
+   "clients_after": 0,
+   "evaluated": 0,
+   "latched": true,
+   "stopped": "wall_deadline",
+   "peak_mb": 102.23046875
+  },
+  {
+   "i": 4,
+   "mode": null,
+   "clients_before": 0,
+   "clients_after": 0,
+   "evaluated": 4,
+   "latched": false,
+   "stopped": "done",
+   "peak_mb": 102.23046875
+  }
+ ],
+ "memory": {
+  "off_peak_mb": 102.23046875,
+  "on_peak_mb": 103.0,
+  "delta_mb": 0.76953125
+ }
+}
