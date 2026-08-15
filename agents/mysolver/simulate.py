@@ -46,11 +46,12 @@ REACH_UNIT_COST = float(os.environ.get('MYSOLVER_REACH_UNIT_COST', '3.0'))
 # (online policy() / offline構築の両方が使う配置スコア)や check_inclusion_batch(hard
 # legality)は一切変更しないため、「どこに何を置くか」(=各候補順序の実際の配置内容)は
 # 既定のまま完全に不変で、「作り終えた複数の候補順序のどれを勝者に選ぶか」だけが変わる。
-# Phase33: ローカルA/Bは t=1.177(単体)で採否基準未達だが、Phase32が機序を独立検証
-# (勝者交代5シーン中4シーンで新勝者の方が過大評価が少ない、Phase21の574件監査+
-# 過大評価分析の2本裏付け)。ローカルSE比でpublicの検出力が約16倍高いため、既定を
-# 'floor' に切り替えてpublicで直接検証する(results/phase33_report.md)。
-RISK_SLACK_FACES = os.environ.get('MYSOLVER_RISK_SLACK_FACES', 'floor')
+# Phase33: ローカルA/Bは t=1.177(単体)で採否基準未達だったが、Phase32の機序検証
+# (勝者交代5シーン中4シーンで新勝者の方が過大評価が少ない)を根拠に既定を 'floor' へ
+# 切り替えてpublicで直接検証した。実測 53.64328945200516 はベースライン53.64比で
+# +0.003ptとノイズ床(判定基準 -0.1〜+0.3)の内側だったため、既定を 'all' に戻して
+# この路線を不採用で確定した(results/phase33_report.md §1.3)。
+RISK_SLACK_FACES = os.environ.get('MYSOLVER_RISK_SLACK_FACES', 'all')
 
 
 def clone_containers(container_list: list[dict]) -> list[dict]:
