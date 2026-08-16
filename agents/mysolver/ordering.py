@@ -465,6 +465,40 @@ REPLICA_TOPK = int(os.environ.get('MYSOLVER_REPLICA_TOPK', '4'))
 REPLICA_RESERVE_S = float(os.environ.get('MYSOLVER_REPLICA_RESERVE_S', '45.0'))
 REPLICA_STATS: dict = {}
 
+# ---------------------------------------------------------------------------
+# Phase37(ステップ0): 採点に一切影響しないテレメトリ。
+#
+# Phase36提出でREPLICA_RESERVE_S(45秒)すら取り置かれた形跡がなく(optimization実測値が
+# 「取り置き無し」のローカル最大帯と同帯)、`build_order`冒頭のゲート(H1 preflight失敗 /
+# H2 import失敗 / H3 is_applicable False)のどこで落ちているか本番から特定できない。
+# `optimization`(=optimize()の壁時計、app.py:98のtime_results)はfull floatで報告され
+# 採点には一切使われないため、ここに「到達段階n」を壁時計の埋め方として符号化する。
+# 既定無効(MYSOLVER_TELEMETRY=0)。無効時はここに関わる分岐に一切入らないため、
+# ρ-test無効時・既存経路と出力(戻り値)はビット単位で不変(壁時計だけを後から埋め増すので、
+# best_orderの計算そのものには一切影響しない)。
+MYSOLVER_TELEMETRY = os.environ.get('MYSOLVER_TELEMETRY', '0') == '1'
+# n=0(158.0s)刻みでn=7(161.5s)まで。HARD_WALL_LIMIT=165s・optimization_timeout=180sの
+# どちらに対しても十分な余裕を残す。
+TELEMETRY_BASE_S = float(os.environ.get('MYSOLVER_TELEMETRY_BASE_S', '158.0'))
+TELEMETRY_STEP_S = float(os.environ.get('MYSOLVER_TELEMETRY_STEP_S', '0.5'))
+# コスト抑制(タスク0-2): 埋め増すのはどのみち「全シーンのmax」を左右しうるシーンだけに絞る。
+# 自然経過時間がこの閾値を超えないシーンは埋めない(=追加コストほぼゼロ)。
+# ローカル26シーン実測(results/phase37_report.md §0)で「取り置き無し」帯・「取り置き有り」帯
+# の双方に閾値超のシーンが存在することを確認済みなので、全シーン一律の下限埋め(T_min運用)は
+# 採用していない。
+TELEMETRY_MIN_ELAPSED_S = float(os.environ.get('MYSOLVER_TELEMETRY_MIN_ELAPSED_S', '140.0'))
+
+# ---------------------------------------------------------------------------
+# Phase37(ステップ1-3): ρ-test の勝者決定に使う指標。
+#
+# 既定 'fill'(=Phase35で採用・26シーンA/Bでt=3.082を通過済みの実装をそのまま維持)。
+# 'composite' にすると、実fillのargmaxではなく5成分合成スコア(採点の28.6%だけでなく
+# 全体)のargmaxで選ぶ。cog/stability/placement/soft_itemはreplica_scorer.pyによる近似
+# (本番評価基盤の非公開ロジックの近似、tools/scorer.pyと同一式)。
+# 新規挙動のため既定は無効側('fill')。26シーンでt>2を確認するまでは'composite'を既定にしない
+# (評価・採用基準ルール5/6)。
+REPLICA_METRIC = os.environ.get('MYSOLVER_REPLICA_METRIC', 'fill')
+
 
 def _advance_before(order: list[int], x: int, blockers: list[int]) -> list[int] | None:
     """x を「order 上で最も早いブロッカー」の直前へ移動した順序を返す。
@@ -527,10 +561,22 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # 最悪の状態になる。preflight() をここで通し、駄目なら取り置きを 0 に戻して
     # **ρ-test 無効時とビット単位で同一の経路**へ落とす。
     use_replica = False
+    # Phase37(ステップ0): 到達段階n(採点非依存のテレメトリ、末尾で壁時計に符号化する)。
+    # 0 = ゲートに入れていない/未分類の早期失敗(H2相当)。REPLICA_STATSが後で埋まれば
+    # そちらを優先する(n=3以降はrstats['stopped']から読み直す。末尾参照)。
+    _telem_n = 0
     if REPLICA_SELECT and container_list and _replica_mod is not None:
         try:
-            use_replica = (_replica_mod.is_applicable(container_list)
-                           and _replica_mod.preflight())
+            # 元は `is_applicable(...) and preflight()` の1行(短絡評価)だったのを、
+            # 到達段階を見分けるために2段へ分けただけで、呼び出し順・短絡の有無は不変。
+            applicable = _replica_mod.is_applicable(container_list)
+            if not applicable:
+                _telem_n = 1          # H3: is_applicable False(既積みあり等で対象外)
+            elif not _replica_mod.preflight():
+                _telem_n = 2          # H1: preflight False(pybullet初期化失敗)
+            else:
+                use_replica = True
+                _telem_n = 2          # ここまで通過。以降はrstats['stopped']から読み直す
         except Exception:
             use_replica = False
     reserve_s = REPLICA_RESERVE_S if use_replica else 0.0
@@ -980,6 +1026,14 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         rstats['latched'] = False
         deadline = start + min(HARD_WALL_LIMIT, time_budget * HARD_WALL_FACTOR)
         best_real = None
+        # Phase37(ステップ1-3): このシーンで実際に使う指標は**1回だけ確定して固定する**
+        # (行ごとに fill/composite を切り替えると、compositeが一部の候補だけ欠けたときに
+        # スケールの違う値(0-100 の composite と 0-100 の fill でも重み構成が違う)を
+        # argmaxで直接比較してしまう。最初の実評価でcompositeが取れなければそのシーンでは
+        # 以降も一貫してfillへフォールバックする)。
+        active_metric = REPLICA_METRIC
+        metric_decided = False
+        rstats['metric_used'] = active_metric
 
         # Phase36(タスク1): 失敗しても **静かに代理の勝者へ落ちる**。
         # 設計上の要点が3つある:
@@ -1007,7 +1061,8 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                         rstats['latched'] = True
                         break
                     try:
-                        got = rep.evaluate(item_list, od, deadline=deadline)
+                        got = rep.evaluate(item_list, od, deadline=deadline,
+                                           compute_composite=(active_metric == 'composite'))
                     except Exception:
                         rstats['stopped'] = 'runtime_error'
                         rstats['latched'] = True
@@ -1017,12 +1072,25 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                         rstats['latched'] = True
                         break
                     rstats['evaluated'] += 1
+                    composite = got.get('composite')
+                    if not metric_decided:
+                        # 最初の実評価だけでこのシーンの指標を確定する(以降は切り替えない)。
+                        if active_metric == 'composite' and composite is None:
+                            active_metric = 'fill'   # replica_scorer が使えない環境: フォールバック
+                            rstats['metric_used'] = active_metric
+                        metric_decided = True
+                    key_val = composite if active_metric == 'composite' else got['fill']
                     rstats['rows'].append({'rank': rank, 'surrogate': sc[0],
                                             'real_fill': got['fill'],
+                                            'composite': composite,
+                                            'cog_score': got.get('cog_score'),
+                                            'stability_score': got.get('stability_score'),
+                                            'placement_score': got.get('placement_score'),
+                                            'soft_item_score': got.get('soft_item_score'),
                                             'num_placed': got['num_placed']})
                     # 同点なら代理順位が上(=rank が小さい)ほうを残す = 決定的
-                    if best_real is None or got['fill'] > best_real[0] + 1e-12:
-                        best_real = (got['fill'], od, rank)
+                    if best_real is None or key_val > best_real[0] + 1e-12:
+                        best_real = (key_val, od, rank)
             finally:
                 try:
                     rep.close()
@@ -1034,7 +1102,10 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                   f'以降このシーンでは複製評価器を使わない)', flush=True)
         if best_real is not None:
             rstats['winner_rank'] = best_real[2]
-            rstats['winner_fill'] = best_real[0]
+            rstats['winner_key_value'] = best_real[0]        # active_metric の値
+            rstats['winner_row'] = rstats['rows'][best_real[2]] if best_real[2] < len(rstats['rows']) else None
+            rstats['winner_fill'] = (rstats['winner_row']['real_fill']
+                                     if rstats['winner_row'] else best_real[0])
             if best_real[2] != 0:
                 # 代理の1位とは違う候補が実評価で勝った = ρ-test が効いた瞬間
                 rstats['changed'] = True
@@ -1043,5 +1114,24 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             rstats['stopped'] = 'done'
         REPLICA_STATS.clear()
         REPLICA_STATS.update(rstats)
+
+    if MYSOLVER_TELEMETRY:
+        stopped = REPLICA_STATS.get('stopped')
+        if stopped == 'open_failed':
+            _telem_n = 3
+        elif stopped == 'runtime_error':
+            _telem_n = 4
+        elif stopped == 'wall_deadline':
+            _telem_n = 5
+        elif stopped == 'done':
+            _telem_n = 7 if REPLICA_STATS.get('changed') else 6
+        elapsed = time.perf_counter() - start
+        padded = elapsed > TELEMETRY_MIN_ELAPSED_S
+        if padded:
+            target_t = start + max(TELEMETRY_BASE_S + TELEMETRY_STEP_S * _telem_n, elapsed)
+            while time.perf_counter() < target_t:
+                time.sleep(0.01)
+        REPLICA_STATS['telemetry_n'] = _telem_n
+        REPLICA_STATS['telemetry_padded'] = padded
 
     return best_order

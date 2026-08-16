@@ -19,7 +19,10 @@ before/after (tools/measure_regime.py の出力JSON、同一26シーン・同一
 実行:
     PYTHONPATH=. .venv/bin/python tools/phase25a_stats.py \
         --before results/xxx_before.json --after results/xxx_after.json \
-        --metric fill_strict --title "UNITS_PER_SEC 1.05e7 -> 1.55e7"
+        --metric composite_strict --title "UNITS_PER_SEC 1.05e7 -> 1.55e7"
+
+Phase37(ステップ1-2): 主KPIを合成スコア(composite_strict、tools/measure_regime.pyの
+COMPOSITE_WEIGHTS参照)に変更した。--metric fill_strict で従来どおりの判定にも戻せる。
 """
 import argparse
 import json
@@ -47,7 +50,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--before', required=True)
     ap.add_argument('--after', required=True)
-    ap.add_argument('--metric', default='fill_strict')
+    ap.add_argument('--metric', default='composite_strict')
     ap.add_argument('--title', default='')
     ap.add_argument('--adopt-t', type=float, default=2.0, help='採用基準のt値の目安(既定2.0)')
     args = ap.parse_args()

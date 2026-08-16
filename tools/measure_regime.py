@@ -41,9 +41,29 @@ from src.ground_handling.evaluator import Evaluator
 from src.ground_handling.runner import TimedAgentRunner
 from tools.scorer import Scorer
 
-METRIC_KEYS = ['fill_strict', 'fill_loose', 'cog_score', 'stability_score', 'placement_score', 'soft_item_score']
+METRIC_KEYS = ['fill_strict', 'fill_loose', 'cog_score', 'stability_score', 'placement_score',
+               'soft_item_score', 'composite_strict', 'composite_loose']
 STRICT_MARGIN = -0.005
 LOOSE_MARGIN = 0.01
+
+# Phase37(ステップ1-1): 本番の採点式(全16提出で小数第2位まで検証済み、CLAUDE_CODE_指示書.md §1.1)。
+# fill の重みは 0.6 ではなく 2/7 = 0.2857。cog/stability はそれぞれ 1.5/7 = 0.2143。
+#   public = (2*fill + 1.5*cog + 1.5*stability + 1*placement + 1*soft_item) / 7
+# cog/stability/placement/soft_item の4指標は tools.scorer.Scorer による近似値であり、
+# 本物の評価器(src.ground_handling.evaluator.Evaluator)はfill_score/num_placed_itemsしか
+# 算出しない(この4指標は本番評価基盤の非公開ロジック)。重み・正規化定数は本番と厳密には
+# 一致しないため、composite_* は「今の mysolver がどの成分で弱いか」を相対比較する目的の
+# 近似値であり、public の予測値そのものではない点に注意。
+COMPOSITE_WEIGHTS = {'fill': 2.0, 'cog_score': 1.5, 'stability_score': 1.5,
+                     'placement_score': 1.0, 'soft_item_score': 1.0}
+COMPOSITE_DENOM = sum(COMPOSITE_WEIGHTS.values())  # 7.0
+
+
+def composite_score(fill: float, cog: float, stability: float, placement: float, soft: float) -> float:
+    return (COMPOSITE_WEIGHTS['fill'] * fill + COMPOSITE_WEIGHTS['cog_score'] * cog
+            + COMPOSITE_WEIGHTS['stability_score'] * stability
+            + COMPOSITE_WEIGHTS['placement_score'] * placement
+            + COMPOSITE_WEIGHTS['soft_item_score'] * soft) / COMPOSITE_DENOM
 
 
 def parse_args():
@@ -137,6 +157,10 @@ def run_one_scene_with_regimes(task_config: dict, module_path: str, agent_module
             'stability_score': stability_score,
             'placement_score': placement_score,
             'soft_item_score': soft_item_score,
+            'composite_strict': composite_score(fill_strict, cog_score, stability_score,
+                                                 placement_score, soft_item_score),
+            'composite_loose': composite_score(fill_loose, cog_score, stability_score,
+                                                placement_score, soft_item_score),
             'num_placed_items_abs': num_packed_items,
             'total_items': env.num_total_items,
             'fill_counted_ratio_strict': ((num_packed_items - len(out_strict)) / num_packed_items
@@ -210,6 +234,7 @@ def main():
                     samples[label][k].append(m[k])
                     run_metric_lists[k].append(m[k])
             print(f'  [{label}] fill_strict={m["fill_strict"]:.2f} fill_loose={m["fill_loose"]:.2f} '
+                  f'composite_strict={m["composite_strict"]:.2f} '
                   f'placed={m.get("num_placed_items_abs", 0)}/{m.get("total_items", 0)} '
                   f'({time.time() - t0:.1f}s)')
         suite_avg = {k: (sum(vals) / len(vals) if vals else float('nan'))
@@ -266,6 +291,10 @@ def main():
           f'(±{suite_stats["fill_strict"]["std"]:.2f})')
     print(f'fill_loose  (margin={LOOSE_MARGIN}): {suite_stats["fill_loose"]["mean"]:.2f} '
           f'(±{suite_stats["fill_loose"]["std"]:.2f})')
+    print(f'composite_strict (2*fill+1.5*cog+1.5*stability+placement+soft)/7: '
+          f'{suite_stats["composite_strict"]["mean"]:.2f} (±{suite_stats["composite_strict"]["std"]:.2f})')
+    print(f'composite_loose : {suite_stats["composite_loose"]["mean"]:.2f} '
+          f'(±{suite_stats["composite_loose"]["std"]:.2f})')
     print(f'optimize_time: mean={time_stats["optimize_time_mean"]:.2f}s max={time_stats["optimize_time_max"]:.2f}s '
           f'(HARD_WALL_LIMIT=165s)')
     print(f'policy_time  : mean={time_stats["policy_time_mean"]:.3f}s max={time_stats["policy_time_max"]:.2f}s '

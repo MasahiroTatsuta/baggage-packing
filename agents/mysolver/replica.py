@@ -195,8 +195,9 @@ class ReplicaEvaluator:
     # -- 評価 -----------------------------------------------------------
     def run_order(self, all_item_infos: list[dict], order: list[int],
                   policy_budget: float = 5.5, hard_wall: float = 6.0,
-                  deadline: float | None = None) -> dict | None:
-        """order を実際に走らせて fill を返す。deadline(壁時計)を超えたら None。"""
+                  deadline: float | None = None, compute_composite: bool = False) -> dict | None:
+        """order を実際に走らせて fill(+ compute_composite指定時は5成分の合成スコア)を返す。
+        deadline(壁時計)を超えたら None。"""
         by_idx = {int(it['index']): it for it in all_item_infos}
         try:
             stream = [by_idx[i] for i in order]
@@ -247,13 +248,31 @@ class ReplicaEvaluator:
         fill, _out = Evaluator(client=self.client,
                                config={'inclusion_margin': SCORE_MARGIN}
                                ).calculate_fill_rate(containers)
-        return {'fill': fill,
-                'num_placed': sum(len(c.packed_items) for c in containers)}
+        result = {'fill': fill,
+                  'num_placed': sum(len(c.packed_items) for c in containers)}
+        # Phase37(ステップ1-3): 合成スコア用の残り4指標。**既定では計算しない**(ordering.py の
+        # MYSOLVER_REPLICA_METRIC=fill が既定であり、そちらでは呼ばれないため常にFalse)。
+        # tools/scorer.py と同じ近似ロジックの複製(agents/mysolver/replica_scorer.py、
+        # tools/は提出zipに含まれないため複製が必要な事情はそちらのdocstring参照)。
+        # 失敗しても fill 単体の結果は握りつぶさず返す(呼び出し側がcompositeの欠落を見て
+        # fillへフォールバックする)。stability計算は破壊的なので必ず最後に呼ぶ。
+        if compute_composite:
+            try:
+                from . import replica_scorer
+                extra = replica_scorer.evaluate_extra_metrics(self.client, containers)
+                result.update(extra)
+                result['composite'] = replica_scorer.composite_score(
+                    fill, extra['cog_score'], extra['stability_score'],
+                    extra['placement_score'], extra['soft_item_score'])
+            except Exception:
+                pass
+        return result
 
-    def evaluate(self, all_item_infos, order, deadline=None):
+    def evaluate(self, all_item_infos, order, deadline=None, compute_composite=False):
         if FORCE_FAIL == 'runtime':
             raise RuntimeError('MYSOLVER_REPLICA_FORCE_FAIL=runtime (障害注入)')
         if FORCE_FAIL == 'deadline':
             return None          # 壁時計 deadline 超過と同じ扱い(評価できなかった)
         self.reset()
-        return self.run_order(all_item_infos, order, deadline=deadline)
+        return self.run_order(all_item_infos, order, deadline=deadline,
+                              compute_composite=compute_composite)
