@@ -1,7 +1,6 @@
 .venv/
 __pycache__/
 *.pyc
-results/
 *.zip
 *.so
 _hist/
