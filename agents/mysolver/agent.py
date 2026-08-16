@@ -21,6 +21,17 @@ POLICY_HARD_WALL = 6.0
 # (=170s相当のフル予算)で回すこと。
 OPTIMIZE_BUDGET_ENV = 'MYSOLVER_OPTIMIZE_BUDGET'
 
+# ---------------------------------------------------------------------------
+# Phase38(ステップ1-B): 「取り置き(REPLICA_RESERVE_S)が構築を壁時計締切で
+# 実際に打ち切ったか」を、採点に使われない policy の壁時計へ1ビットだけ符号化する。
+# ordering.build_order() が(use_replica=True のシーンで)construction の
+# hard_deadline(=start+HARD_WALL_LIMIT-reserve_s、Phase37 の実測ではこの項が常に
+# min() の勝者)に実際に到達していれば ordering.LAST_BUILD_WALL_CUT=True になる。
+# 最初の policy() 呼び出し1回だけをこれで埋める(余裕は8.0-6.7=1.3sしかない)。
+# 既定無効(MYSOLVER_TELEMETRY=0)時は分岐にすら入らないため本番経路への影響はゼロ。
+POLICY_TELEMETRY_WALLCUT_S = float(os.environ.get('MYSOLVER_TELEMETRY_POLICY_WALLCUT_S', '6.7'))
+POLICY_TELEMETRY_NORMAL_S = float(os.environ.get('MYSOLVER_TELEMETRY_POLICY_NORMAL_S', '6.2'))
+
 
 class Agent:
     """
@@ -33,6 +44,7 @@ class Agent:
         self._container_list = None
         self._optimize = True
         self._prepacked_ids = None
+        self._policy_telemetry_done = False  # Phase38(ステップ1-B): 最初の1回だけ埋める
 
     def get_init_states(self, init_states: dict) -> None:
         self._lookahead_k = init_states.get('lookahead_k')
@@ -55,6 +67,7 @@ class Agent:
             return ordering.order_items(item_list)
 
     def policy(self, observation: dict) -> dict:
+        t0 = time.perf_counter()
         container_list = observation.get('container_list', [])
         pool_list = observation.get('pool_list', [])
 
@@ -93,5 +106,13 @@ class Agent:
                     'place_pos': np.array([0.0, 0.0, 0.3], dtype=np.float32),
                     'orientation': 0,
                 }
+
+        if ordering.MYSOLVER_TELEMETRY and not self._policy_telemetry_done:
+            self._policy_telemetry_done = True
+            wall_cut = bool(getattr(ordering, 'LAST_BUILD_WALL_CUT', False))
+            target = POLICY_TELEMETRY_WALLCUT_S if wall_cut else POLICY_TELEMETRY_NORMAL_S
+            target_t = t0 + target
+            while time.perf_counter() < target_t:
+                time.sleep(0.01)
 
         return action

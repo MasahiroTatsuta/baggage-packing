@@ -464,6 +464,11 @@ REPLICA_TOPK = int(os.environ.get('MYSOLVER_REPLICA_TOPK', '4'))
 # 複製評価のために取り置く壁時計[秒]。構築側はこの分だけ早く切り上げる。
 REPLICA_RESERVE_S = float(os.environ.get('MYSOLVER_REPLICA_RESERVE_S', '45.0'))
 REPLICA_STATS: dict = {}
+# Phase38(ステップ1-B): このプロセス(=このシーン)で、複製評価のための取り置きが
+# 構築の壁時計締切(hard_deadline)を実際に引き寄せて打ち切りを起こしたか。
+# build_order() の末尾で更新する。agent.py の policy() が読み、最初の呼び出し1回だけの
+# 壁時計にこの1ビットを符号化する(採点非依存のテレメトリ、MYSOLVER_TELEMETRY=0では不使用)。
+LAST_BUILD_WALL_CUT: bool = False
 
 # ---------------------------------------------------------------------------
 # Phase37(ステップ0): 採点に一切影響しないテレメトリ。
@@ -498,6 +503,61 @@ TELEMETRY_MIN_ELAPSED_S = float(os.environ.get('MYSOLVER_TELEMETRY_MIN_ELAPSED_S
 # 新規挙動のため既定は無効側('fill')。26シーンでt>2を確認するまでは'composite'を既定にしない
 # (評価・採用基準ルール5/6)。
 REPLICA_METRIC = os.environ.get('MYSOLVER_REPLICA_METRIC', 'fill')
+
+# ---------------------------------------------------------------------------
+# Phase38(ステップ1-A): 本番の n=4(evaluate()内の実行時例外)を自己申告させる。
+#
+# n=4(stopped=='runtime_error')のときだけ、壁時計の埋め込み先を通常の
+# TELEMETRY_BASE_S+TELEMETRY_STEP_S*n の帯から切り離し、この専用の帯
+# (162.00〜165.15s、0.05s刻み)へ置き換える。T = N4_BASE_S + N4_STEP_S * code、
+# code = 16*a + b(0〜63)。b=例外クラスID(0〜15、_classify_exception参照)、
+# a=最初の失敗までに成功した候補数(0〜3で頭打ち)。
+# 既定無効(MYSOLVER_TELEMETRY=0)時は分岐にすら入らないため本番経路への影響はゼロ。
+TELEMETRY_N4_BASE_S = float(os.environ.get('MYSOLVER_TELEMETRY_N4_BASE_S', '162.00'))
+TELEMETRY_N4_STEP_S = float(os.environ.get('MYSOLVER_TELEMETRY_N4_STEP_S', '0.05'))
+
+# ---------------------------------------------------------------------------
+# Phase38(ステップ1-C): ラッチを「シーン単位」から「候補単位」に緩める。
+#
+# 従来(Phase36)は1候補の失敗でそのシーンの複製評価を丸ごと諦めていた。それだと
+# 本番のn=4が特定の候補(例えば代理1位の候補だけがpybullet的に特殊な配置になる、等)に
+# 固有の場合、原因が分からなくても「その候補だけ飛ばして残りを評価する」ことでρ-testの
+# 利得の一部を回収できる可能性がある。暴走(壊れた状態のままK件すべてを無駄撃ち)を防ぐため
+# **2回連続で失敗したらシーン単位のラッチに落とす**。
+# 'scene' にすると Phase36 と完全に同じ挙動(1回失敗即ラッチ)に戻せる。
+REPLICA_LATCH_MODE = os.environ.get('MYSOLVER_REPLICA_LATCH_MODE', 'per_candidate')
+
+
+def _classify_exception(exc: Exception) -> int:
+    """例外を b(0〜15)に符号化する(Phase38ステップ1-A)。
+
+    isinstance の判定順は「サブクラスを親クラスより先に」が鉄則
+    (RecursionError は RuntimeError のサブクラス、TimeoutError は OSError のサブクラス)。
+    """
+    pybullet_error = None
+    if _replica_mod is not None:
+        pybullet_error = getattr(getattr(_replica_mod, 'p', None), 'error', None)
+    checks = [(MemoryError, 0)]
+    if pybullet_error is not None:
+        checks.append((pybullet_error, 1))
+    checks += [
+        (KeyError, 2),
+        (IndexError, 3),
+        (AttributeError, 4),
+        (ValueError, 5),
+        (TypeError, 6),
+        (TimeoutError, 7),      # OSError のサブクラスなので OSError より先に判定する
+        (RecursionError, 12),   # RuntimeError のサブクラスなので RuntimeError より先に判定する
+        (RuntimeError, 8),
+        (OSError, 9),           # IOError は Python3 で OSError のエイリアス
+        (AssertionError, 10),
+        (ZeroDivisionError, 11),
+        (OverflowError, 13),
+    ]
+    for cls, code in checks:
+        if isinstance(exc, cls):
+            return code
+    return 14  # その他(rstats['exc_class'] にクラス名を残す)
 
 
 def _advance_before(order: list[int], x: int, blockers: list[int]) -> list[int] | None:
@@ -1004,6 +1064,16 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         ALNS_STATS.clear()
         ALNS_STATS.update(stats)
 
+    # Phase38(ステップ1-B): 構築(total_budget)がここまでで壁時計 hard_deadline に
+    # 実際に到達したか(=hard_expired)を記録する。use_replica のシーンでは
+    # hard_deadline = start + min(HARD_WALL_LIMIT-reserve_s, build_budget_s*HARD_WALL_FACTOR)
+    # であり、本番既定(DEFAULT_TIME_BUDGET=120, reserve_s=45)では前者(165-45=120)が
+    # 常に min() の勝者になるため、hard_expired==True は「取り置きが構築を実際に
+    # 短くした」ことをほぼ直接意味する。global 経由で agent.py の policy() が読む。
+    if MYSOLVER_TELEMETRY:
+        global LAST_BUILD_WALL_CUT
+        LAST_BUILD_WALL_CUT = bool(use_replica and total_budget.hard_expired)
+
     # フェーズ5(Phase35): ρ-test —— 代理の argmax ではなく **実 fill の argmax** で選び直す。
     #
     # ここまでで作った候補順序を、本物と同じ pybullet/validator/evaluator(replica.py)で
@@ -1040,9 +1110,13 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         #   1. **握った例外で best_real を捨てない**。K件のうち途中まで実評価できていれば、
         #      その結果は本物の測定値なので使ってよい(初版は except で None に戻していて、
         #      4件目が失敗すると1〜3件目の正しい勝者まで捨てていた)。
-        #   2. **ラッチ**: 同一シーンで1度でも失敗したら、以降そのシーンでは複製評価をしない。
+        #   2. **ラッチ**: Phase38(ステップ1-C)で「シーン単位」から「候補単位」に緩めた。
+        #      1候補の失敗だけでは飛ばして次を評価し、**2回連続で失敗した場合だけ**
+        #      シーン単位のラッチ(以降このシーンでは複製評価をしない)に落とす。
         #      pybullet の初期化に失敗するような環境ではK件すべてで同じ失敗が起きるので、
-        #      リトライは壁時計を焼くだけで、余裕が約15秒しかない現状では timeout の引き金になる。
+        #      連続失敗の場合のリトライは壁時計を焼くだけで、余裕が約15秒しかない現状では
+        #      timeout の引き金になる。REPLICA_LATCH_MODE='scene' で Phase36 の旧挙動
+        #      (1回失敗で即ラッチ)に戻せる。
         #   3. **disconnect は finally で保証する**。except の中に置くと、正常終了時と
         #      break 脱出時に漏れる。
         rep = None
@@ -1054,6 +1128,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             rstats['stopped'] = 'open_failed'
             rstats['latched'] = True
         if rep is not None:
+            consecutive_fail = 0
             try:
                 for rank, (sc, od) in enumerate(ranked):
                     if time.perf_counter() >= deadline:
@@ -1063,14 +1138,28 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                     try:
                         got = rep.evaluate(item_list, od, deadline=deadline,
                                            compute_composite=(active_metric == 'composite'))
-                    except Exception:
-                        rstats['stopped'] = 'runtime_error'
-                        rstats['latched'] = True
-                        break
+                    except Exception as e:
+                        consecutive_fail += 1
+                        if 'exc_class' not in rstats:
+                            # Phase38(ステップ1-A): 最初の失敗だけを記録する。
+                            # a=この時点までに成功した候補数(rstats['evaluated']がまだ
+                            # 加算されていないので、そのままの値が「失敗より前の成功数」)。
+                            a = min(3, rstats['evaluated'])
+                            b = _classify_exception(e)
+                            rstats['exc_class'] = type(e).__name__
+                            rstats['exc_a'] = a
+                            rstats['exc_b'] = b
+                            rstats['exc_code'] = 16 * a + b
+                        if REPLICA_LATCH_MODE == 'scene' or consecutive_fail >= 2:
+                            rstats['stopped'] = 'runtime_error'
+                            rstats['latched'] = True
+                            break
+                        continue   # 1-C: この候補だけ飛ばして次候補の評価を続ける
                     if got is None:      # 壁時計 deadline 超過
                         rstats['stopped'] = 'wall_deadline'
                         rstats['latched'] = True
                         break
+                    consecutive_fail = 0
                     rstats['evaluated'] += 1
                     composite = got.get('composite')
                     if not metric_decided:
@@ -1128,7 +1217,16 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         elapsed = time.perf_counter() - start
         padded = elapsed > TELEMETRY_MIN_ELAPSED_S
         if padded:
-            target_t = start + max(TELEMETRY_BASE_S + TELEMETRY_STEP_S * _telem_n, elapsed)
+            # Phase38(ステップ1-A): n=4(runtime_error)のときだけ、通常の
+            # TELEMETRY_BASE_S+TELEMETRY_STEP_S*n 帯(158.0〜161.5s)から切り離し、
+            # 専用の帯(162.00〜165.15s、0.05s刻み)で例外クラス(b)と成功候補数(a)を
+            # 符号化する。n=0〜7 の意味は変えず、n=4 だけが上書きされる
+            # (160.0付近と162.x付近の両方にn=4が現れることはない)。
+            n4_code = REPLICA_STATS.get('exc_code')
+            if _telem_n == 4 and n4_code is not None:
+                target_t = start + max(TELEMETRY_N4_BASE_S + TELEMETRY_N4_STEP_S * n4_code, elapsed)
+            else:
+                target_t = start + max(TELEMETRY_BASE_S + TELEMETRY_STEP_S * _telem_n, elapsed)
             while time.perf_counter() < target_t:
                 time.sleep(0.01)
         REPLICA_STATS['telemetry_n'] = _telem_n

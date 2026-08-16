@@ -96,6 +96,62 @@ SCORE_MARGIN = ASSUMED_VALIDATOR['inclusion_margin']
 # ---------------------------------------------------------------------------
 FORCE_FAIL = os.environ.get('MYSOLVER_REPLICA_FORCE_FAIL', '')
 
+# ---------------------------------------------------------------------------
+# Phase37(ステップ0-1): n=4(evaluate()内の実行時例外)がメモリ(RLIMIT_AS)由来かを
+# 切り分けるためのテレメトリ。**既定無効**(MYSOLVER_REPLICA_VMLOG=1で有効)。
+# 無効時は /proc を一切読まない・分岐にも入らないため本番経路への影響はゼロ。
+#
+# RSS(Phase36が測ったpeak 102→103MB)ではなく VmPeak/VmSize(仮想アドレス空間)を見る。
+# runner.py:14-15 が子プロセスに課すのは RLIMIT_AS(=VA)であり、RSSが小さいことは
+# 安全性の根拠にならない。open()直後・run_order の10配置ごと・終了時の3点で記録する。
+# ---------------------------------------------------------------------------
+VMLOG = os.environ.get('MYSOLVER_REPLICA_VMLOG', '0') == '1'
+
+
+def _vmlog(tag: str) -> None:
+    if not VMLOG:
+        return
+    try:
+        with open('/proc/self/status') as f:
+            status = f.read()
+        vals = {}
+        for line in status.splitlines():
+            for key in ('VmPeak', 'VmSize', 'VmRSS', 'VmHWM'):
+                if line.startswith(key + ':'):
+                    vals[key] = line.split(':', 1)[1].strip()
+        print(f'[replica-vmlog] {tag}: '
+              f'VmPeak={vals.get("VmPeak", "?")} VmSize={vals.get("VmSize", "?")} '
+              f'VmHWM={vals.get("VmHWM", "?")} VmRSS={vals.get("VmRSS", "?")}', flush=True)
+    except Exception as e:
+        print(f'[replica-vmlog] {tag}: read failed ({e!r})', flush=True)
+
+
+# ---------------------------------------------------------------------------
+# Phase38(ステップ1-D検証用): FORCE_FAIL=='runtime' のとき、どの例外クラスを
+# 何回目の evaluate() から投げるかを指定できるようにする(ordering.py の
+# _classify_exception / a(成功候補数カウント) の分岐を個別に検証するため)。
+# 既定は 'RuntimeError' を1回目から(=a=0)。本番経路には影響しない
+# (FORCE_FAIL自体が空文字既定で、この分岐に入るのはテスト時だけ)。
+# ---------------------------------------------------------------------------
+FORCE_FAIL_EXC = os.environ.get('MYSOLVER_REPLICA_FORCE_EXC', 'RuntimeError')
+FORCE_FAIL_AFTER = int(os.environ.get('MYSOLVER_REPLICA_FORCE_FAIL_AFTER', '0'))
+_FORCE_EXC_MAP = {
+    'MemoryError': MemoryError,
+    'pybullet.error': p.error,
+    'KeyError': KeyError,
+    'IndexError': IndexError,
+    'AttributeError': AttributeError,
+    'ValueError': ValueError,
+    'TypeError': TypeError,
+    'TimeoutError': TimeoutError,
+    'RuntimeError': RuntimeError,
+    'OSError': OSError,
+    'AssertionError': AssertionError,
+    'ZeroDivisionError': ZeroDivisionError,
+    'RecursionError': RecursionError,
+    'OverflowError': OverflowError,
+}
+
 
 def is_applicable(container_list: list[dict]) -> bool:
     """複製評価器を使ってよいシーンか(既積み荷物が1つも無いこと)。"""
@@ -139,12 +195,14 @@ class ReplicaEvaluator:
         self.prepacked_ids = prepacked_ids
         self.client = None
         self.cm = None
+        self._eval_calls = 0  # Phase38(ステップ1-D検証用): FORCE_FAIL_AFTER のカウンタ
 
     # -- 生成/破棄 ------------------------------------------------------
     def open(self):
         if self.client is None:
             self.client = bullet_client.BulletClient(connection_mode=p.DIRECT)
             self.client.setAdditionalSearchPath(pybullet_data.getDataPath())
+        _vmlog('open() 直後')
         return self
 
     def close(self):
@@ -237,6 +295,9 @@ class ReplicaEvaluator:
                 break
             self.cm.update_and_add_item_to_container(container_id=ci, item=item)
             pool.pop(item_idx)
+            n_placed = sum(len(c.packed_items) for c in self.cm.containers)
+            if VMLOG and n_placed % 10 == 0:
+                _vmlog(f'run_order {n_placed}配置')
             n_space = self.lookahead_k - len(pool)
             if n_space >= ASSUMED_MAX_SPACE:
                 for _ in range(n_space):
@@ -244,6 +305,7 @@ class ReplicaEvaluator:
                         pool.append(Item(**stream[cursor]))
                         cursor += 1
 
+        _vmlog('run_order 終了時')
         containers = self.cm.containers
         fill, _out = Evaluator(client=self.client,
                                config={'inclusion_margin': SCORE_MARGIN}
@@ -270,9 +332,14 @@ class ReplicaEvaluator:
 
     def evaluate(self, all_item_infos, order, deadline=None, compute_composite=False):
         if FORCE_FAIL == 'runtime':
-            raise RuntimeError('MYSOLVER_REPLICA_FORCE_FAIL=runtime (障害注入)')
+            if self._eval_calls >= FORCE_FAIL_AFTER:
+                exc_cls = _FORCE_EXC_MAP.get(FORCE_FAIL_EXC, RuntimeError)
+                self._eval_calls += 1
+                raise exc_cls(f'MYSOLVER_REPLICA_FORCE_FAIL=runtime exc={FORCE_FAIL_EXC} '
+                              f'after={FORCE_FAIL_AFTER} (障害注入)')
         if FORCE_FAIL == 'deadline':
             return None          # 壁時計 deadline 超過と同じ扱い(評価できなかった)
+        self._eval_calls += 1
         self.reset()
         return self.run_order(all_item_infos, order, deadline=deadline,
                               compute_composite=compute_composite)
