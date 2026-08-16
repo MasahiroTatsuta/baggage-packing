@@ -16,6 +16,12 @@ def _agent_worker(conn, agent_factory: AgentFactory, allowed_methods=None, max_m
         except ImportError:
             print('resource module import error.')
             pass
+        except ValueError:
+            # macOS は dyld 共有キャッシュ等が起動時から広大な VA を予約するため、
+            # RLIMIT_AS を実効的な値に設定できない(16GB 未満は ValueError)。
+            # Linux/本番では従来どおり例外を送出し、挙動を一切変えない。
+            if platform.system() != "Darwin":
+                raise
 
     agent = agent_factory()
     attached_shm = {}
