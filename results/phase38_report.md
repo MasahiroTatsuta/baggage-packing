@@ -191,6 +191,157 @@ git commit && git push
 | 1-B 取り置き打ち切りビット | 2分岐ともOK、timeout比1.29s以上の余裕あり、採用 |
 | 1-C ラッチ候補単位化 | 8/8ビット単位不変(正常系)、既定有効 |
 | 1-E ベースライン | fill_strict 24.29 / composite_strict 70.43 / optimize_time mean 87.86s max 165.01s |
-| 1-F zip | SHA256 `77059c0a...`、8/8出力一致 |
+| 1-F zip | ~~SHA256 `77059c0a...`~~ **提出せず**。下記「修正指示への対応」参照 |
 
-判定は次回提出の`optimization`実測値(162.00〜165.15sの帯)が返ってきてから行う。
+**この時点のzip(`77059c0a...`)は提出しなかった。** 1-E実測で`optimize_time max=165.01s`
+(HARD_WALL_LIMITそのものに到達)が判明し、n=4の符号帯(162.00〜165.15s)が自然な壁時計と
+衝突しうることが分かったため、提出前に以下の修正指示が入った。詳細は次節。
+
+---
+
+## 追記: 提出前の修正(ステップA〜G)
+
+Phase38報告(上記)を受け、提出前に2つの問題が見つかった。
+
+1. **n=4の符号帯(162.00〜165.15s)が自然値と衝突する**: 1-Eの実測で`optimize_time max
+   = 165.01s`が出ており、埋め込み無しの自然な壁時計がそのまま符号帯に入るため
+   `162.00+0.05×60=165.00s`(a=3, b=12 RecursionError)などと誤読しうる。1-Cのラッチ
+   候補単位化で複製評価の試行回数が増える分、本番でも壁に張り付くシーンは増える方向。
+   さらにn=4帯がPhase37のn=6/7帯(161.0/161.5s)より上にあるため、`optimization`は
+   全シーンのmaxしか報告されず、n=4が出ているシーンがあるとn=6/7(ρ-testが完走した
+   証拠)が隠れてしまう。
+2. **1-Eのベースラインは壁時計拘束ありで取っており、Mac移行後の非拘束計測とは
+   原理的に一致しない**。このままでは移行チェックが必ず失敗する。
+
+### ステップA: HARD_WALL_LIMIT等の環境変数化
+
+以下を環境変数化した(**すべて既定値は不変**)。
+
+| 定数 | ファイル | 既定値 | 環境変数 |
+|---|---|---:|---|
+| `HARD_WALL_LIMIT` | ordering.py | 165.0 | `MYSOLVER_HARD_WALL_LIMIT` |
+| `HARD_WALL_FACTOR` | ordering.py | 1.4 | `MYSOLVER_HARD_WALL_FACTOR` |
+| `POLICY_HARD_WALL` | agent.py | 6.0 | `MYSOLVER_POLICY_HARD_WALL` |
+| `RUN_ORDER_HARD_WALL`(旧`hard_wall`引数既定値) | replica.py | 6.0 | `MYSOLVER_REPLICA_RUN_ORDER_HARD_WALL` |
+| `REPLICA_RESERVE_S` | ordering.py | 45.0 | `MYSOLVER_REPLICA_RESERVE_S`(既に対応済み、Phase35から) |
+
+env化を見送ったもの(理由付き):
+- `DEFAULT_TIME_BUDGET`(ordering.py、120.0): `agent.py`の`MYSOLVER_OPTIMIZE_BUDGET`経由で
+  既に間接的にオーバーライド可能なため、定数自体の直接env化は不要と判断。
+- `PER_STEP_TIME_BUDGET` / `MAX_VALIDATE_SLICE` / `FINAL_MARGIN` / `CONSTRUCT_SLICE` /
+  `POLICY_TIME_BUDGET`: これらは「名目秒」であり`UNITS_PER_SEC`経由で決定的にユニットへ
+  換算される値で、実際の打ち切りは消費ユニット数で決まる(**壁時計there自体には依存しない**、
+  各定数のコメントに明記済み)。Phase17で「総予算に依存しない固定値であることが本質的」と
+  意図的に設計されているため、env化して不用意に触れる余地を作らない判断とした。
+
+**A-3検証**: 決定的8シーン(B01-B04, P04, A01-A03)、budget=30s、既定値のまま(env未設定)、
+Step0時点のコミット(`b209253`)とのgit worktree比較で **8/8ビット単位一致**(CPU負荷のない
+クリーンな環境で実施)。
+
+### ステップB: policyテレメトリの4値化
+
+`T_policy = 6.20 + 0.15×(2·any_success + wall_cut)` → 6.20/6.35/6.50/6.65。
+`any_success`(そのシーンで複製評価が完走したか、`stopped=='done'`)を新たに
+`ordering.LAST_ANY_SUCCESS`として記録し、`wall_cut`(既存の`LAST_BUILD_WALL_CUT`)と
+組み合わせる。1-Bの2値実装を置き換えた。
+
+**B-2検証**(local_eval.py、本番同様のサブプロセス経由、4分岐すべて実測):
+
+| code | 期待T | シーン/設定 | 実測policy_time | 判定 |
+|---:|---:|---|---:|---|
+| 0 (any=0,cut=0) | 6.20 | P01(既積みあり、is_applicable=False) | 6.21s | OK |
+| 1 (any=0,cut=1) | 6.35 | A06(既定設定、自然にwall_cut=True・評価は間に合わず) | 6.36s | OK |
+| 2 (any=1,cut=0) | 6.50 | A07(既定設定、構築が余裕を持って完了) | 6.50s | OK |
+| 3 (any=1,cut=1) | 6.65 | A06(`MYSOLVER_REPLICA_RESERVE_S=90`で人為的に評価枠を拡張) | 6.65s | OK |
+
+4/4すべて設計どおり。timeout(8.0s)に対し最大6.65sで余裕1.35s。
+
+**副産物(重要な観察)**: A02をB-2検証の初期試行で**既定設定のまま**流したところ、
+以前(Step0-1、in-process計測)は`wall_cut=False`だったのに対し、今回の**subprocess経由**
+実行では`wall_cut=True`(code=3, 6.65s)が観測された。同一シーン・同一既定設定でも、
+実行コンテキスト(in-process直接呼び出し vs 本番同様のspawn subprocess)が変わるだけで
+`hard_expired`の判定が反転しうることを直接示す実例であり、下記ステップDの認識と整合する。
+
+### ステップB-3: 提出用zipのみHARD_WALL_LIMIT=155.0
+
+判別の保険として、**zip内のordering.pyだけ**`HARD_WALL_LIMIT`の既定を155.0に下げた
+(自然な壁時計上限を~161sへ落とし、162.00s以上のn=4帯を完全にクリーンにする)。
+リポジトリの追跡ファイルは165.0のまま変更していない。
+
+### ステップC: 壁時計非拘束ベースラインの再取得
+
+```
+MYSOLVER_HARD_WALL_LIMIT=3000 MYSOLVER_REPLICA_SELECT=0 MYSOLVER_UNITS_PER_SEC=2.00e7 \
+  PYTHONPATH=. .venv/bin/python tools/measure_regime.py --config-path 'configs/gen/suite_*.json' \
+  --module-path agents/mysolver/ --repeats 1 \
+  --out results/phase38_baseline_off_nowall.json --label baseline_off_nowall
+```
+
+| 指標 | mean | max |
+|---|---:|---:|
+| fill_strict | 24.29 | — |
+| fill_loose | 36.21 | — |
+| composite_strict | 70.43 | — |
+| composite_loose | 73.84 | — |
+| optimize_time | 83.61s | **151.76s**(165s天井への張り付き解消、C-3確認済み) |
+| policy_time | 0.473s | 1.89s |
+
+総所要2479s(約41.3分)。**これがMac移行チェックの唯一の正しい期待値**
+(`results/phase38_baseline_off_codespaces.json`は壁時計拘束ありの参考値として残す)。
+
+suite平均(fill_strict/composite_strict)は拘束あり版とほぼ同値(24.29→24.29、70.43→70.43)
+だったが、これは個々のシーンの値が変化していないことを意味しない——後述のとおり
+シーン単位では壁時計コンテキストに応じて振れており、たまたま正負が打ち消し合って
+suite平均が近い値になったに過ぎない可能性が高い(個別シーンの前後比較は本フェーズでは
+未実施、次フェーズの課題)。
+
+### ステップD: 決定性についての認識の格上げ
+
+Phase36のoff側`optimize_time max`は154.69s、Phase38 1-Eは同一構成で165.01s——同じ設定で
+10s以上ずれていた。ステップBの副産物(A02のwall_cutがin-process/subprocessで反転)、
+ステップA-3・F-2で観測された「並行CPU負荷下では同一コードでも8シーン中1件が不一致」も
+すべて同根の現象である。
+
+1-F時点の分析は「`hard_deadline`が真の壁時計に依存するため、競合下でリスタート回数が
+振れる」という**メカニズムの指摘としては正しかった**が、結論を「本フェーズの変更が
+原因ではない」で止めていた。この結論は事実として誤りではないが、**問題を過小評価していた**。
+正しい認識は次のとおり:
+
+> **Phase17が確保したはずの決定性は、壁時計が律速する条件下では成立していない。**
+> `total_budget.hard_deadline`(`planner.SearchBudget`)は真の壁時計(`time.perf_counter()`)
+> に依存するため、(a) 実行コンテキスト(in-process/subprocess/RLIMIT_ASの有無)、
+> (b) 同時実行中の他プロセスとのCPU競合、(c) 実行環境そのものの速度(Codespaces/Mac/
+> サーマルスロットリング)のいずれによっても、**同一コード・同一シーン・同一設定で
+> 結果が変わりうる**。これはユニット予算(`UNITS_PER_SEC`)側の決定性(Phase17の本来の
+> 主張)を否定するものではなく、その決定性は「壁時計のhard_deadlineに一度も到達しない」
+> という条件付きでしか成立しない、という限定がついていたことに気づけていなかった。
+
+**恒久ルールに追加**(`docs/migration_to_mac.md`に記載):
+「ローカル計測は必ず壁時計を非拘束(`MYSOLVER_HARD_WALL_LIMIT=3000`)で行う。壁時計が
+律速する条件では同一コードでも結果が振れ、A/Bが成立しない。165.0は提出時のみ。」
+
+理由: 移行先のMacは1.4GHz・8GB・サーマルスロットリングありで、壁時計律速が常態になる
+可能性が高い。非拘束は「あれば便利」ではなく**必須条件**である。
+
+### ステップE: results/の保全
+
+`results/`配下の未追跡98件(phase12〜36の生ログ)を、追跡方針を変えずに1ファイルへ
+アーカイブして保全した。
+
+```
+tar czf results_archive_phase12-36.tar.gz results/
+```
+
+サイズと内訳は次節「報告」参照。
+
+### ステップF: zip再生成とpush
+
+- `MYSOLVER_TELEMETRY`既定を`'1'`に固定、`HARD_WALL_LIMIT`既定を`'155.0'`に固定
+  (**いずれもzip内のみ**、リポジトリ追跡ファイルは`'0'`/`165.0`のまま)
+- 新SHA256は次節「報告」に記載(旧`77059c0a...`は破棄・未提出)
+- zip内コードとリポジトリコードで決定的8シーン(budget=15s)のbuild_order出力が
+  **クリーンな環境で8/8一致**することを確認済み
+
+判定は次回提出の`optimization`実測値(162.00〜165.15sの帯、zip内では155.0天井のため
+自然値との衝突は解消)と`policy`実測値(6.20/6.35/6.50/6.65のいずれか)が返ってきてから
+行う。

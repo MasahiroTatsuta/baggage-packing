@@ -96,6 +96,10 @@ SCORE_MARGIN = ASSUMED_VALIDATOR['inclusion_margin']
 # ---------------------------------------------------------------------------
 FORCE_FAIL = os.environ.get('MYSOLVER_REPLICA_FORCE_FAIL', '')
 
+# Phase38(ステップA): run_order() 内の planner.plan 呼び出しに掛ける壁時計安全弁。
+# 環境変数化(既定値は6.0のまま不変)。agent.py の POLICY_HARD_WALL と同じ性質の値。
+RUN_ORDER_HARD_WALL = float(os.environ.get('MYSOLVER_REPLICA_RUN_ORDER_HARD_WALL', '6.0'))
+
 # ---------------------------------------------------------------------------
 # Phase37(ステップ0-1): n=4(evaluate()内の実行時例外)がメモリ(RLIMIT_AS)由来かを
 # 切り分けるためのテレメトリ。**既定無効**(MYSOLVER_REPLICA_VMLOG=1で有効)。
@@ -252,7 +256,7 @@ class ReplicaEvaluator:
 
     # -- 評価 -----------------------------------------------------------
     def run_order(self, all_item_infos: list[dict], order: list[int],
-                  policy_budget: float = 5.5, hard_wall: float = 6.0,
+                  policy_budget: float = 5.5, hard_wall: float = RUN_ORDER_HARD_WALL,
                   deadline: float | None = None, compute_composite: bool = False) -> dict | None:
         """order を実際に走らせて fill(+ compute_composite指定時は5成分の合成スコア)を返す。
         deadline(壁時計)を超えたら None。"""

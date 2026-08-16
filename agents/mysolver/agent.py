@@ -14,7 +14,8 @@ POLICY_TIME_BUDGET = 5.5
 # 本フェーズの制約(policy<7s)を絶対に踏まないため、非常用の壁時計チェックを必ず残す。
 # 較正が想定より甘い(実機がこの環境より遅い)場合はここが発火して決定性は失われるが、
 # タイムアウトによるエピソード即死のほうが遥かに損失が大きい。
-POLICY_HARD_WALL = 6.0
+# Phase38(ステップA): 環境変数化(既定値は6.0のまま不変)。
+POLICY_HARD_WALL = float(os.environ.get('MYSOLVER_POLICY_HARD_WALL', '6.0'))
 
 # 開発中の反復を速くするための環境変数。未設定なら本番想定の ordering.DEFAULT_TIME_BUDGET
 # (165s、180sタイムアウトに対する安全マージン込み)を使う。最終計測時は未設定のまま
@@ -22,15 +23,27 @@ POLICY_HARD_WALL = 6.0
 OPTIMIZE_BUDGET_ENV = 'MYSOLVER_OPTIMIZE_BUDGET'
 
 # ---------------------------------------------------------------------------
-# Phase38(ステップ1-B): 「取り置き(REPLICA_RESERVE_S)が構築を壁時計締切で
-# 実際に打ち切ったか」を、採点に使われない policy の壁時計へ1ビットだけ符号化する。
-# ordering.build_order() が(use_replica=True のシーンで)construction の
-# hard_deadline(=start+HARD_WALL_LIMIT-reserve_s、Phase37 の実測ではこの項が常に
-# min() の勝者)に実際に到達していれば ordering.LAST_BUILD_WALL_CUT=True になる。
-# 最初の policy() 呼び出し1回だけをこれで埋める(余裕は8.0-6.7=1.3sしかない)。
-# 既定無効(MYSOLVER_TELEMETRY=0)時は分岐にすら入らないため本番経路への影響はゼロ。
-POLICY_TELEMETRY_WALLCUT_S = float(os.environ.get('MYSOLVER_TELEMETRY_POLICY_WALLCUT_S', '6.7'))
-POLICY_TELEMETRY_NORMAL_S = float(os.environ.get('MYSOLVER_TELEMETRY_POLICY_NORMAL_S', '6.2'))
+# Phase38(ステップB): policy の壁時計を2値(1-B)から4値に拡張する。
+#
+# 1-Bの2値(6.2s/6.7s)は「取り置きが構築を打ち切ったか」だけを符号化していたが、
+# n=4帯(162.00s〜)がPhase37のn=6/7帯(161.0s/161.5s)より上にあるため、
+# `optimization`は全シーンのmaxしか報告されず、n=4が出ているシーンがあると
+# n=6/7(=ρ-testが完走したシーン)がmaxの陰に隠れて読めなくなってしまう
+# (背景の問題1)。policyは別チャネルなので、ここに「どこかのシーンでρ-testが
+# 完走したか」を独立して符号化しておけば、optimizationでn=4しか見えない状況でも
+# 「ρ-testが機能しているか」だけは判別できる。
+#
+#   T_policy = 6.20 + 0.15 × (2·any_success + wall_cut)   → 6.20/6.35/6.50/6.65
+#
+#   any_success = そのシーンで複製評価が完走したか(ordering.LAST_ANY_SUCCESS、
+#                 Phase37テレメトリのn=6/n=7に相当。「効いたか」ではなく「動いたか」)
+#   wall_cut    = 取り置きが構築を壁時計締切で実際に打ち切ったか(1-Bと同じ、
+#                 ordering.LAST_BUILD_WALL_CUT)
+#
+# policy_timeout=8.0sに対し最大6.65sで余裕1.35s。最初のpolicy()呼び出し1回だけに
+# 限定する(1-Bと同じ制約)。既定無効(MYSOLVER_TELEMETRY=0)時は分岐にすら入らない。
+POLICY_TELEMETRY_BASE_S = float(os.environ.get('MYSOLVER_TELEMETRY_POLICY_BASE_S', '6.20'))
+POLICY_TELEMETRY_STEP_S = float(os.environ.get('MYSOLVER_TELEMETRY_POLICY_STEP_S', '0.15'))
 
 
 class Agent:
@@ -110,7 +123,9 @@ class Agent:
         if ordering.MYSOLVER_TELEMETRY and not self._policy_telemetry_done:
             self._policy_telemetry_done = True
             wall_cut = bool(getattr(ordering, 'LAST_BUILD_WALL_CUT', False))
-            target = POLICY_TELEMETRY_WALLCUT_S if wall_cut else POLICY_TELEMETRY_NORMAL_S
+            any_success = bool(getattr(ordering, 'LAST_ANY_SUCCESS', False))
+            code = 2 * int(any_success) + int(wall_cut)
+            target = POLICY_TELEMETRY_BASE_S + POLICY_TELEMETRY_STEP_S * code
             target_t = t0 + target
             while time.perf_counter() < target_t:
                 time.sleep(0.01)

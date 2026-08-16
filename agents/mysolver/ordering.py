@@ -102,10 +102,13 @@ WINDOW_CANDIDATES = [15, 20, 25, 30, None]
 # 本環境より遅いマシンでは同じユニット数の消化に時間がかかるが、その場合でもこの安全弁が
 # 発火するまでは最後まで決定的に探索しきる(=マシン速度に依らず同じ順序を返す)。
 # 逆に本環境より速いマシンでは同じ探索を短時間で終える(安全側)。
-HARD_WALL_LIMIT = 165.0
+# Phase38(ステップA): 環境変数化(既定値は165.0のまま不変)。ローカル計測を壁時計非拘束
+# (MYSOLVER_HARD_WALL_LIMIT=3000)で行うため。165.0は提出時のみ使う値。
+HARD_WALL_LIMIT = float(os.environ.get('MYSOLVER_HARD_WALL_LIMIT', '165.0'))
 # time_budget を短く指定した開発時(--optimize-budget 30 等)にも比例した安全弁を掛ける。
 # 較正誤差(実効速度が想定の 1/1.4 まで落ちる)まではユニット予算を使い切れる余裕になる。
-HARD_WALL_FACTOR = 1.4
+# Phase38(ステップA): 環境変数化(既定値は1.4のまま不変)。
+HARD_WALL_FACTOR = float(os.environ.get('MYSOLVER_HARD_WALL_FACTOR', '1.4'))
 
 
 def _volume_of(item: dict) -> float:
@@ -469,6 +472,11 @@ REPLICA_STATS: dict = {}
 # build_order() の末尾で更新する。agent.py の policy() が読み、最初の呼び出し1回だけの
 # 壁時計にこの1ビットを符号化する(採点非依存のテレメトリ、MYSOLVER_TELEMETRY=0では不使用)。
 LAST_BUILD_WALL_CUT: bool = False
+# Phase38(ステップB): このシーンで複製評価が「完走」したか(stopped=='done'、
+# すなわちPhase37テレメトリのn=6/n=7に相当)。n=6は勝者不変・n=7は勝者変更のどちらも
+# 含む——ここで知りたいのは「ρ-test機構が最後まで動いたか」であって「効いたか」ではない
+# (動いてすらいなければ MYSOLVER_REPLICA_METRIC=composite への切替は無意味になる)。
+LAST_ANY_SUCCESS: bool = False
 
 # ---------------------------------------------------------------------------
 # Phase37(ステップ0): 採点に一切影響しないテレメトリ。
@@ -1214,6 +1222,8 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             _telem_n = 5
         elif stopped == 'done':
             _telem_n = 7 if REPLICA_STATS.get('changed') else 6
+        global LAST_ANY_SUCCESS
+        LAST_ANY_SUCCESS = (stopped == 'done')
         elapsed = time.perf_counter() - start
         padded = elapsed > TELEMETRY_MIN_ELAPSED_S
         if padded:
