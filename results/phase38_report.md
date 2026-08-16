@@ -345,3 +345,70 @@ tar czf results_archive_phase12-36.tar.gz results/
 判定は次回提出の`optimization`実測値(162.00〜165.15sの帯、zip内では155.0天井のため
 自然値との衝突は解消)と`policy`実測値(6.20/6.35/6.50/6.65のいずれか)が返ってきてから
 行う。
+
+### ステップG: 移行前の最終確認
+
+**G-1(未コミット確認)**: `git status --porcelain --untracked-files=all` で残っていたのは
+`results/`配下の既存方針どおり未追跡の98件(ステップEでアーカイブ済み)のみ。
+`tools/local_eval.py`・`tools/phase37_kcount.py`はいずれも既に追跡済みであることを確認した
+(`git ls-files tools/`)。
+
+**G-2(tag push)**: `submit-53.64`・`best-51.30`の2タグは既にリモートへpush済みだった
+(`git push origin --tags`は "Everything up-to-date")。`git ls-remote --tags origin`で
+両タグの存在を確認。
+
+**G-3(環境スナップショット)**: `env_snapshot.txt`を生成しコミット・push済み。
+
+| 項目 | 値 |
+|---|---|
+| Python | 3.12.1 |
+| numpy | 2.5.1(BLAS: scipy-openblas 0.3.33.112.0、OpenBLAS Haswell構成) |
+| scipy | 1.18.0 |
+| pybullet | 3.2.7(API version 202010061) |
+| gymnasium | 1.2.3 |
+| pillow | 10.3.0 |
+| CPU | AMD EPYC 7763(2 vCPU) |
+| メモリ | 7GB |
+
+**G-4(Linux専用コード監査)**: `agents/mysolver/`・`tools/`を`/proc/`・`resource.`・
+`os.uname`・`platform.system`で走査した結果:
+
+| 箇所 | 内容 | 判定 |
+|---|---|---|
+| `agents/mysolver/replica.py:119`(`_vmlog`) | `/proc/self/status`読み取り(VMLOG診断、既定無効) | **既にtry/except Exceptionで保護済み**。macOSで`MYSOLVER_REPLICA_VMLOG=1`を誤って有効化しても`FileNotFoundError`(OSErrorのサブクラス)は捕捉され「read failed」と出力されるだけでクラッシュしない。コード変更は不要と判断した |
+| `tools/phase36_fallback.py:79` | `resource.getrusage(RUSAGE_SELF)` | `resource`モジュール・`RUSAGE_SELF`はmacOSでも標準サポート(POSIX)のため非該当 |
+| `src/ground_handling/runner.py`(非追跡・変更禁止) | `resource.setrlimit(RLIMIT_AS, ...)` | macOSはRLIMIT_ASを実質的に強制しないことは既知(Phase38ステップ0の前提)だが、`setrlimit`呼び出し自体が例外を投げるかは未検証。投げた場合`except ImportError`では捕まらず子プロセスが即死する。**src/は変更しない方針のため対応不可**、`docs/migration_to_mac.md`に既知リスクとして記載した |
+
+コード変更が発生しなかったため(#1は既存実装で十分、#2は非該当、#3は対応不可の既知リスク)、
+決定的8シーンの再検証は実施していない(変更が無いため差分が生じようがない)。
+
+**G-5(クリーンクローン検証)— 最重要**: `/tmp`に`git clone`(HTTPS)し、`python3 -m venv`で
+新規venvを作り、`env_snapshot.txt`記載のバージョンでnumpy/scipy/pybullet/gymnasium/pillowを
+インストールした。`configs/gen/`に33ファイル(suite_*.json 26 + gen_*.json 7)、`results/`に
+101ファイルが展開されていることを確認。
+
+```
+MYSOLVER_HARD_WALL_LIMIT=3000 MYSOLVER_REPLICA_SELECT=0 MYSOLVER_UNITS_PER_SEC=2.00e7 \
+  PYTHONPATH=. python tools/measure_regime.py --config-path 'configs/gen/suite_A0[123]*.json' \
+  --module-path agents/mysolver/ --repeats 1 --out results/clonetest.json --label clonetest
+```
+
+| シーン | fill_strict(元ワークツリー) | fill_strict(クローン) | composite_strict(元) | composite_strict(クローン) |
+|---|---:|---:|---:|---:|
+| A01 | 18.486710002755192 | 18.486710002755192 | 71.25077168460618 | 71.25077168460618 |
+| A02 | 30.319506131307005 | 30.319506131307005 | 70.43764588357263 | 70.43764588357263 |
+| A03 | 17.78497195156464 | 17.78497195156464 | 67.8534538610327 | 67.8534538610327 |
+
+**3シーンとも浮動小数点まで完全一致**。ImportError/FileNotFoundErrorは一切発生しなかった
+(=push漏れなし)。これはG-5の要求(fill_strict/composite_strictの一致確認)を満たすと
+同時に、**ステップDの仮説(壁時計非拘束条件下では決定性が回復する)の独立した追加根拠**
+にもなっている——元ワークツリーとクリーンクローンは別プロセス・別venv・別時刻の実行
+だが、`MYSOLVER_HARD_WALL_LIMIT=3000`のもとでは`hard_deadline`が一度も律速せず、
+ユニット予算だけで結果が決まるため完全再現した。検証後、クローンは削除した
+(ディスク使用量: `/tmp`は44GB中3.2GB使用、影響なし)。
+
+**G-6(移行手順書)**: [`docs/migration_to_mac.md`](../docs/migration_to_mac.md) を作成した。
+clone手順・venv構築・3本のデスクトップスクリプト(`scripts/bp_check.sh` /
+`scripts/bp_ab.sh` / `scripts/bp_push.sh`、いずれも新規作成し`bash -n`で構文確認済み)・
+移行チェックの期待値(ステップCの表)・壁時計非拘束の恒久ルール・resultsアーカイブの
+展開方法・Codespacesスペック・既知のMac固有リスク(G-4の#3)を記載している。
