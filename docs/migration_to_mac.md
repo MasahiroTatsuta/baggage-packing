@@ -141,14 +141,24 @@ tar xzf results_archive_phase12-36.tar.gz
 
 ---
 
-## 8. 既知のリスク(Mac固有・未検証)
+## 8. 既知のリスク(Mac固有)
 
-- `src/ground_handling/runner.py`(評価基盤側、非追跡・変更禁止)が子プロセスに
-  `resource.setrlimit(resource.RLIMIT_AS, ...)` を課す。**macOSはRLIMIT_ASを実質的に
-  強制しない**ことがPhase38ステップ0の前提として既に分かっているが、`setrlimit`
-  呼び出し自体が例外を投げるかは未検証(投げても`except ImportError`では捕まらない
-  ため、投げた場合は子プロセスが即死する)。Mac初回実行時にget_init_states/optimizeが
-  原因不明で失敗したら、まずこれを疑うこと。
+- `src/`(agents/mysolver・toolsを除く評価基盤側)は本番評価基盤の写しであり、
+  **Linux側の挙動を変える修正は禁止。** ただしmacOS固有の実行不能問題に対しては、
+  **Darwin限定かつLinuxではno-opとなる形の修正のみ許容する。** 該当箇所は必ず
+  単独コミットにし、このセクションに一覧で記録すること。
+  - `src/ground_handling/runner.py`: `resource.setrlimit(resource.RLIMIT_AS, ...)`が
+    子プロセス起動時に呼ばれる。macOSはdyld共有キャッシュ等が起動時から広大な
+    仮想アドレス空間を予約するため、RLIMIT_ASを16GB未満に設定しようとすると
+    `ValueError: current limit exceeds maximum limit`で失敗する(Phase38ステップG
+    Mac側で実機確認、0.5GB〜16GBはすべて失敗・100GBはOK)。既定の`max_mem=4`は
+    この範囲に収まるため、パッチ前は子プロセスが起動直後に`ValueError`未捕捉で
+    即死していた(`except ImportError`はValueErrorを捕まえない)。
+    **Darwin限定でValueErrorも握りつぶすよう修正済み**(Linux側は従来どおり例外を
+    送出し、挙動はバイト単位で不変)。影響がないことの裏付け: Phase38 §0.3の
+    VmPeak実測は最大265MBで、4GB制限はLinuxでも一度もbindingしていない。
+  - `注記`: 本ファイルはgit追跡されている(過去の「非追跡」という記述は誤り)。
+    「変更禁止」の趣旨はLinux側の挙動保持であり、Darwin限定no-op修正は対象外。
 - `agents/mysolver/replica.py` の `MYSOLVER_REPLICA_VMLOG=1`(VA診断、既定無効)は
   `/proc/self/status` を読むが、`try/except Exception` で既に保護されており、
   macOSで有効化しても例外は握りつぶされて「read failed」と表示されるだけで
