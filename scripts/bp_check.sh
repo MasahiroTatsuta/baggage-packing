@@ -5,7 +5,12 @@
 # (hard_deadline が真の壁時計に依存するため、競合下では同一コードでも結果が振れる。
 #  Phase38 ステップD参照)。
 set -euo pipefail
-cd "$(dirname "$0")/.."
+
+# --- 安全弁 (Phase38: 誤ったリポジトリ/親ディレクトリの.gitを拾って計測する事故の防止) ---
+cd ~/Desktop/baggage-packing
+[ -d .git ] || { echo "FATAL: .git がありません(親ディレクトリの git を拾う危険)" >&2; exit 1; }
+git rev-parse --show-toplevel | grep -q "baggage-packing$" || { echo "FATAL: リポジトリルートが不正" >&2; exit 1; }
+git remote get-url origin | grep -q "MasahiroTatsuta/baggage-packing" || { echo "FATAL: remote が不正" >&2; exit 1; }
 
 echo "== 1. 決定的8シーン(B01-B04, P04, A01-A03)の build_order 出力を確認 =="
 MYSOLVER_HARD_WALL_LIMIT=3000 PYTHONPATH=. .venv/bin/python - <<'PY'

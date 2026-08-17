@@ -7,7 +7,13 @@
 #   例: bash scripts/bp_push.sh "phase39: ..." results/phase39_report.md \
 #         results/phase39_baseline.json agents/mysolver/ordering.py
 set -euo pipefail
-cd "$(dirname "$0")/.."
+
+# --- 安全弁 (Phase38: ホームディレクトリの無関係な~/.gitを拾って
+#     ~/.ssh等を誤pushした事故の再発防止。git操作より前に必ず通すこと) ---
+cd ~/Desktop/baggage-packing
+[ -d .git ] || { echo "FATAL: .git がありません(親ディレクトリの git を拾う危険)" >&2; exit 1; }
+git rev-parse --show-toplevel | grep -q "baggage-packing$" || { echo "FATAL: リポジトリルートが不正" >&2; exit 1; }
+git remote get-url origin | grep -q "MasahiroTatsuta/baggage-packing" || { echo "FATAL: remote が不正" >&2; exit 1; }
 
 MSG="${1:?usage: bp_push.sh \"<commit message>\" <file1> [file2 ...]}"
 shift

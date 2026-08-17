@@ -6,7 +6,12 @@
 # 既存の採否基準(t>2 かつ悪化シーン少数)に従って判断すること。実行順はoff→onの逐次
 # (並行実行しない。理由はbp_check.sh冒頭コメント参照)。
 set -euo pipefail
-cd "$(dirname "$0")/.."
+
+# --- 安全弁 (Phase38: 誤ったリポジトリ/親ディレクトリの.gitを拾って計測する事故の防止) ---
+cd ~/Desktop/baggage-packing
+[ -d .git ] || { echo "FATAL: .git がありません(親ディレクトリの git を拾う危険)" >&2; exit 1; }
+git rev-parse --show-toplevel | grep -q "baggage-packing$" || { echo "FATAL: リポジトリルートが不正" >&2; exit 1; }
+git remote get-url origin | grep -q "MasahiroTatsuta/baggage-packing" || { echo "FATAL: remote が不正" >&2; exit 1; }
 
 LABEL="${1:?usage: bp_ab.sh <label> [\"ENV1=V1 ENV2=V2\"]}"
 EXTRA_ENV="${2:-}"
