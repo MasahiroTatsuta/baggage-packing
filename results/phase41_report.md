@@ -335,3 +335,118 @@ Phase41コミット済み版(`de9e403`)と現在の作業ツリーで `build_ord
   `status` 判定に置き換え、data_error を候補単位ラッチへ)
 - `results/bp_ab_phase42_latch_fix_off.json` / `results/bp_ab_phase42_latch_fix_on.json`(3-3の実測)
 - `results/phase41_report.md`(本ファイル、Phase42追記)
+
+---
+---
+
+# Phase43 追記: 提出まとめ
+
+## 0. 目的
+
+Phase42(replica.pyの防御的書き直し + 候補単位ラッチの復活)が本番の実行時エラー
+(n=4、a=0で1候補目から失敗)を解消するかを確認する。**ローカル26シーンには欠損データが
+無いため(Phase42 §3-3で確認済み)、この効果はローカルでは検証できず、本番提出でのみ
+判定できる。**
+
+## ステップ1: 提出用zip
+
+### 1-1〜1-2. 生成
+
+診断用の仕掛けは追加せず、リポジトリの現状(Phase42コミット `be66351`)をそのまま
+`agents/mysolver/` から zip 化した(`cd agents && zip -r ../submissions/mysolver_submit_phase42.zip ./mysolver -x '*__pycache__*' -x '*.pyc'`。既存の `submissions/mysolver_submit_phase38_probe.zip` と同じ
+「`mysolver/` 直下に10個の.pyファイル」という構造を再現)。
+
+- **出力先**: `submissions/mysolver_submit_phase42.zip`
+- **SHA256**: `5bd659e0c9036541e69d6ec620cfd5afa82804603b1ff2d960cd7b8973b064af`
+
+### 1-4. 環境変数の既定値(zip内 `mysolver/ordering.py` を直接grep)
+
+```
+$ unzip -p submissions/mysolver_submit_phase42.zip mysolver/ordering.py | grep "os.environ.get('MYSOLVER_TELEMETRY'\|...HARD_WALL_LIMIT'\|...REPLICA_SELECT'\|...REPLICA_METRIC'\|...REPLICA_LATCH_MODE'"
+HARD_WALL_LIMIT = float(os.environ.get('MYSOLVER_HARD_WALL_LIMIT', '165.0'))
+REPLICA_SELECT = os.environ.get('MYSOLVER_REPLICA_SELECT', '1') == '1'
+MYSOLVER_TELEMETRY = os.environ.get('MYSOLVER_TELEMETRY', '0') == '1'
+REPLICA_METRIC = os.environ.get('MYSOLVER_REPLICA_METRIC', 'fill')
+REPLICA_LATCH_MODE = os.environ.get('MYSOLVER_REPLICA_LATCH_MODE', 'per_candidate')
+```
+
+5項目とも指示どおりの既定値(TELEMETRY='0'、HARD_WALL_LIMIT='165.0'、REPLICA_SELECT='1'、
+REPLICA_METRIC='fill'、REPLICA_LATCH_MODE='per_candidate')。診断用の仕掛け(FORCE_FAIL等)は
+そもそも既定で空文字・無効化されており、今回コードも変更していない。
+
+### 1-3. zip内コードとリポジトリのビット単位一致(8/8)
+
+zipを別ディレクトリへ展開し、`sys.path` に展開先の親ディレクトリとリポジトリルートの
+両方を通して `mysolver.ordering`(zip版)と `agents.mysolver.ordering`(リポジトリ版)を
+別々のパッケージとして同一プロセスに import し、決定的8シーンの `build_order()` 出力を
+比較した。
+
+```
+[B01] repo_n=40 zip_n=40 OK 完全一致
+[B02] repo_n=40 zip_n=40 OK 完全一致
+[B03] repo_n=80 zip_n=80 OK 完全一致
+[B04] repo_n=80 zip_n=80 OK 完全一致
+[P04] repo_n=34 zip_n=34 OK 完全一致
+[A01] repo_n=40 zip_n=40 OK 完全一致
+[A02] repo_n=80 zip_n=80 OK 完全一致
+[A03] repo_n=40 zip_n=40 OK 完全一致
+```
+
+**8/8 完全一致**(順序の長さだけでなく `build_order()` の返り値そのものを `==` 比較、
+先頭要素だけでなく全長一致)。
+
+**アップロード時は必ずこのSHA256(`5bd659e...b064af`)と照合すること**
+(Phase37で別のzipを誤ってアップロードした事例があるため)。
+
+---
+
+## ステップ2: 判定基準(次回提出結果を見るときのために先出し)
+
+提出後の `fill_score` を見て判断する。**判定は fill_score の1点で足りる。**
+
+- `fill_score` が **`38.09476291926298` から動いた** →
+  ρ-testが本番で動き出した。Phase35以降はじめての前進。次は
+  `MYSOLVER_REPLICA_METRIC=composite` の提出を検討する(ローカル26シーンA/Bで
+  t=2.424・悪化0件を確認済み、詳細はPhase37/38報告参照)。
+- `fill_score` が **`38.09476291926298` のまま13桁一致** →
+  まだ失敗している。原因は観測データの欠損ではなかったことになる。その場合は
+  `REPLICA_STATS` の `_last_error`(またはordering.py側の `exc_class`/`exc_code`)に
+  本番で何が入るかを読む手段が無いと切り分けが進まないため、方法を改めて相談する。
+
+---
+
+## ステップ3: 検証スクリプトのリポジトリ化
+
+Phase41 §3-1(13ケース)・Phase42 §3-1(14ケース)・Phase42 §1-3(ラッチ動作検証)は
+いずれもセッションのスクラッチパッドに置かれておりリポジトリに残っていなかった。
+次に replica.py / ordering.py を触るときの回帰テストとして `tools/` 配下に置いた:
+
+- **`tools/test_replica_missing_keys.py`**(Phase41 §3-1 + Phase42 §3-1 相当、14ケース):
+  観測データから必須キー/代替可能キーを1つずつ削り、`ReplicaEvaluator.evaluate()` が
+  `('data_error', 例外)` / `('ok', dict)` を正しく返し分けることを確認する。
+
+  ```
+  MYSOLVER_HARD_WALL_LIMIT=3000 PYTHONPATH=. python tools/test_replica_missing_keys.py
+  ```
+
+- **`tools/test_replica_latch.py`**(Phase42 §1-3 相当、3〜4ケース):
+  `ordering.build_order()` の `_replica_mod` をフェイクの `ReplicaEvaluator` に
+  差し替え、`data_error`(候補単位ラッチ)と `deadline`(即ラッチ)が正しく区別され、
+  「1候補目失敗→2候補目以降が実際に評価される」ことを確認する。
+
+  ```
+  MYSOLVER_HARD_WALL_LIMIT=3000 PYTHONPATH=. python tools/test_replica_latch.py
+  ```
+
+いずれも終了コード0=全ケースOK、副作用なし(results/には書かない)。リポジトリルートで
+実行すること(`sys.path.insert(0, '.')` を前提にしている、他の `tools/` 配下のスクリプトと
+同じ流儀)。
+
+---
+
+## 4. 変更ファイル(Phase43時点)
+
+- `submissions/mysolver_submit_phase42.zip`(提出用zip、診断用仕掛けなし)
+- `tools/test_replica_missing_keys.py`(Phase41/42のキー欠損テストをリポジトリ化)
+- `tools/test_replica_latch.py`(Phase42のラッチ動作テストをリポジトリ化)
+- `results/phase41_report.md`(本ファイル、Phase43追記)
