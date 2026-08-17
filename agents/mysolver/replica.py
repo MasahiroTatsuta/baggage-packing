@@ -191,7 +191,23 @@ def preflight() -> bool:
 
 
 class ReplicaEvaluator:
-    """container_list から本物と同じ環境を組み直し、順序を実際に走らせて fill を返す。"""
+    """container_list から本物と同じ環境を組み直し、順序を実際に走らせて fill を返す。
+
+    Phase42(ステップ1): `evaluate()`/`run_order()` は `dict | None` ではなく
+    `(status, payload)` の2値タプルを返す。`status` は次の3種類:
+      - 'ok':         payload は結果 dict(fill 等)。
+      - 'deadline':    壁時計 deadline 超過。payload は None。
+      - 'data_error':  観測データの必須キー欠損・型異常(KeyError/TypeError/
+                       AttributeError/IndexError)。payload はその**原因例外そのもの**。
+
+    Phase41 では両方とも単に None を返していたため、呼び出し側(ordering.py)が
+    「壁時計超過」専用に設計していた `got is None:` 分岐と衝突し、観測データ欠損時に
+    1候補目で即シーン全体をラッチする(Phase38の候補単位ラッチが効かない)という
+    退行を生んでいた(Phase41報告 §4)。payload に原因例外そのものを載せるのは、
+    ordering.py が `_classify_exception()` にそのまま渡せば Phase38 の
+    exc_class/exc_a/exc_b/exc_code 符号化(壁時計テレメトリの n=4 埋め込み)を
+    一切変更せずに再利用できるため(=例外を投げていた頃と全く同じ分類結果になる)。
+    """
 
     def __init__(self, container_list: list[dict], lookahead_k: int, prepacked_ids=None):
         self.given = container_list
@@ -200,6 +216,9 @@ class ReplicaEvaluator:
         self.client = None
         self.cm = None
         self._eval_calls = 0  # Phase38(ステップ1-D検証用): FORCE_FAIL_AFTER のカウンタ
+        # Phase42: _containers_config()/reset() が自前で捕捉した例外を一時保持する
+        # サイドチャネル。evaluate() が ('data_error', self._last_error) を組み立てる時に読む。
+        self._last_error: Exception | None = None
 
     # -- 生成/破棄 ------------------------------------------------------
     def open(self):
@@ -224,12 +243,28 @@ class ReplicaEvaluator:
         self.close()
 
     # -- 環境構築 -------------------------------------------------------
-    # Phase41: 観測(container_list)の未知の欠損に対して恒久的に頑健にする。
+    # Phase41/42: 観測(container_list)の未知の欠損に対して恒久的に頑健にする。
     # 必須キー(index/thickness/length/width/height/center。center は offset_x
     # 復元とbuffer計算の二重役割を持ち、対応するデータクラス既定値が無いため必須扱い)が
     # 欠けている・型が壊れている場合は例外を投げず None を返す(この候補は評価を諦める)。
-    # 代替可能なキー(cut_x/cut_y/shelf/is_prioritized)は Container のフィールド既定値
-    # (items.py/containers.py 参照)で埋める。勝手な値を作らない。
+    #
+    # Phase42(ステップ2): cut_x/cut_y/shelf を「代替可」から「必須」に格下げした。
+    # 理由(Phase41 §3-1 で発覚): cut_x 欠損時に既定値0.3で継続すると fill=15.45
+    # (実測28.17)という**別人の値**を返しており、これは選択則がその値のargmaxを取る
+    # 以上クラッシュより悪い。再点検の結果 shelf も同じ危険を持つと判明した ——
+    # `Container.volume`(containers.py)は require_shelf 次第で shelf_volume 分だけ
+    # 変わり、その `volume` は `Evaluator.calculate_fill_rate()` の
+    # `total_container_volume`(fillの分母)に直接使われる(evaluator.py)。さらに
+    # shelf_bullet_id/small_shelf_bullet_id は質量0の物理ボディとして実際に生成され
+    # 配置判定を物理的にも変える。つまり shelf は cut_x/cut_y と同じ「幾何が変わり
+    # fillの値そのものが変わる」キーであり、代替可のままにしてはいけない。
+    # 判定基準「そのキーが幾何・質量・物理係数に影響するか」の再点検結果は
+    # results/phase41_report.md(Phase42転記後)のステップ2節に一覧化した。
+    #
+    # is_prioritized は containers.py 内で Container.create()/volume 計算のどこにも
+    # 使われておらず(get_item_info_in_containers()での書き出し以外に参照なし)、
+    # 幾何・質量・物理係数への影響が無いため代替可のまま(Container.is_prioritized
+    # の既定値 False で埋める)。
     def _containers_config(self) -> dict | None:
         try:
             cl = []
@@ -240,9 +275,9 @@ class ReplicaEvaluator:
                     'length': float(c['length']),
                     'width': float(c['width']),
                     'height': float(c['height']),
-                    'cut_x': float(c.get('cut_x', 0.3)),           # Container.cut_x 既定値
-                    'cut_y': float(c.get('cut_y', 0.3)),           # Container.cut_y 既定値
-                    'require_shelf': bool(c.get('shelf', False)),  # Container.require_shelf 既定値
+                    'cut_x': float(c['cut_x']),
+                    'cut_y': float(c['cut_y']),
+                    'require_shelf': bool(c['shelf']),
                     'is_prioritized': bool(c.get('is_prioritized', False)),  # Container.is_prioritized 既定値
                     'buffer': float(c['center'][2]) - float(c['height']) / 2.0,
                     'packed_items': [dict(it) for it in c.get('packed_items', [])],
@@ -250,14 +285,16 @@ class ReplicaEvaluator:
             offs = [float(c['center'][0]) for c in self.given]
             spacing = (offs[1] - offs[0]) if len(offs) > 1 else 0.0
             return {'spacing': spacing, 'container_list': cl}
-        except (KeyError, TypeError, AttributeError, IndexError):
+        except (KeyError, TypeError, AttributeError, IndexError) as e:
+            self._last_error = e
             return None
 
     def reset(self) -> bool:
         """毎回まっさらな状態から組み直す(前の候補の配置を持ち越さない)。
 
         観測データの必須キー欠損・型異常があれば例外を投げず False を返す
-        (この候補は評価を諦める。呼び出し側は evaluate() 経由で None を受け取る)。
+        (この候補は評価を諦める。原因例外は self._last_error に残す。
+        呼び出し側は evaluate() 経由で ('data_error', 原因例外) を受け取る)。
         """
         try:
             cfg = self._containers_config()
@@ -271,26 +308,31 @@ class ReplicaEvaluator:
             self.cm.build()
             self.validator = PlacementValidator(client=self.client, config=dict(ASSUMED_VALIDATOR))
             return True
-        except (KeyError, TypeError, AttributeError, IndexError):
+        except (KeyError, TypeError, AttributeError, IndexError) as e:
+            self._last_error = e
             return False
 
     # -- 評価 -----------------------------------------------------------
     def run_order(self, all_item_infos: list[dict], order: list[int],
                   policy_budget: float = 5.5, hard_wall: float = RUN_ORDER_HARD_WALL,
-                  deadline: float | None = None, compute_composite: bool = False) -> dict | None:
+                  deadline: float | None = None,
+                  compute_composite: bool = False) -> tuple[str, dict | Exception | None]:
         """order を実際に走らせて fill(+ compute_composite指定時は5成分の合成スコア)を返す。
-        deadline(壁時計)を超えたら None。
+
+        戻り値は (status, payload) のタプル(Phase42、クラス docstring 参照)。
+        'ok' の payload は結果 dict、'deadline' の payload は None、
+        'data_error' の payload は原因例外。
 
         Phase41: item info の未知の欠損(必須キー欠損・型異常)に対しても例外を投げず
-        None を返す(この候補は評価を諦める。self.cm/self.client 自体には触れないので
+        data_error を返す(この候補は評価を諦める。self.cm/self.client 自体には触れないので
         次の候補の reset() は影響を受けない)。
         """
         try:
             by_idx = {int(it['index']): it for it in all_item_infos}
             try:
                 stream = [by_idx[i] for i in order]
-            except KeyError:
-                return None
+            except KeyError as e:
+                return ('data_error', e)
             cursor = 0
             pool: list[Item] = []
             while len(pool) < self.lookahead_k and cursor < len(stream):
@@ -299,7 +341,7 @@ class ReplicaEvaluator:
 
             while pool:
                 if deadline is not None and time.perf_counter() > deadline:
-                    return None          # 時間切れ: この候補は「評価できなかった」扱い
+                    return ('deadline', None)   # 時間切れ: この候補は「評価できなかった」扱い
                 action = planner.plan(self.cm.get_item_info_in_containers(),
                                       [it.get_info() for it in pool],
                                       time_budget=policy_budget,
@@ -358,26 +400,34 @@ class ReplicaEvaluator:
                         extra['placement_score'], extra['soft_item_score'])
                 except Exception:
                     pass
-            return result
-        except (KeyError, TypeError, AttributeError, IndexError):
-            return None
+            return ('ok', result)
+        except (KeyError, TypeError, AttributeError, IndexError) as e:
+            return ('data_error', e)
 
-    def evaluate(self, all_item_infos, order, deadline=None, compute_composite=False):
+    def evaluate(self, all_item_infos, order, deadline=None,
+                 compute_composite=False) -> tuple[str, dict | Exception | None]:
+        """戻り値は (status, payload) のタプル(Phase42、クラス docstring 参照)。"""
         if FORCE_FAIL == 'runtime':
             if self._eval_calls >= FORCE_FAIL_AFTER:
                 exc_cls = _FORCE_EXC_MAP.get(FORCE_FAIL_EXC, RuntimeError)
                 self._eval_calls += 1
+                # Phase38の障害注入テスト用: 意図的にこの防御(4例外の自前クローズ)の
+                # 外側で例外を投げる。ordering.py の except Exception 経路(Phase38
+                # exc_class/a/b/exc_codeテレメトリの検証対象そのもの)を通す必要があるため、
+                # ここだけは Phase41/42 の data_error 化の対象外(タプルで包まない)。
                 raise exc_cls(f'MYSOLVER_REPLICA_FORCE_FAIL=runtime exc={FORCE_FAIL_EXC} '
                               f'after={FORCE_FAIL_AFTER} (障害注入)')
         if FORCE_FAIL == 'deadline':
-            return None          # 壁時計 deadline 超過と同じ扱い(評価できなかった)
+            return ('deadline', None)   # 壁時計 deadline 超過と同じ扱い(評価できなかった)
         self._eval_calls += 1
         try:
             if not self.reset():
-                return None      # 必須キー欠損・型異常: この候補は評価を諦める
+                # 必須キー欠損・型異常: この候補は評価を諦める。原因例外は
+                # reset()/_containers_config() が self._last_error に残している。
+                return ('data_error', self._last_error)
             return self.run_order(all_item_infos, order, deadline=deadline,
                                   compute_composite=compute_composite)
-        except (KeyError, TypeError, AttributeError, IndexError):
+        except (KeyError, TypeError, AttributeError, IndexError) as e:
             # reset()/run_order() 自体は既に自前で閉じているが、将来の変更に対する
             # 二重の安全弁として evaluate() でも同じ4例外を閉じる(2-3)。
-            return None
+            return ('data_error', e)

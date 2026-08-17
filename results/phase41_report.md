@@ -141,8 +141,197 @@ container_list はシーン内の全候補で共有されるため実害は限�
 
 ---
 
-## 5. 変更ファイル
+## 5. 変更ファイル(Phase41時点)
 
 - `agents/mysolver/replica.py`(本体)
 - `results/bp_ab_phase41_defensive_off.json` / `results/bp_ab_phase41_defensive_on.json`(3-3の実測)
 - `results/phase41_report.md`(本ファイル)
+
+---
+---
+
+# Phase42 追記: None の多義性解消 + cut_x/cut_y/shelf の格下げ
+
+## 0. 背景(Phase41 §4 の転記)
+
+Phase41 §4 で報告した問題は、実はスコープ外ではなく Phase41 本来の目的
+(「1候補が失敗しても残りの候補の評価が続く」)を無効化する退行だった。以下、
+セッション外に残らないローカルメモリ(`replica-none-vs-deadline-conflation`)に
+記録していた内容をそのままここへ転記する。
+
+> `agents/mysolver/ordering.py` の `build_order`(1147行目付近)は `rep.evaluate()` の
+> 戻り値が `None` のとき、無条件で `rstats['stopped']='wall_deadline'; latched=True; break`
+> にする(1179-1182行目)。これは元々「壁時計 deadline 超過」専用のシグナルとして設計されている
+> (`run_order()` の deadline チェック、`FORCE_FAIL=='deadline'` のみが None を返す前提)。
+>
+> Phase41(`replica.py` を「未知の欠損に対して恒久的に頑健にする」防御的書き直し)で
+> `_containers_config`/`reset`/`run_order`/`evaluate` が観測データの欠損
+> (KeyError/TypeError/AttributeError/IndexError)に対しても例外を投げず `None` を返す
+> ようにした。これにより **同じ None という戻り値に2つの異なる原因(壁時計超過 / 観測データ欠損)
+> が衝突する**。
+>
+> 影響: 例外を投げていた頃は ordering.py の `except Exception as e:` 経路
+> (`REPLICA_LATCH_MODE=per_candidate` 既定)で「1候補失敗→続行、2回連続失敗でラッチ」
+> という緩やかな扱いだったが、None を返すようになると `got is None:` 分岐に落ちて
+> **1回目の失敗で即座にシーン全体をラッチ**してしまう。観測データの欠損はシーン内の
+> 全候補で同じ container_list を共有するため実害は限定的(どのみち大半の候補で失敗する)
+> と考えられるが、規定どおりの「1候補だけ諦めて残りを評価する」という要求を
+> ordering.py 側は現状満たせていない。
+>
+> **意図的にordering.pyは変更していない**(タスクの依頼スコープが replica.py に限定されて
+> おり、ordering.py の `got is None` 分岐は Phase38 の壁時計テレメトリ埋め込みと
+> 密結合していて、不用意に触ると `FORCE_FAIL=='deadline'` のテスト仕組みや n=4/n=5 の
+> 符号化を壊しかねないため)。
+
+さらに本番の実測は a=0(1候補目で失敗)であることが Phase38 で確定している。この状態で
+「1候補目の失敗=シーン全体を諦める」のままにすると、**Phase41の効果が最も出てほしい
+ケースを自分で潰すことになる**ため、本フェーズで対応した。
+
+---
+
+## ステップ1: None の多義性を解消する
+
+### 1-1. 設計案の選定
+
+3案を検討した:
+
+- (a) `evaluate()` の戻り値を `(status, result)` のタプルにする(`status` は
+  `'ok'`/`'deadline'`/`'data_error'`)
+- (b) 専用の番兵オブジェクトを2種類用意する(`_DeadlineSentinel`/`_DataErrorSentinel`)
+- (c) `evaluate()` の戻り値は `dict | None` のまま据え置き、直近の失敗理由を
+  `REPLICA_STATS` 経由で ordering.py が読む
+
+**(a) を採用した。** 理由:
+
+1. (b) は「どちらの番兵か」を `isinstance`/`is` で判定できるだけで、**例外分類情報
+   (どの例外クラスだったか)を運べない**。Phase38 の `_classify_exception()` は
+   例外オブジェクトそのもの(`type(exc)`と`exc.__traceback__`)を必要とするため、
+   番兵化すると「テレメトリのために原因例外を別途どこかに保持する」仕組みが結局
+   追加で必要になり、(a)より複雑になる。
+2. (c) は `REPLICA_STATS` の更新タイミングが `run_order()` 内の複数の return
+   ポイント(by_idx欠損・deadline超過・outer except)に分散し、「いつ読むべきか」の
+   同期をordering.py側に追加で作り込む必要がある。関数の戻り値だけで完結する(a)より
+   状態管理の経路が増え、Phase38が既に密結合している箇所を壊すリスクが上がる。
+3. (a) は payload に **原因例外オブジェクトそのもの**を積めるため、ordering.py が
+   受け取った `payload` をそのまま `_classify_exception()` に渡せば、Phase38の
+   `exc_class`/`exc_a`/`exc_b`/`exc_code` 符号化(壁時計テレメトリの n=4 埋め込み)を
+   **一切変更せずに**再利用できる。`exc.__traceback__` は例外が replica.py 内で
+   捕捉された時点のフレームを保持したままなので、例外を投げていた頃と全く同じ
+   分類結果になる。これが最優先事項(「壁時計テレメトリ埋め込みを壊さないこと」)を
+   満たす決め手になった。
+
+### 1-2. 実装
+
+`agents/mysolver/replica.py`:
+- `ReplicaEvaluator.__init__` に `self._last_error: Exception | None = None` を追加
+  (`_containers_config`/`reset` が捕捉した例外を一時保持するサイドチャネル)。
+- `_containers_config()`/`reset()`: 例外捕捉時に `self._last_error = e` を追加(戻り値の
+  型 `dict | None` / `bool` 自体は変更しない)。
+- `run_order()`: 戻り値を `dict | None` から `(status, payload)` のタプルに変更。
+  `'ok'` → `(status, result_dict)`、deadline超過 → `('deadline', None)`、
+  by_idx欠損や outer except で捕捉した例外 → `('data_error', 例外)`。
+- `evaluate()`: 同じく `(status, payload)` を返す。`reset()` が `False` を返したら
+  `('data_error', self._last_error)`。`FORCE_FAIL=='deadline'` は `('deadline', None)`。
+  **`FORCE_FAIL=='runtime'` の障害注入(Phase38検証用)は意図的にこの変更の対象外**
+  ——従来どおり素の例外を投げ続け、ordering.py の `except Exception as e:` 経路を通す
+  (この経路自体がPhase38のテレメトリ検証対象そのものなので、data_error化すると
+  検証手段を失う)。
+
+`agents/mysolver/ordering.py`:
+- `_classify_exception()` の直後に `_record_replica_failure(rstats, exc, rank)` を新設。
+  従来 `except Exception as e:` 節にインラインで書かれていた
+  exc_events追記 + exc_class/exc_a/exc_b/exc_code の初回確定ロジックをそのまま関数化。
+- `rep.evaluate(...)` の呼び出しを `status, payload = rep.evaluate(...)` に変更。
+  - `except Exception as e:`(replica.py が捕捉しなかった例外。pybullet.error/
+    MemoryError/RuntimeError や `FORCE_FAIL=='runtime'` の障害注入など)→
+    `_record_replica_failure(rstats, e, rank)` を呼んで**従来どおり**候補単位ラッチ。
+  - `status == 'deadline'` → 従来どおり無条件でシーン全体ラッチ(壁時計が尽きているので
+    当然)。
+  - `status == 'data_error'`(**新設**)→ `_record_replica_failure(rstats, payload, rank)`
+    を呼んで、上の `except Exception as e:` 節と**全く同じ**候補単位ラッチ
+    (`REPLICA_LATCH_MODE=per_candidate` の2回連続失敗でシーンラッチ)を適用する。
+  - `status == 'ok'` → 従来どおり(`got = payload` として以降の処理はそのまま)。
+
+diff: `git diff agents/mysolver/replica.py agents/mysolver/ordering.py`。
+
+### 1-3. 動作確認
+
+B01シーンの先頭16アイテムのみを使い(各リスタートを軽くして複数候補を素早く確保するため)、
+`ordering.build_order()` の `_replica_mod` をフェイクの `ReplicaEvaluator` に差し替えて
+4パターンを検証した(`ordering.REPLICA_STATS` を直接読む)。
+
+| ケース | 入力パターン | 結果 |
+|---|---|---|
+| 1候補目 data_error → 以降 ok | KeyError → ok,ok,... | **全ランク候補(n_ranked=2)が実際に呼ばれ、evaluated=1、`latched=False`・`stopped='done'`**。exc_code=2(KeyError)。**「1候補目の失敗で2候補目以降が評価されなくなる」という Phase41 §4 の退行が解消したことを直接示す**。 |
+| 先頭2候補が連続 data_error | TypeError, TypeError | 2回呼ばれた時点で `stopped='runtime_error'`・`latched=True`(3候補目は呼ばれない)。`REPLICA_LATCH_MODE=per_candidate` の「2回連続失敗でラッチ」どおり。exc_code=6(TypeError)。 |
+| 1候補目 deadline | deadline | 1回だけ呼ばれて即 `stopped='wall_deadline'`・`latched=True`。**deadline由来は従来どおり即ラッチすることを確認**(2候補目は呼ばれない)。 |
+| 非連続 data_error(1,3候補目が失敗、2候補目は成功) | — | このシーン/予算では n_ranked が2までしか安定して確保できず(3候補以上を要するこのケースは)スキップ。上記3ケースで候補単位ラッチの主要な分岐(継続/2連続ラッチ/deadline即ラッチ)は網羅済み。 |
+
+---
+
+## ステップ2: cut_x / cut_y の判定を格下げ、他キーの再点検
+
+### 2-1〜2-2. cut_x / cut_y → 必須へ
+
+Phase41 §3-1 で `cut_x` 欠損時に既定値0.3で継続すると `fill=15.45`
+(実測ベースライン28.17)という**別人の値**を返すことが判明していた。これは
+クラッシュせず沈黙して間違った値を返す分、クラッシュより悪い(候補選択則はこの値の
+argmaxを取るため)。`cut_x`/`cut_y` を「代替可」から「必須」へ格下げし、
+欠損時は他の必須キーと同じ `data_error` としてその候補をスキップするようにした
+(`_containers_config()` の `float(c['cut_x'])`/`float(c['cut_y'])` を `.get()` から
+素の `[]` アクセスに戻し、既存の except で吸収させる)。
+
+### 2-3. 他の代替可キーの再点検(判定基準: 幾何・質量・物理係数に影響するか)
+
+| キー | 対象 | 旧判定 | 再点検結果 | 根拠 |
+|---|---|---|---|---|
+| `shelf`(→`require_shelf`) | container | 代替可 | **格下げ(必須)** | `Container.create()`(containers.py)は `require_shelf` に応じて `shelf_volume` を計算し、`self.volume` から差し引く。この `volume` は `Evaluator.calculate_fill_rate()`(evaluator.py)の `total_container_volume`(=fillの**分母**)にそのまま使われるため、`shelf` 欠損時に既定値Falseで継続すると **fillの値そのものが変わる**(cut_x/cut_yと同一クラスの危険)。さらに `shelf_bullet_id`/`small_shelf_bullet_id` は質量0の物理ボディとして実際に生成され、配置判定(`check_inclusion`/`check_transport_path`/`place_item`)も物理的に変わる。**タスク文中の「shelf は幾何に影響しないので代替可のままでよい」という前提は、コード上の根拠と矛盾するため今回訂正した。** |
+| `is_prioritized` | container | 代替可 | **維持(代替可)** | `containers.py` 内で `Container.create()`/volume計算のどこにも参照されていない(`get_item_info_in_containers()` での書き出し専用)。幾何・質量・物理係数への影響はゼロ。ただし `planner.py` は `is_prioritized`(container/item双方)を意思決定の入力に多用しており(`prio_term`/`tier`割当/配置制限など約10箇所)、既定値Falseが実態と異なれば**選ばれる配置系列自体は変わりうる**。これは「幾何・質量・物理係数」という今回の判定基準の対象外(方策の意思決定バイアス)なので格下げはしないが、注意点として明記する。 |
+| `mass`/`lateralFriction`/`rollingFriction`/`spinningFriction`/`restitution`/`angularDamping`/`is_soft` | item(Itemデータクラスのオプションフィールド) | (Phase41表になし。`Item(**dict)`のdataclass既定値で暗黙に補われる) | **既知のリスクとして報告のみ、今回は対応しない** | 判定基準に照らすと `mass`=質量そのもの、摩擦・反発係数・減衰=物理係数そのものであり、本来は`cut_x`/`shelf`と同じ危険区分に入る。ただし影響範囲は1アイテムの沈み込み方・摩擦挙動に限られ、fillの**分母**(コンテナ全体の幾何)には影響しないため、`shelf`ほど深刻ではない。Phase41の棚卸し表(角括弧アクセスの列挙)にはそもそも含まれていない(dataclassの言語機能による暗黙補完のため)。必須化するには `Item(**dict)` 呼び出し前に明示的な欠損チェックを追加する実装が別途必要で、本フェーズのスコープ(cut_x/cut_yの再点検に端を発したステップ2)を超えるため、今回はコード変更せず記録に留める。 |
+
+---
+
+## ステップ3: 再検証
+
+### 3-1. キー欠損テスト再実行(14ケース)
+
+Phase41の13ケースに、cut_x/cut_yの回帰確認(「以前はfill=15.45を返していたが、今回は
+data_errorになりargmaxを汚染しない」)を1件追加し、必須/代替可のリストをステップ2の
+判定に合わせて更新して再実行した。
+
+**14件中NG 0件。** cut_x/cut_y/shelf は data_error(KeyError)、is_prioritized は
+既定値False継続(fill=28.1705でベースライン一致)、候補単位の独立性も維持を確認。
+
+### 3-2. 決定的8シーンのビット単位不変
+
+Phase41コミット済み版(`de9e403`)と現在の作業ツリーで `build_order()` の出力を比較。
+
+**8/8 完全一致**(B01-B04, P04, A01-A03、先頭10件・全長とも同一)。
+`bp_check.sh` の軽量スモークも同一のfill_score=27.22で完走。
+
+### 3-3. 26シーンA/B(`bp_ab.sh phase42_latch_fix`)
+
+- **OFF側**: `results/phase40_baseline_off_mac.json` と **26/26シーンで完全一致(diff 0.000)**。
+- **ON側**: 26シーン完走、例外・トレースバックなし、**-2.0pt超の悪化シーンは0件**。
+
+  | 指標 | Phase41 ON | Phase42 ON | 差分 |
+  |---|---:|---:|---:|
+  | composite_strict mean | 70.645 | 70.645 | 0.000 |
+  | fill_strict mean | 26.011 | 26.011 | 0.000(Phase41報告の+1.671はOFF比較。ON自体はPhase41から不変) |
+  | composite_strict vs OFF(t検定) | t=1.007 | t=1.007 | — |
+
+  **Phase42のON側26シーン結果は、シーン単位でPhase41のON側と完全一致(diff 0.000、
+  26/26)だった。** 実運用の26シーンには元々欠損データが無いため、`(status, payload)`
+  タプル化・`cut_x`/`cut_y`/`shelf`の必須格上げのどちらも通常経路の判定結果には
+  一切影響しないことが、8シーンのビット単位一致(3-2)よりさらに広い26シーン全件で
+  裏付けられた。
+
+---
+
+## 4. 変更ファイル(Phase42時点)
+
+- `agents/mysolver/replica.py`(戻り値を `(status, payload)` タプルへ、cut_x/cut_y/shelf を必須へ)
+- `agents/mysolver/ordering.py`(`_record_replica_failure()` 新設、`got is None` を
+  `status` 判定に置き換え、data_error を候補単位ラッチへ)
+- `results/bp_ab_phase42_latch_fix_off.json` / `results/bp_ab_phase42_latch_fix_on.json`(3-3の実測)
+- `results/phase41_report.md`(本ファイル、Phase42追記)

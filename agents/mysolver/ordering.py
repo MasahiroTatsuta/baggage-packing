@@ -26,6 +26,7 @@ simulate.py の自前シミュレータ(pybullet不使用・planner.pyと同一�
 """
 import os
 import time
+import traceback
 
 import numpy as np
 
@@ -566,6 +567,41 @@ def _classify_exception(exc: Exception) -> int:
         if isinstance(exc, cls):
             return code
     return 14  # その他(rstats['exc_class'] にクラス名を残す)
+
+
+def _record_replica_failure(rstats: dict, exc: Exception | None, rank: int) -> None:
+    """1件の複製評価失敗を rstats に記録する(Phase38ステップ1-A/Phase40の共通ロジック)。
+
+    Phase42(ステップ1): 従来は `rep.evaluate()` が例外を投げたとき
+    (`except Exception as e:` 経路)にだけこの記録ロジックが必要だったが、
+    Phase41で replica.py が観測データ欠損を例外ではなく `('data_error', exc)` という
+    戻り値で伝えるようになったため、**同じ符号化ロジックを2箇所(except節と
+    data_error分岐)で重複させないための共通関数**にした。
+
+    `exc` には元の例外オブジェクトそのものを渡す(replica.py 側で捕捉されたものでも
+    `__traceback__` は保持されたままなので、`_classify_exception()` による b の符号化
+    (0〜15、n=4テレメトリの壁時計埋め込み)は例外を投げていた頃と完全に同一の結果になる)。
+    `exc` が None(原因不明。本来起こらない想定だが防御的に許容する)の場合は
+    b=14('その他')として扱う。
+    """
+    tb_frames = traceback.extract_tb(exc.__traceback__) if exc is not None else []
+    last_frame = tb_frames[-1] if tb_frames else None
+    rstats.setdefault('exc_events', []).append({
+        'rank': rank,
+        'exc_class': type(exc).__name__ if exc is not None else 'Unknown',
+        'file': os.path.basename(last_frame.filename) if last_frame else None,
+        'lineno': last_frame.lineno if last_frame else None,
+    })
+    if 'exc_class' not in rstats:
+        # Phase38(ステップ1-A): 最初の失敗だけを記録する。
+        # a=この時点までに成功した候補数(rstats['evaluated']がまだ
+        # 加算されていないので、そのままの値が「失敗より前の成功数」)。
+        a = min(3, rstats['evaluated'])
+        b = _classify_exception(exc) if exc is not None else 14
+        rstats['exc_class'] = type(exc).__name__ if exc is not None else 'Unknown'
+        rstats['exc_a'] = a
+        rstats['exc_b'] = b
+        rstats['exc_code'] = 16 * a + b
 
 
 def _advance_before(order: list[int], x: int, blockers: list[int]) -> list[int] | None:
@@ -1144,29 +1180,44 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                         rstats['latched'] = True
                         break
                     try:
-                        got = rep.evaluate(item_list, od, deadline=deadline,
-                                           compute_composite=(active_metric == 'composite'))
+                        status, payload = rep.evaluate(
+                            item_list, od, deadline=deadline,
+                            compute_composite=(active_metric == 'composite'))
                     except Exception as e:
+                        # ここに来るのは replica.py 自身が捕捉しなかった例外だけ
+                        # (pybullet.error/MemoryError/RuntimeError や
+                        # MYSOLVER_REPLICA_FORCE_FAIL=runtime の障害注入など)。
+                        # Phase40(ステップ2, ローカル専用): 静かな握りつぶし(この except 自体)
+                        # の中身が見えるように、発生ごとに (例外クラス, 発生ファイル, 行番号,
+                        # 候補順位) を記録する。握りつぶす動作自体は変えない(下のcontinue/breakは
+                        # 従来どおり)。採点経路には出ない REPLICA_STATS への追記のみ。
                         consecutive_fail += 1
-                        if 'exc_class' not in rstats:
-                            # Phase38(ステップ1-A): 最初の失敗だけを記録する。
-                            # a=この時点までに成功した候補数(rstats['evaluated']がまだ
-                            # 加算されていないので、そのままの値が「失敗より前の成功数」)。
-                            a = min(3, rstats['evaluated'])
-                            b = _classify_exception(e)
-                            rstats['exc_class'] = type(e).__name__
-                            rstats['exc_a'] = a
-                            rstats['exc_b'] = b
-                            rstats['exc_code'] = 16 * a + b
+                        _record_replica_failure(rstats, e, rank)
                         if REPLICA_LATCH_MODE == 'scene' or consecutive_fail >= 2:
                             rstats['stopped'] = 'runtime_error'
                             rstats['latched'] = True
                             break
                         continue   # 1-C: この候補だけ飛ばして次候補の評価を続ける
-                    if got is None:      # 壁時計 deadline 超過
+                    if status == 'deadline':      # 壁時計 deadline 超過(当然の全体ラッチ)
                         rstats['stopped'] = 'wall_deadline'
                         rstats['latched'] = True
                         break
+                    if status == 'data_error':
+                        # Phase42(ステップ1): replica.py が観測データ欠損・型異常を
+                        # 自前で捕捉して例外を投げずに伝えてきたケース。壁時計とは
+                        # 無関係の「この候補固有(またはシーン固有)の失敗」なので、
+                        # 上の except Exception 節と全く同じ候補単位ラッチを適用する
+                        # (payload に原因例外そのものが入っているので
+                        # _classify_exception() による符号化もそのまま流用できる)。
+                        consecutive_fail += 1
+                        _record_replica_failure(rstats, payload, rank)
+                        if REPLICA_LATCH_MODE == 'scene' or consecutive_fail >= 2:
+                            rstats['stopped'] = 'runtime_error'
+                            rstats['latched'] = True
+                            break
+                        continue   # 1-C: この候補だけ飛ばして次候補の評価を続ける
+                    # status == 'ok'
+                    got = payload
                     consecutive_fail = 0
                     rstats['evaluated'] += 1
                     composite = got.get('composite')
