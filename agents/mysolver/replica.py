@@ -224,115 +224,143 @@ class ReplicaEvaluator:
         self.close()
 
     # -- 環境構築 -------------------------------------------------------
-    def _containers_config(self) -> dict:
-        cl = []
-        for c in self.given:
-            cl.append({
-                'index': int(c['index']),
-                'thickness': float(c['thickness']),
-                'length': float(c['length']),
-                'width': float(c['width']),
-                'height': float(c['height']),
-                'cut_x': float(c['cut_x']),
-                'cut_y': float(c['cut_y']),
-                'require_shelf': bool(c['shelf']),
-                'is_prioritized': bool(c['is_prioritized']),
-                'buffer': float(c['center'][2]) - float(c['height']) / 2.0,
-                'packed_items': [dict(it) for it in c.get('packed_items', [])],
-            })
-        offs = [float(c['center'][0]) for c in self.given]
-        spacing = (offs[1] - offs[0]) if len(offs) > 1 else 0.0
-        return {'spacing': spacing, 'container_list': cl}
+    # Phase41: 観測(container_list)の未知の欠損に対して恒久的に頑健にする。
+    # 必須キー(index/thickness/length/width/height/center。center は offset_x
+    # 復元とbuffer計算の二重役割を持ち、対応するデータクラス既定値が無いため必須扱い)が
+    # 欠けている・型が壊れている場合は例外を投げず None を返す(この候補は評価を諦める)。
+    # 代替可能なキー(cut_x/cut_y/shelf/is_prioritized)は Container のフィールド既定値
+    # (items.py/containers.py 参照)で埋める。勝手な値を作らない。
+    def _containers_config(self) -> dict | None:
+        try:
+            cl = []
+            for c in self.given:
+                cl.append({
+                    'index': int(c['index']),
+                    'thickness': float(c['thickness']),
+                    'length': float(c['length']),
+                    'width': float(c['width']),
+                    'height': float(c['height']),
+                    'cut_x': float(c.get('cut_x', 0.3)),           # Container.cut_x 既定値
+                    'cut_y': float(c.get('cut_y', 0.3)),           # Container.cut_y 既定値
+                    'require_shelf': bool(c.get('shelf', False)),  # Container.require_shelf 既定値
+                    'is_prioritized': bool(c.get('is_prioritized', False)),  # Container.is_prioritized 既定値
+                    'buffer': float(c['center'][2]) - float(c['height']) / 2.0,
+                    'packed_items': [dict(it) for it in c.get('packed_items', [])],
+                })
+            offs = [float(c['center'][0]) for c in self.given]
+            spacing = (offs[1] - offs[0]) if len(offs) > 1 else 0.0
+            return {'spacing': spacing, 'container_list': cl}
+        except (KeyError, TypeError, AttributeError, IndexError):
+            return None
 
-    def reset(self):
-        """毎回まっさらな状態から組み直す(前の候補の配置を持ち越さない)。"""
-        self.client.resetSimulation()
-        self.client.setPhysicsEngineParameter(deterministicOverlappingPairs=1)
-        self.client.setGravity(0, 0, -9.8)
-        self.client.loadURDF('plane.urdf')
-        self.cm = MultiContainerManager(client=self.client, config=self._containers_config())
-        self.cm.build()
-        self.validator = PlacementValidator(client=self.client, config=dict(ASSUMED_VALIDATOR))
+    def reset(self) -> bool:
+        """毎回まっさらな状態から組み直す(前の候補の配置を持ち越さない)。
+
+        観測データの必須キー欠損・型異常があれば例外を投げず False を返す
+        (この候補は評価を諦める。呼び出し側は evaluate() 経由で None を受け取る)。
+        """
+        try:
+            cfg = self._containers_config()
+            if cfg is None:
+                return False
+            self.client.resetSimulation()
+            self.client.setPhysicsEngineParameter(deterministicOverlappingPairs=1)
+            self.client.setGravity(0, 0, -9.8)
+            self.client.loadURDF('plane.urdf')
+            self.cm = MultiContainerManager(client=self.client, config=cfg)
+            self.cm.build()
+            self.validator = PlacementValidator(client=self.client, config=dict(ASSUMED_VALIDATOR))
+            return True
+        except (KeyError, TypeError, AttributeError, IndexError):
+            return False
 
     # -- 評価 -----------------------------------------------------------
     def run_order(self, all_item_infos: list[dict], order: list[int],
                   policy_budget: float = 5.5, hard_wall: float = RUN_ORDER_HARD_WALL,
                   deadline: float | None = None, compute_composite: bool = False) -> dict | None:
         """order を実際に走らせて fill(+ compute_composite指定時は5成分の合成スコア)を返す。
-        deadline(壁時計)を超えたら None。"""
-        by_idx = {int(it['index']): it for it in all_item_infos}
+        deadline(壁時計)を超えたら None。
+
+        Phase41: item info の未知の欠損(必須キー欠損・型異常)に対しても例外を投げず
+        None を返す(この候補は評価を諦める。self.cm/self.client 自体には触れないので
+        次の候補の reset() は影響を受けない)。
+        """
         try:
-            stream = [by_idx[i] for i in order]
-        except KeyError:
-            return None
-        cursor = 0
-        pool: list[Item] = []
-        while len(pool) < self.lookahead_k and cursor < len(stream):
-            pool.append(Item(**stream[cursor]))
-            cursor += 1
-
-        while pool:
-            if deadline is not None and time.perf_counter() > deadline:
-                return None          # 時間切れ: この候補は「評価できなかった」扱い
-            action = planner.plan(self.cm.get_item_info_in_containers(),
-                                  [it.get_info() for it in pool],
-                                  time_budget=policy_budget,
-                                  hard_deadline=time.perf_counter() + hard_wall,
-                                  strict_support=False,
-                                  prepacked_ids=self.prepacked_ids)
-            if action is None:
-                break
-            item_idx = int(action['item_idx'])
-            ci = int(action['container_idx'])
-            if not (0 <= item_idx < len(pool)) or not (0 <= ci < len(self.cm.containers)):
-                break
-            item = pool[item_idx]
-            container = self.cm.get_container(ci)
-            gpos = container.local_to_global(action['place_pos'])
-            oi = int(action['orientation'])
-            # 本物の env.step と同じ順序・同じ判定
-            if not self.validator.check_inclusion(container, item, gpos, oi):
-                break
-            if not self.validator.check_transport_path(container, item, gpos, oi):
-                break
-            if not self.validator.place_item(item, gpos, oi):
-                break
-            self.cm.update_and_add_item_to_container(container_id=ci, item=item)
-            pool.pop(item_idx)
-            n_placed = sum(len(c.packed_items) for c in self.cm.containers)
-            if VMLOG and n_placed % 10 == 0:
-                _vmlog(f'run_order {n_placed}配置')
-            n_space = self.lookahead_k - len(pool)
-            if n_space >= ASSUMED_MAX_SPACE:
-                for _ in range(n_space):
-                    if cursor < len(stream):
-                        pool.append(Item(**stream[cursor]))
-                        cursor += 1
-
-        _vmlog('run_order 終了時')
-        containers = self.cm.containers
-        fill, _out = Evaluator(client=self.client,
-                               config={'inclusion_margin': SCORE_MARGIN}
-                               ).calculate_fill_rate(containers)
-        result = {'fill': fill,
-                  'num_placed': sum(len(c.packed_items) for c in containers)}
-        # Phase37(ステップ1-3): 合成スコア用の残り4指標。**既定では計算しない**(ordering.py の
-        # MYSOLVER_REPLICA_METRIC=fill が既定であり、そちらでは呼ばれないため常にFalse)。
-        # tools/scorer.py と同じ近似ロジックの複製(agents/mysolver/replica_scorer.py、
-        # tools/は提出zipに含まれないため複製が必要な事情はそちらのdocstring参照)。
-        # 失敗しても fill 単体の結果は握りつぶさず返す(呼び出し側がcompositeの欠落を見て
-        # fillへフォールバックする)。stability計算は破壊的なので必ず最後に呼ぶ。
-        if compute_composite:
+            by_idx = {int(it['index']): it for it in all_item_infos}
             try:
-                from . import replica_scorer
-                extra = replica_scorer.evaluate_extra_metrics(self.client, containers)
-                result.update(extra)
-                result['composite'] = replica_scorer.composite_score(
-                    fill, extra['cog_score'], extra['stability_score'],
-                    extra['placement_score'], extra['soft_item_score'])
-            except Exception:
-                pass
-        return result
+                stream = [by_idx[i] for i in order]
+            except KeyError:
+                return None
+            cursor = 0
+            pool: list[Item] = []
+            while len(pool) < self.lookahead_k and cursor < len(stream):
+                pool.append(Item(**stream[cursor]))
+                cursor += 1
+
+            while pool:
+                if deadline is not None and time.perf_counter() > deadline:
+                    return None          # 時間切れ: この候補は「評価できなかった」扱い
+                action = planner.plan(self.cm.get_item_info_in_containers(),
+                                      [it.get_info() for it in pool],
+                                      time_budget=policy_budget,
+                                      hard_deadline=time.perf_counter() + hard_wall,
+                                      strict_support=False,
+                                      prepacked_ids=self.prepacked_ids)
+                if action is None:
+                    break
+                item_idx = int(action['item_idx'])
+                ci = int(action['container_idx'])
+                if not (0 <= item_idx < len(pool)) or not (0 <= ci < len(self.cm.containers)):
+                    break
+                item = pool[item_idx]
+                container = self.cm.get_container(ci)
+                gpos = container.local_to_global(action['place_pos'])
+                oi = int(action['orientation'])
+                # 本物の env.step と同じ順序・同じ判定
+                if not self.validator.check_inclusion(container, item, gpos, oi):
+                    break
+                if not self.validator.check_transport_path(container, item, gpos, oi):
+                    break
+                if not self.validator.place_item(item, gpos, oi):
+                    break
+                self.cm.update_and_add_item_to_container(container_id=ci, item=item)
+                pool.pop(item_idx)
+                n_placed = sum(len(c.packed_items) for c in self.cm.containers)
+                if VMLOG and n_placed % 10 == 0:
+                    _vmlog(f'run_order {n_placed}配置')
+                n_space = self.lookahead_k - len(pool)
+                if n_space >= ASSUMED_MAX_SPACE:
+                    for _ in range(n_space):
+                        if cursor < len(stream):
+                            pool.append(Item(**stream[cursor]))
+                            cursor += 1
+
+            _vmlog('run_order 終了時')
+            containers = self.cm.containers
+            fill, _out = Evaluator(client=self.client,
+                                   config={'inclusion_margin': SCORE_MARGIN}
+                                   ).calculate_fill_rate(containers)
+            result = {'fill': fill,
+                      'num_placed': sum(len(c.packed_items) for c in containers)}
+            # Phase37(ステップ1-3): 合成スコア用の残り4指標。**既定では計算しない**(ordering.py の
+            # MYSOLVER_REPLICA_METRIC=fill が既定であり、そちらでは呼ばれないため常にFalse)。
+            # tools/scorer.py と同じ近似ロジックの複製(agents/mysolver/replica_scorer.py、
+            # tools/は提出zipに含まれないため複製が必要な事情はそちらのdocstring参照)。
+            # 失敗しても fill 単体の結果は握りつぶさず返す(呼び出し側がcompositeの欠落を見て
+            # fillへフォールバックする)。stability計算は破壊的なので必ず最後に呼ぶ。
+            if compute_composite:
+                try:
+                    from . import replica_scorer
+                    extra = replica_scorer.evaluate_extra_metrics(self.client, containers)
+                    result.update(extra)
+                    result['composite'] = replica_scorer.composite_score(
+                        fill, extra['cog_score'], extra['stability_score'],
+                        extra['placement_score'], extra['soft_item_score'])
+                except Exception:
+                    pass
+            return result
+        except (KeyError, TypeError, AttributeError, IndexError):
+            return None
 
     def evaluate(self, all_item_infos, order, deadline=None, compute_composite=False):
         if FORCE_FAIL == 'runtime':
@@ -344,6 +372,12 @@ class ReplicaEvaluator:
         if FORCE_FAIL == 'deadline':
             return None          # 壁時計 deadline 超過と同じ扱い(評価できなかった)
         self._eval_calls += 1
-        self.reset()
-        return self.run_order(all_item_infos, order, deadline=deadline,
-                              compute_composite=compute_composite)
+        try:
+            if not self.reset():
+                return None      # 必須キー欠損・型異常: この候補は評価を諦める
+            return self.run_order(all_item_infos, order, deadline=deadline,
+                                  compute_composite=compute_composite)
+        except (KeyError, TypeError, AttributeError, IndexError):
+            # reset()/run_order() 自体は既に自前で閉じているが、将来の変更に対する
+            # 二重の安全弁として evaluate() でも同じ4例外を閉じる(2-3)。
+            return None
