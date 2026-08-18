@@ -22,6 +22,22 @@ POLICY_HARD_WALL = float(os.environ.get('MYSOLVER_POLICY_HARD_WALL', '6.0'))
 # (=170s相当のフル予算)で回すこと。
 OPTIMIZE_BUDGET_ENV = 'MYSOLVER_OPTIMIZE_BUDGET'
 
+# Phase54/55: policy()フォールバック(planner.plan()がNoneを返した最終手段)が
+# 「床にぴったり(clearance=0)」置いていたため、inclusion_margin<0(=境界に触れるだけでは
+# 不足で最低限のクリアランスを要求する)の設定下では**恒等式的に**is_included判定に落ちて
+# いた(Phase54実測: 30/30件が同一原因、はみ出し量5.000mm±6.4e-9m)。
+# inclusion_margin の実値(本番レジーム)はPhase12/13/27以来未確定のため、ハードコードせず
+# 環境変数から読む。既定値はローカルvalidator設定(-0.005)相当。
+FALLBACK_INCLUSION_MARGIN = float(os.environ.get('MYSOLVER_FALLBACK_INCLUSION_MARGIN', '-0.005'))
+# 選んだ候補が margin ちょうどの境界に乗ると浮動小数の丸めで容易に反転する
+# (Phase54実測のはみ出し量が±1.4e-8m桁で振れていたのがまさにこの規模)。
+# 「-margin + eps」で必ずmarginより内側(より安全)へ寄せる(「-margin - eps」だと
+# 逆に境界を割り込み得るので符号に注意)。
+FALLBACK_CLEARANCE_EPS = float(os.environ.get('MYSOLVER_FALLBACK_CLEARANCE_EPS', '1e-4'))
+# 検証(Phase55 V-1〜V-4)が通るまでは既定無効にできるよう環境変数化。
+# 現行動作(修正前)は100%決定論的なバグのため、検証後は既定有効にする方針。
+FALLBACK_SAFE_POS = os.environ.get('MYSOLVER_FALLBACK_SAFE_POS', '1') == '1'
+
 # ---------------------------------------------------------------------------
 # Phase38(ステップB): policy の壁時計を2値(1-B)から4値に拡張する。
 #
@@ -44,6 +60,62 @@ OPTIMIZE_BUDGET_ENV = 'MYSOLVER_OPTIMIZE_BUDGET'
 # 限定する(1-Bと同じ制約)。既定無効(MYSOLVER_TELEMETRY=0)時は分岐にすら入らない。
 POLICY_TELEMETRY_BASE_S = float(os.environ.get('MYSOLVER_TELEMETRY_POLICY_BASE_S', '6.20'))
 POLICY_TELEMETRY_STEP_S = float(os.environ.get('MYSOLVER_TELEMETRY_POLICY_STEP_S', '0.15'))
+
+
+def _fallback_place_pos(container: dict, item: dict) -> np.ndarray:
+    """policyフォールバック専用(Phase55): 6面すべてのinclusion判定
+    (`geo.inclusion_slack_batch`——`validator.check_inclusion`と同式)に対し、
+    3x3の局所グリッド探索で最も安全な(=slackが最小の)候補位置を選ぶ。
+
+    `MYSOLVER_FALLBACK_SAFE_POS=0`で旧来の「床にぴったり(clearance=0)」配置
+    (Phase54で特定したバグそのもの)に戻せる——V-3のビット単位確認用。
+
+    選んだ候補がmarginを満たす保証はない(既に荷物が詰まっていれば他の荷物と
+    干渉しうる)。目的は「フォールバックが構造的に必ず死ぬ」状態の解消であり、
+    「絶対に死なない」ことではない。
+    """
+    thickness = container.get('thickness', 0.05)
+    height = item.get('height', 0.2)
+    if not FALLBACK_SAFE_POS:
+        return np.array([0.0, 0.0, thickness + height / 2.0], dtype=np.float32)
+
+    length = container.get('length', 2.0)
+    width = container.get('width', 1.45)
+    cont_height = container.get('height', 1.61)
+    cut_x = container.get('cut_x', 0.0)
+    half = geo.half_extent([item.get('length', 0.2), item.get('width', 0.2), height], 0)
+
+    # margin(既定-0.005、環境変数で上書き可)ちょうどに乗せると浮動小数の丸めで
+    # 反転しうる(Phase54実測: ±1.4e-8m桁のノイズ)ため、必ず内側へepsだけ余分に
+    # 寄せる(「-margin + eps」。「-margin - eps」だと逆に境界を割り込みうる)。
+    clearance = -FALLBACK_INCLUSION_MARGIN + FALLBACK_CLEARANCE_EPS
+    z_floor = thickness + half[2] + clearance
+    z_ceiling_limit = cont_height - thickness - half[2] - clearance
+    z = z_floor
+    if z_ceiling_limit > thickness + half[2]:
+        # 天井にも同じだけの余裕を残せるならclipする(天井を突き抜けない側へ寄せる)。
+        # アイテムが背が高すぎて余裕が無い場合はz_floorのまま(ベストエフォート)。
+        z = min(z_floor, z_ceiling_limit)
+
+    x_lo = -length / 2.0 + thickness + cut_x + half[0] + geo.START_MARGIN
+    x_hi = length / 2.0 - thickness - half[0] - geo.START_MARGIN
+    y_lo = -width / 2.0 + thickness + half[1] + geo.START_MARGIN
+    y_hi = width / 2.0 - thickness - half[1] - geo.START_MARGIN
+    if x_lo > x_hi:
+        x_lo = x_hi = 0.0
+    if y_lo > y_hi:
+        y_lo = y_hi = 0.0
+
+    xs = (x_lo, (x_lo + x_hi) / 2.0, x_hi)
+    ys = (y_lo, (y_lo + y_hi) / 2.0, y_hi)
+    local_candidates = np.array([[x, y, z] for x in xs for y in ys], dtype=np.float64)
+    world_candidates = np.array([geo.local_to_world(container, c) for c in local_candidates])
+    # inclusion_slack_batchは各候補について「全平面(6/7面)のうち最も厳しい
+    # (=最大の)dots値」を返す(dots<=marginが合法、値が大きいほど外側に近い)。
+    # したがって安全な候補ほどこの値は小さい(より負)——argminで選ぶ。
+    slack = geo.inclusion_slack_batch(container, half, world_candidates)
+    chosen = local_candidates[int(np.argmin(slack))]
+    return np.array(chosen, dtype=np.float32)
 
 
 class Agent:
@@ -98,18 +170,21 @@ class Agent:
             # 合法手が見つからない場合の最終フォールバック。
             # planner.plan は通常探索が全滅した場合に密グリッドでの最終リトライまで
             # 内部で行った上でNoneを返す(Phase7)ため、ここに到達するのは「本当にどの
-            # 荷物もどの向き・位置にも置けない」場合に限られる。この場合どんな行動を
-            # 返しても is_included/is_valid のいずれかで失敗しエピソードは終了する
-            # (=残り荷物は置けない状況であり、行動の選び方で結果は変わらない)。
+            # 荷物もどの向き・位置にも置けない」場合に限られる…はずだった。
+            # Phase54で判明: 旧実装(床にぴったり=clearance 0)は、config側の
+            # inclusion_margin<0(境界に触れるだけでは不足)のもとで**恒等式的に**
+            # is_included判定に落ちており、「本当に置けない」かどうかによらず
+            # このフォールバックに到達した時点で100%即死していた(30/30件で確認)。
+            # Phase55で `_fallback_place_pos()` に置き換え、その保証を持たない形にした
+            # (=それでも他の荷物と干渉して死ぬことはありうるが、構造的に必ず死ぬ
+            # わけではなくなった)。
             container = container_list[0] if container_list else None
             item = pool_list[0] if pool_list else None
             if container is not None and item is not None:
-                thickness = container.get('thickness', 0.05)
-                z = thickness + item.get('height', 0.2) / 2.0
                 action = {
                     'item_idx': 0,
                     'container_idx': container.get('index', 0),
-                    'place_pos': np.array([0.0, 0.0, z], dtype=np.float32),
+                    'place_pos': _fallback_place_pos(container, item),
                     'orientation': 0,
                 }
             else:

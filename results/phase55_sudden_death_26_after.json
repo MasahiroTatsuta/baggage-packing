@@ -1,0 +1,6278 @@
+{
+  "suite_A01_1c_40_plain.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 21,
+    "n_placed_final": 20,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 20,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 19,
+        "length": 0.343,
+        "width": 0.745,
+        "height": 0.399,
+        "mass": 1.78,
+        "is_soft": true,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.3384999930858612,
+        0.30250000953674316,
+        0.24459999799728394
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099997997283889,
+        -1.1269999930858612,
+        -1.1259000020027161,
+        -0.4500000069141388,
+        -0.02700494017903582,
+        -0.6550000095367432,
+        -0.009999990463256725
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999799728388926e-05,
+        "all_excess": [
+          -9.999799728388926e-05,
+          -1.1219999930858613,
+          -1.1209000020027162,
+          -0.44500000691413877,
+          -0.022004940179035818,
+          -0.6500000095367432,
+          -0.004999990463256725
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 17,
+        "item": {
+          "index": 27,
+          "length": 0.248,
+          "width": 0.665,
+          "height": 0.311,
+          "mass": 1.98,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.3695099949836731,
+          -0.3603299856185913,
+          0.21150000393390656
+        ],
+        "place_pos_global": [
+          -0.3695099949836731,
+          -0.3603299856185913,
+          0.21150000393390656
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.016000003933906465,
+          -1.205509994983673,
+          -1.2029999960660935,
+          -0.46649000501632687,
+          -0.04616266446818937,
+          -0.03217001438140871,
+          -0.7128299856185913
+        ]
+      },
+      {
+        "n_step": 18,
+        "item": {
+          "index": 29,
+          "length": 0.695,
+          "width": 0.415,
+          "height": 0.193,
+          "mass": 3.29,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.30524998903274536,
+          -0.32899999618530273,
+          0.5204921960830688
+        ],
+        "place_pos_global": [
+          0.30524998903274536,
+          -0.32899999618530273,
+          0.5204921960830688
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.2729921960830688,
+          -0.5582500109672546,
+          -0.8420078039169312,
+          -1.1687499890327453,
+          -0.7087126715493549,
+          -0.04850000381469727,
+          -0.6664999961853029
+        ]
+      },
+      {
+        "n_step": 19,
+        "item": {
+          "index": 12,
+          "length": 0.247,
+          "width": 0.695,
+          "height": 0.583,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.3695099949836731,
+          -0.39166998863220215,
+          0.7144960165023804
+        ],
+        "place_pos_global": [
+          -0.3695099949836731,
+          -0.39166998863220215,
+          0.7144960165023804
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.32699601650238036,
+          -1.2060099949836731,
+          -0.5080039834976198,
+          -0.46699000501632687,
+          -0.2766174132309499,
+          -0.04183001136779785,
+          -0.7851699886322022
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 37,
+          "length": 0.448,
+          "width": 0.339,
+          "height": 0.568,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.3695099949836731,
+          -0.39166998863220215,
+          1.2859827280044556
+        ],
+        "place_pos_global": [
+          -0.3695099949836731,
+          -0.39166998863220215,
+          1.2859827280044556
+        ],
+        "container_idx": 0,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.0219827280044556,
+          -1.160009994983673,
+          -0.06001727199554446,
+          -0.4209900050163269,
+          -0.7599229830251706,
+          -0.0493300113677978,
+          -0.7926699886322022
+        ]
+      },
+      {
+        "n_step": 21,
+        "item": {
+          "index": 19,
+          "length": 0.343,
+          "width": 0.745,
+          "height": 0.399,
+          "mass": 1.78,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.3384999930858612,
+          0.30250000953674316,
+          0.24459999799728394
+        ],
+        "place_pos_global": [
+          -0.3384999930858612,
+          0.30250000953674316,
+          0.24459999799728394
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099997997283889,
+          -1.1269999930858612,
+          -1.1259000020027161,
+          -0.4500000069141388,
+          -0.02700494017903582,
+          -0.6550000095367432,
+          -0.009999990463256725
+        ]
+      }
+    ],
+    "elapsed_sec": 82.95368610300648
+  },
+  "suite_A02_1c_80_plain.json::000": {
+    "status": "ok",
+    "total_items": 80,
+    "n_steps": 18,
+    "n_placed_final": 17,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 17,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 55,
+        "length": 0.26,
+        "width": 0.418,
+        "height": 0.617,
+        "mass": 2.99,
+        "is_soft": false,
+        "is_prioritized": true
+      },
+      "place_pos_global": [
+        -0.3799999952316284,
+        0.4659999907016754,
+        0.35359999537467957
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099995374679589,
+        -1.2099999952316285,
+        -0.9079000046253205,
+        -0.45000000476837154,
+        -0.027004936795066548,
+        -0.9819999907016754,
+        -0.01000000929832448
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999537467958886e-05,
+        "all_excess": [
+          -9.999537467958886e-05,
+          -1.2049999952316286,
+          -0.9029000046253205,
+          -0.44500000476837154,
+          -0.022004936795066547,
+          -0.9769999907016754,
+          -0.00500000929832448
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 14,
+        "item": {
+          "index": 70,
+          "length": 0.57,
+          "width": 0.421,
+          "height": 0.311,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.14459000527858734,
+          -0.23499999940395355,
+          0.8504659533500671
+        ],
+        "place_pos_global": [
+          -0.14459000527858734,
+          -0.23499999940395355,
+          0.8504659533500671
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6549659533500671,
+          -0.8940900052785873,
+          -0.564034046649933,
+          -0.6049099947214126,
+          -0.6120705371965531,
+          -0.20500000059604645,
+          -0.6349999994039535
+        ]
+      },
+      {
+        "n_step": 15,
+        "item": {
+          "index": 2,
+          "length": 0.736,
+          "width": 0.377,
+          "height": 0.37,
+          "mass": 5.67,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.6908199787139893,
+          -0.29767000675201416,
+          0.8009511828422546
+        ],
+        "place_pos_global": [
+          0.6908199787139893,
+          -0.29767000675201416,
+          0.8009511828422546
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.5759511828422545,
+          -0.0806800212860107,
+          -0.5840488171577454,
+          -1.4623199787139893,
+          -1.1303607116402585,
+          -0.059329993247985824,
+          -0.6146700067520141
+        ]
+      },
+      {
+        "n_step": 16,
+        "item": {
+          "index": 7,
+          "length": 0.361,
+          "width": 0.505,
+          "height": 0.381,
+          "mass": 3.21,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.17671999335289001,
+          -0.1096699982881546,
+          1.1864885091781616
+        ],
+        "place_pos_global": [
+          -0.17671999335289001,
+          -0.1096699982881546,
+          1.1864885091781616
+        ],
+        "container_idx": 0,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.9659885091781616,
+          -0.88421999335289,
+          -0.20301149082183845,
+          -0.53078000664711,
+          -0.7923433637869328,
+          -0.4248300017118454,
+          -0.6041699982881545
+        ]
+      },
+      {
+        "n_step": 17,
+        "item": {
+          "index": 5,
+          "length": 0.473,
+          "width": 0.464,
+          "height": 0.318,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.6908199787139893,
+          -0.17233000695705414,
+          1.1447395086288452
+        ],
+        "place_pos_global": [
+          0.6908199787139893,
+          -0.17233000695705414,
+          1.1447395086288452
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.9457395086288451,
+          -0.037180021286010695,
+          -0.2662604913711548,
+          -1.4188199787139892,
+          -1.3747206460249117,
+          -0.31616999304294585,
+          -0.620830006957054
+        ]
+      },
+      {
+        "n_step": 18,
+        "item": {
+          "index": 55,
+          "length": 0.26,
+          "width": 0.418,
+          "height": 0.617,
+          "mass": 2.99,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          -0.3799999952316284,
+          0.4659999907016754,
+          0.35359999537467957
+        ],
+        "place_pos_global": [
+          -0.3799999952316284,
+          0.4659999907016754,
+          0.35359999537467957
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099995374679589,
+          -1.2099999952316285,
+          -0.9079000046253205,
+          -0.45000000476837154,
+          -0.027004936795066548,
+          -0.9819999907016754,
+          -0.01000000929832448
+        ]
+      }
+    ],
+    "elapsed_sec": 107.31775759599986
+  },
+  "suite_A03_1c_40_shelf.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 20,
+    "n_placed_final": 19,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 19,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 11,
+        "length": 0.746,
+        "width": 0.566,
+        "height": 0.251,
+        "mass": 1.0,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.13699999451637268,
+        0.3919999897480011,
+        0.17059999704360962
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099997043609583,
+        -0.7239999945163726,
+        -1.2739000029563905,
+        -0.4500000054836273,
+        -0.0270049385111078,
+        -0.8339999897480013,
+        -0.010000010251998814
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999704360958307e-05,
+        "all_excess": [
+          -9.999704360958307e-05,
+          -0.7189999945163726,
+          -1.2689000029563906,
+          -0.4450000054836273,
+          -0.0220049385111078,
+          -0.8289999897480013,
+          -0.005000010251998814
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 16,
+        "item": {
+          "index": 3,
+          "length": 0.301,
+          "width": 0.308,
+          "height": 0.249,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          -0.24097999930381775,
+          0.23499999940395355,
+          1.3044902086257935
+        ],
+        "place_pos_global": [
+          -0.24097999930381775,
+          0.23499999940395355,
+          1.3044902086257935
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.1399902086257934,
+          -1.0504799993038176,
+          -0.1410097913742066,
+          -0.5685200006961822,
+          -0.946480861289626,
+          -0.8059999994039535,
+          -0.2960000005960465
+        ]
+      },
+      {
+        "n_step": 17,
+        "item": {
+          "index": 9,
+          "length": 0.241,
+          "width": 0.343,
+          "height": 0.19,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.33737999200820923,
+          -0.29767000675201416,
+          0.30399611592292786
+        ],
+        "place_pos_global": [
+          0.33737999200820923,
+          -0.29767000675201416,
+          0.30399611592292786
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.1689961159229278,
+          -0.45112000799179075,
+          -1.1710038840770722,
+          -1.1258799920082092,
+          -0.6029243236856614,
+          -0.3068299932479859,
+          -0.8621700067520142
+        ]
+      },
+      {
+        "n_step": 18,
+        "item": {
+          "index": 27,
+          "length": 0.358,
+          "width": 0.224,
+          "height": 0.129,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.33737999200820923,
+          0.4856700003147125,
+          0.676486074924469
+        ],
+        "place_pos_global": [
+          0.33737999200820923,
+          0.4856700003147125,
+          0.676486074924469
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.571986074924469,
+          -0.5106200079917907,
+          -0.8290139250755311,
+          -1.185379992008209,
+          -0.9411367747698708,
+          -1.0316700003147126,
+          -0.020329999685287425
+        ]
+      },
+      {
+        "n_step": 19,
+        "item": {
+          "index": 30,
+          "length": 0.737,
+          "width": 0.48,
+          "height": 0.141,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.8514800071716309,
+          -0.23499999940395355,
+          0.8614795207977295
+        ],
+        "place_pos_global": [
+          0.8514800071716309,
+          -0.23499999940395355,
+          0.8614795207977295
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.45297952079772946,
+          -0.03801999282836911,
+          -0.3400204792022706,
+          -1.7409800071716308,
+          -1.226816070919105,
+          -0.25000000059604643,
+          -0.6799999994039535
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 11,
+          "length": 0.746,
+          "width": 0.566,
+          "height": 0.251,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.13699999451637268,
+          0.3919999897480011,
+          0.17059999704360962
+        ],
+        "place_pos_global": [
+          -0.13699999451637268,
+          0.3919999897480011,
+          0.17059999704360962
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099997043609583,
+          -0.7239999945163726,
+          -1.2739000029563905,
+          -0.4500000054836273,
+          -0.0270049385111078,
+          -0.8339999897480013,
+          -0.010000010251998814
+        ]
+      }
+    ],
+    "elapsed_sec": 94.22717046699836
+  },
+  "suite_A04_2c_80_noprio.json::000": {
+    "status": "ok",
+    "total_items": 80,
+    "n_steps": 33,
+    "n_placed_final": 32,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 32,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 8,
+        "length": 0.728,
+        "width": 0.864,
+        "height": 0.597,
+        "mass": 9.19,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.1459999978542328,
+        -0.24300000071525574,
+        0.34360000491142273
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100004911422706,
+        -0.7419999978542328,
+        -0.9278999950885773,
+        -0.4500000021457672,
+        -0.027004942087530404,
+        -0.0499999992847443,
+        -0.4960000007152557
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.0001000049114227063,
+        "all_excess": [
+          -0.0001000049114227063,
+          -0.7369999978542328,
+          -0.9228999950885773,
+          -0.4450000021457672,
+          -0.022004942087530403,
+          -0.0449999992847443,
+          -0.4910000007152557
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 29,
+        "item": {
+          "index": 28,
+          "length": 0.252,
+          "width": 0.544,
+          "height": 0.452,
+          "mass": 3.25,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.30524998903274536,
+          -0.2663300037384033,
+          0.9350996613502502
+        ],
+        "place_pos_global": [
+          -0.30524998903274536,
+          -0.2663300037384033,
+          0.9350996613502502
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6690996613502502,
+          -1.1392499890327454,
+          -0.4089003386497498,
+          -0.5287500109672546,
+          -0.5712978850689421,
+          -0.18666999626159664,
+          -0.6793300037384032
+        ]
+      },
+      {
+        "n_step": 30,
+        "item": {
+          "index": 7,
+          "length": 0.431,
+          "width": 0.614,
+          "height": 0.216,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.24097999930381775,
+          -0.39166998863220215,
+          0.9894413352012634
+        ],
+        "place_pos_global": [
+          2.7409799098968506,
+          -0.39166998863220215,
+          0.9894413352012634
+        ],
+        "container_idx": 1,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.7339413352012634,
+          -0.6110200901031494,
+          -0.3650586647987366,
+          -1.0929799098968505,
+          -0.9988189405466048,
+          -0.026330011367797834,
+          -0.7696699886322023
+        ]
+      },
+      {
+        "n_step": 31,
+        "item": {
+          "index": 49,
+          "length": 0.273,
+          "width": 0.794,
+          "height": 0.254,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5338199734687805,
+          0.05423000082373619,
+          1.3156644105911255
+        ],
+        "place_pos_global": [
+          0.5338199734687805,
+          0.05423000082373619,
+          1.3156644105911255
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.1486644105911255,
+          -0.029180026531219427,
+          -0.12733558940887457,
+          -1.0968199734687805,
+          -1.3082722696816245,
+          -0.6427300008237362,
+          -0.49426999917626374
+        ]
+      },
+      {
+        "n_step": 32,
+        "item": {
+          "index": 55,
+          "length": 0.281,
+          "width": 0.572,
+          "height": 0.342,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5944300293922424,
+          -0.39166998863220215,
+          1.1824023723602295
+        ],
+        "place_pos_global": [
+          3.0944299697875977,
+          -0.39166998863220215,
+          1.1824023723602295
+        ],
+        "container_idx": 1,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.0019023723602294,
+          -0.1945700302124023,
+          -0.24709762763977053,
+          -1.3834299697875976,
+          -1.3924719033523685,
+          -0.04733001136779785,
+          -0.7906699886322022
+        ]
+      },
+      {
+        "n_step": 33,
+        "item": {
+          "index": 8,
+          "length": 0.728,
+          "width": 0.864,
+          "height": 0.597,
+          "mass": 9.19,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.1459999978542328,
+          -0.24300000071525574,
+          0.34360000491142273
+        ],
+        "place_pos_global": [
+          -0.1459999978542328,
+          -0.24300000071525574,
+          0.34360000491142273
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100004911422706,
+          -0.7419999978542328,
+          -0.9278999950885773,
+          -0.4500000021457672,
+          -0.027004942087530404,
+          -0.0499999992847443,
+          -0.4960000007152557
+        ]
+      }
+    ],
+    "elapsed_sec": 111.84857840000768
+  },
+  "suite_A05_2c_80_prio.json::000": {
+    "status": "ok",
+    "total_items": 80,
+    "n_steps": 25,
+    "n_placed_final": 24,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 24,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 36,
+        "length": 0.593,
+        "width": 0.723,
+        "height": 0.608,
+        "mass": 2.71,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.2134999930858612,
+        -0.31349998712539673,
+        0.3490999937057495
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099993705749484,
+        -0.8769999930858612,
+        -0.9169000062942505,
+        -0.4500000069141388,
+        -0.027004937003557605,
+        -0.05000001287460332,
+        -0.6369999871253966
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999370574948364e-05,
+        "all_excess": [
+          -9.999370574948364e-05,
+          -0.8719999930858612,
+          -0.9119000062942505,
+          -0.44500000691413877,
+          -0.022004937003557604,
+          -0.04500001287460332,
+          -0.6319999871253966
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 21,
+        "item": {
+          "index": 73,
+          "length": 0.393,
+          "width": 0.777,
+          "height": 0.305,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5515000224113464,
+          -0.512499988079071,
+          0.2524999976158142
+        ],
+        "place_pos_global": [
+          0.5515000224113464,
+          -0.512499988079071,
+          0.2524999976158142
+        ],
+        "container_idx": 0,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.015999997615814138,
+          -0.019999977588653517,
+          -1.1210000023841857,
+          -1.1230000224113463,
+          -0.4877790874808551,
+          -0.060000011920928964,
+          -1.044999988079071
+        ]
+      },
+      {
+        "n_step": 22,
+        "item": {
+          "index": 4,
+          "length": 0.225,
+          "width": 0.751,
+          "height": 0.466,
+          "mass": 5.14,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5623000264167786,
+          -0.5483300089836121,
+          0.6819905042648315
+        ],
+        "place_pos_global": [
+          0.5623000264167786,
+          -0.5483300089836121,
+          0.6819905042648315
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.4089905042648315,
+          -0.0221999735832214,
+          -0.6550094957351685,
+          -1.1468000264167786,
+          -0.7945781270060956,
+          -0.0641699910163879,
+          -1.120830008983612
+        ]
+      },
+      {
+        "n_step": 23,
+        "item": {
+          "index": 44,
+          "length": 0.799,
+          "width": 0.213,
+          "height": 0.445,
+          "mass": 2.39,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.8193399906158447,
+          -0.29767000675201416,
+          1.0835000276565552
+        ],
+        "place_pos_global": [
+          -0.8193399906158447,
+          -0.29767000675201416,
+          1.0835000276565552
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8210000276565551,
+          -1.6728399906158447,
+          -0.26399997234344486,
+          -0.03416000938415524,
+          -0.35099781501495597,
+          -0.027829993247985796,
+          -0.583170006752014
+        ]
+      },
+      {
+        "n_step": 24,
+        "item": {
+          "index": 43,
+          "length": 0.731,
+          "width": 0.54,
+          "height": 0.186,
+          "mass": 3.44,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.5944300293922424,
+          -0.29767000675201416,
+          1.13100004196167
+        ],
+        "place_pos_global": [
+          -0.5944300293922424,
+          -0.29767000675201416,
+          1.13100004196167
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8210000419616699,
+          -1.4614300293922424,
+          -0.16899995803833012,
+          -0.27256997060775756,
+          -0.5113697203327168,
+          -0.061829993247985826,
+          -0.617170006752014
+        ]
+      },
+      {
+        "n_step": 25,
+        "item": {
+          "index": 36,
+          "length": 0.593,
+          "width": 0.723,
+          "height": 0.608,
+          "mass": 2.71,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.2134999930858612,
+          -0.31349998712539673,
+          0.3490999937057495
+        ],
+        "place_pos_global": [
+          -0.2134999930858612,
+          -0.31349998712539673,
+          0.3490999937057495
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099993705749484,
+          -0.8769999930858612,
+          -0.9169000062942505,
+          -0.4500000069141388,
+          -0.027004937003557605,
+          -0.05000001287460332,
+          -0.6369999871253966
+        ]
+      }
+    ],
+    "elapsed_sec": 102.4111602960038
+  },
+  "suite_A06_1c_40_small.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 40,
+    "n_placed_final": 40,
+    "completed_without_sudden_death": true,
+    "death": null,
+    "last5_steps": [
+      {
+        "n_step": 36,
+        "item": {
+          "index": 5,
+          "length": 0.432,
+          "width": 0.294,
+          "height": 0.218,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.2804099917411804,
+          -0.2906099855899811,
+          0.16500000655651093
+        ],
+        "place_pos_global": [
+          0.2804099917411804,
+          -0.2906099855899811,
+          0.16500000655651093
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.01600000655651085,
+          -0.5325900082588195,
+          -1.2959999934434892,
+          -1.0934099917411804,
+          -0.4678746854910977,
+          -0.21839001441001896,
+          -0.759609985589981
+        ]
+      },
+      {
+        "n_step": 37,
+        "item": {
+          "index": 10,
+          "length": 0.443,
+          "width": 0.441,
+          "height": 0.152,
+          "mass": 1.33,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.2731100022792816,
+          -0.23499999940395355,
+          0.3619917631149292
+        ],
+        "place_pos_global": [
+          0.2731100022792816,
+          -0.23499999940395355,
+          0.3619917631149292
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.24599176311492915,
+          -0.4663899977207183,
+          -1.1320082368850708,
+          -1.0126100022792817,
+          -0.5837028480531877,
+          -0.2685000005960464,
+          -0.6984999994039535
+        ]
+      },
+      {
+        "n_step": 38,
+        "item": {
+          "index": 20,
+          "length": 0.404,
+          "width": 0.324,
+          "height": 0.271,
+          "mass": 4.09,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.7229499816894531,
+          -0.5170000195503235,
+          0.42149078845977783
+        ],
+        "place_pos_global": [
+          0.7229499816894531,
+          -0.5170000195503235,
+          0.42149078845977783
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.24599078845977773,
+          -0.03505001831054683,
+          -1.0130092115402223,
+          -1.4809499816894531,
+          -0.8987416893567991,
+          -0.045999980449676514,
+          -1.0400000195503236
+        ]
+      },
+      {
+        "n_step": 39,
+        "item": {
+          "index": 22,
+          "length": 0.3,
+          "width": 0.386,
+          "height": 0.312,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.17671999335289001,
+          -0.14100000262260437,
+          0.4379933476448059
+        ],
+        "place_pos_global": [
+          -0.17671999335289001,
+          -0.14100000262260437,
+          0.4379933476448059
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.24199334764480587,
+          -0.9437199933528899,
+          -0.9760066523551941,
+          -0.5902800066471099,
+          -0.29665436206641393,
+          -0.4339999973773956,
+          -0.6760000026226043
+        ]
+      },
+      {
+        "n_step": 40,
+        "item": {
+          "index": 3,
+          "length": 0.387,
+          "width": 0.4,
+          "height": 0.205,
+          "mass": 1.56,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.24097999930381775,
+          -0.23499999940395355,
+          0.5403828620910645
+        ],
+        "place_pos_global": [
+          0.24097999930381775,
+          -0.23499999940395355,
+          0.5403828620910645
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.3978828620910644,
+          -0.5190200006961823,
+          -0.9271171379089356,
+          -1.0009799993038178,
+          -0.6882699723820891,
+          -0.2965000005960464,
+          -0.7264999994039535
+        ]
+      }
+    ],
+    "elapsed_sec": 158.36229381400335
+  },
+  "suite_A07_1c_40_bulky.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 13,
+    "n_placed_final": 12,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 12,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 31,
+        "length": 0.977,
+        "width": 0.689,
+        "height": 0.302,
+        "mass": 6.24,
+        "is_soft": false,
+        "is_prioritized": true
+      },
+      "place_pos_global": [
+        -0.0215000007301569,
+        0.3305000066757202,
+        0.19609999656677246
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.00509999656677243,
+        -0.4930000007301569,
+        -1.2229000034332276,
+        -0.4499999992698431,
+        -0.027004933978433343,
+        -0.7110000066757203,
+        -0.009999993324279699
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999656677242997e-05,
+        "all_excess": [
+          -9.999656677242997e-05,
+          -0.48800000073015687,
+          -1.2179000034332277,
+          -0.44499999926984307,
+          -0.022004933978433342,
+          -0.7060000066757203,
+          -0.004999993324279699
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 9,
+        "item": {
+          "index": 18,
+          "length": 0.737,
+          "width": 0.555,
+          "height": 0.635,
+          "mass": 6.17,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.4659000039100647,
+          -0.3603299856185913,
+          0.8754909038543701
+        ],
+        "place_pos_global": [
+          0.4659000039100647,
+          -0.3603299856185913,
+          0.8754909038543701
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.55799090385437,
+          -0.12559999608993527,
+          -0.4170090961456299,
+          -1.0574000039100646,
+          -0.8446925306914792,
+          -0.047170014381408665,
+          -0.7278299856185914
+        ]
+      },
+      {
+        "n_step": 10,
+        "item": {
+          "index": 4,
+          "length": 0.75,
+          "width": 0.629,
+          "height": 0.334,
+          "mass": 5.67,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.7730000019073486,
+          -0.28999999165534973,
+          1.1755000352859497
+        ],
+        "place_pos_global": [
+          -0.7730000019073486,
+          -0.28999999165534973,
+          1.1755000352859497
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8210000352859497,
+          -1.5660000019073486,
+          -0.07999996471405035,
+          -0.019999998092651322,
+          -0.3414727663017756,
+          -0.060000008344650246,
+          -0.5999999916553497
+        ]
+      },
+      {
+        "n_step": 11,
+        "item": {
+          "index": 37,
+          "length": 0.688,
+          "width": 0.764,
+          "height": 0.482,
+          "mass": 8.56,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.24097999930381775,
+          -0.29767000675201416,
+          0.9749931693077087
+        ],
+        "place_pos_global": [
+          -0.24097999930381775,
+          -0.29767000675201416,
+          0.9749931693077087
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.5909931693077087,
+          -0.9599799993038177,
+          -0.25100683069229135,
+          -0.4780200006961822,
+          -0.4793790638657804,
+          -0.04532999324798581,
+          -0.6006700067520141
+        ]
+      },
+      {
+        "n_step": 12,
+        "item": {
+          "index": 17,
+          "length": 0.662,
+          "width": 0.79,
+          "height": 0.348,
+          "mass": 4.46,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.49803000688552856,
+          -0.32899999618530273,
+          1.326978325843811
+        ],
+        "place_pos_global": [
+          0.49803000688552856,
+          -0.32899999618530273,
+          1.326978325843811
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.112978325843811,
+          -0.06696999311447138,
+          -0.06902167415618904,
+          -1.0630300068855285,
+          -1.2591371142838848,
+          -0.06500000381469717,
+          -0.6829999961853028
+        ]
+      },
+      {
+        "n_step": 13,
+        "item": {
+          "index": 31,
+          "length": 0.977,
+          "width": 0.689,
+          "height": 0.302,
+          "mass": 6.24,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          -0.0215000007301569,
+          0.3305000066757202,
+          0.19609999656677246
+        ],
+        "place_pos_global": [
+          -0.0215000007301569,
+          0.3305000066757202,
+          0.19609999656677246
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.00509999656677243,
+          -0.4930000007301569,
+          -1.2229000034332276,
+          -0.4499999992698431,
+          -0.027004933978433343,
+          -0.7110000066757203,
+          -0.009999993324279699
+        ]
+      }
+    ],
+    "elapsed_sec": 69.79597703200125
+  },
+  "suite_A08_2c_140_extreme.json::000": {
+    "status": "ok",
+    "total_items": 140,
+    "n_steps": 21,
+    "n_placed_final": 20,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 20,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 132,
+        "length": 0.772,
+        "width": 0.937,
+        "height": 0.33,
+        "mass": 14.36,
+        "is_soft": false,
+        "is_prioritized": true
+      },
+      "place_pos_global": [
+        -0.12399999797344208,
+        -0.20649999380111694,
+        0.210099995136261
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099995136260915,
+        -0.697999997973442,
+        -1.194900004863739,
+        -0.4500000020265579,
+        -0.02700493477430771,
+        -0.05000000619888301,
+        -0.42299999380111686
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999513626091517e-05,
+        "all_excess": [
+          -9.999513626091517e-05,
+          -0.692999997973442,
+          -1.1899000048637391,
+          -0.4450000020265579,
+          -0.02200493477430771,
+          -0.04500000619888301,
+          -0.41799999380111685
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 17,
+        "item": {
+          "index": 34,
+          "length": 0.63,
+          "width": 0.593,
+          "height": 0.402,
+          "mass": 2.03,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.17671999335289001,
+          -0.3603299856185913,
+          0.35249999165534973
+        ],
+        "place_pos_global": [
+          2.323280096054077,
+          -0.3603299856185913,
+          0.35249999165534973
+        ],
+        "container_idx": 1,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.01599999165534971,
+          -0.9357199039459227,
+          -0.9210000083446503,
+          -0.582280096054077,
+          -0.124051499438244,
+          -0.04967001438140867,
+          -0.7303299856185914
+        ]
+      },
+      {
+        "n_step": 18,
+        "item": {
+          "index": 79,
+          "length": 0.823,
+          "width": 0.29,
+          "height": 0.623,
+          "mass": 2.42,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.5301600098609924,
+          -0.17233000695705414,
+          1.1214784383773804
+        ],
+        "place_pos_global": [
+          3.0301599502563477,
+          -0.17233000695705414,
+          1.1214784383773804
+        ],
+        "container_idx": 1,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.7699784383773803,
+          -0.01834004974365233,
+          -0.1370215616226197,
+          -1.0786599502563476,
+          -1.0158515900544265,
+          -0.4076699930429458,
+          -0.7123300069570541
+        ]
+      },
+      {
+        "n_step": 19,
+        "item": {
+          "index": 110,
+          "length": 0.278,
+          "width": 0.906,
+          "height": 0.658,
+          "mass": 1.36,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.24097999930381775,
+          -0.3603299856185913,
+          1.1019961833953857
+        ],
+        "place_pos_global": [
+          2.2590200901031494,
+          -0.3603299856185913,
+          1.1019961833953857
+        ],
+        "container_idx": 1,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6089961833953856,
+          -1.0619799098968505,
+          -0.015003816604614306,
+          -0.5800200901031494,
+          -0.5613129005604225,
+          -0.035670014381408655,
+          -0.7163299856185914
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 63,
+          "length": 0.751,
+          "width": 0.333,
+          "height": 0.591,
+          "mass": 6.78,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.43377000093460083,
+          -0.3603299856185913,
+          1.2574740648269653
+        ],
+        "place_pos_global": [
+          0.43377000093460083,
+          -0.3603299856185913,
+          1.2574740648269653
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.0509740648269652,
+          -0.15072999906539913,
+          -0.1460259351730347,
+          -1.0182700009346008,
+          -1.1831488385739164,
+          -0.06917001438140868,
+          -0.7498299856185914
+        ]
+      },
+      {
+        "n_step": 21,
+        "item": {
+          "index": 132,
+          "length": 0.772,
+          "width": 0.937,
+          "height": 0.33,
+          "mass": 14.36,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          -0.12399999797344208,
+          -0.20649999380111694,
+          0.210099995136261
+        ],
+        "place_pos_global": [
+          -0.12399999797344208,
+          -0.20649999380111694,
+          0.210099995136261
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099995136260915,
+          -0.697999997973442,
+          -1.194900004863739,
+          -0.4500000020265579,
+          -0.02700493477430771,
+          -0.05000000619888301,
+          -0.42299999380111686
+        ]
+      }
+    ],
+    "elapsed_sec": 104.1008318940003
+  },
+  "suite_B01_1c_40_plain.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 23,
+    "n_placed_final": 22,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 22,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 2,
+        "length": 0.494,
+        "width": 0.792,
+        "height": 0.35,
+        "mass": 3.04,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.2630000114440918,
+        0.27900001406669617,
+        0.22010000050067902
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100000500678992,
+        -0.9760000114440918,
+        -1.174899999499321,
+        -0.44999998855590817,
+        -0.02700492968231588,
+        -0.6080000140666962,
+        -0.009999985933303701
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010000050067899158,
+        "all_excess": [
+          -0.00010000050067899158,
+          -0.9710000114440918,
+          -1.169899999499321,
+          -0.44499998855590817,
+          -0.02200492968231588,
+          -0.6030000140666962,
+          -0.004999985933303701
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 19,
+        "item": {
+          "index": 27,
+          "length": 0.325,
+          "width": 0.427,
+          "height": 0.227,
+          "mass": 1.14,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.7229499816894531,
+          0.17233000695705414,
+          0.8580430746078491
+        ],
+        "place_pos_global": [
+          0.7229499816894531,
+          0.17233000695705414,
+          0.8580430746078491
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.704543074607849,
+          -0.023550018310546844,
+          -0.5984569253921509,
+          -1.469449981689453,
+          -1.230307164494123,
+          -0.7348300069570541,
+          -0.3501699930429458
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 21,
+          "length": 0.802,
+          "width": 0.369,
+          "height": 0.264,
+          "mass": 3.16,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.755079984664917,
+          -0.29767000675201416,
+          1.3989900350570679
+        ],
+        "place_pos_global": [
+          -0.755079984664917,
+          -0.29767000675201416,
+          1.3989900350570679
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.2269900350570677,
+          -1.530579984664917,
+          -0.039009964942932185,
+          -0.020420015335082975,
+          -0.6421635707024289,
+          -0.02632999324798574,
+          -0.5816700067520141
+        ]
+      },
+      {
+        "n_step": 21,
+        "item": {
+          "index": 29,
+          "length": 0.456,
+          "width": 0.534,
+          "height": 0.128,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.24097999930381775,
+          -0.14100000262260437,
+          1.109703779220581
+        ],
+        "place_pos_global": [
+          -0.24097999930381775,
+          -0.14100000262260437,
+          1.109703779220581
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.802703779220581,
+          -1.1369799993038177,
+          -0.193296220779419,
+          -0.6550200006961822,
+          -0.7550953126407585,
+          -0.35599999737739557,
+          -0.5980000026226042
+        ]
+      },
+      {
+        "n_step": 22,
+        "item": {
+          "index": 24,
+          "length": 0.408,
+          "width": 0.476,
+          "height": 0.535,
+          "mass": 1.0,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.7250400185585022,
+          0.20917999744415283,
+          1.2040026187896729
+        ],
+        "place_pos_global": [
+          0.7250400185585022,
+          0.20917999744415283,
+          1.2040026187896729
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.9260026187896728,
+          -0.03095998144149778,
+          -0.1279973812103272,
+          -1.4810400185585022,
+          -1.4019702583534777,
+          -0.6666799974441528,
+          -0.2083200025558471
+        ]
+      },
+      {
+        "n_step": 23,
+        "item": {
+          "index": 2,
+          "length": 0.494,
+          "width": 0.792,
+          "height": 0.35,
+          "mass": 3.04,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.2630000114440918,
+          0.27900001406669617,
+          0.22010000050067902
+        ],
+        "place_pos_global": [
+          -0.2630000114440918,
+          0.27900001406669617,
+          0.22010000050067902
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100000500678992,
+          -0.9760000114440918,
+          -1.174899999499321,
+          -0.44999998855590817,
+          -0.02700492968231588,
+          -0.6080000140666962,
+          -0.009999985933303701
+        ]
+      }
+    ],
+    "elapsed_sec": 13.252105938008754
+  },
+  "suite_B02_1c_40_shelf.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 21,
+    "n_placed_final": 20,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 20,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 6,
+        "length": 0.8,
+        "width": 0.863,
+        "height": 0.399,
+        "mass": 2.4,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.10999999940395355,
+        0.2434999942779541,
+        0.24459999799728394
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099997997283889,
+        -0.6699999994039535,
+        -1.1259000020027161,
+        -0.4500000005960464,
+        -0.027004935929026974,
+        -0.5369999942779541,
+        -0.01000000572204579
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999799728388926e-05,
+        "all_excess": [
+          -9.999799728388926e-05,
+          -0.6649999994039535,
+          -1.1209000020027162,
+          -0.4450000005960464,
+          -0.022004935929026973,
+          -0.5319999942779541,
+          -0.00500000572204579
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 17,
+        "item": {
+          "index": 22,
+          "length": 0.67,
+          "width": 0.763,
+          "height": 0.146,
+          "mass": 2.75,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.5809900164604187,
+          -0.09300000220537186,
+          1.1959999799728394
+        ],
+        "place_pos_global": [
+          -0.5809900164604187,
+          -0.09300000220537186,
+          1.1959999799728394
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8209999799728394,
+          -1.4679900164604187,
+          -0.03900002002716069,
+          -0.30600998353958125,
+          -0.5338638613948197,
+          -0.2504999977946281,
+          -0.3965000022053718
+        ]
+      },
+      {
+        "n_step": 18,
+        "item": {
+          "index": 26,
+          "length": 0.336,
+          "width": 0.222,
+          "height": 0.348,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.3695099949836731,
+          0.4856700003147125,
+          1.159990906715393
+        ],
+        "place_pos_global": [
+          -0.3695099949836731,
+          0.4856700003147125,
+          1.159990906715393
+        ],
+        "container_idx": 0,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.951990906715393,
+          -1.218509994983673,
+          -0.24200909328460693,
+          -0.4794900050163269,
+          -0.7474845880922103,
+          -1.0366700003147127,
+          -0.025329999685287458
+        ]
+      },
+      {
+        "n_step": 19,
+        "item": {
+          "index": 25,
+          "length": 0.509,
+          "width": 0.264,
+          "height": 0.393,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.8080000281333923,
+          -0.4104999899864197,
+          1.1374701261520386
+        ],
+        "place_pos_global": [
+          0.8080000281333923,
+          -0.4104999899864197,
+          1.1374701261520386
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.9009701261520385,
+          -0.019999971866607624,
+          -0.23602987384796145,
+          -1.6360000281333922,
+          -1.4876850965123396,
+          -0.060000010013580296,
+          -0.8409999899864198
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 28,
+          "length": 0.8,
+          "width": 0.589,
+          "height": 0.161,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          -0.3425999879837036,
+          -0.28665000200271606,
+          0.8869949579238892
+        ],
+        "place_pos_global": [
+          -0.3425999879837036,
+          -0.28665000200271606,
+          0.8869949579238892
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.4469949579238891,
+          -1.2220999879837036,
+          -0.2830050420761109,
+          -0.5369000120162963,
+          -0.41243599849078794,
+          -0.14384999799728393,
+          -0.677150002002716
+        ]
+      },
+      {
+        "n_step": 21,
+        "item": {
+          "index": 6,
+          "length": 0.8,
+          "width": 0.863,
+          "height": 0.399,
+          "mass": 2.4,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.10999999940395355,
+          0.2434999942779541,
+          0.24459999799728394
+        ],
+        "place_pos_global": [
+          -0.10999999940395355,
+          0.2434999942779541,
+          0.24459999799728394
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099997997283889,
+          -0.6699999994039535,
+          -1.1259000020027161,
+          -0.4500000005960464,
+          -0.027004935929026974,
+          -0.5369999942779541,
+          -0.01000000572204579
+        ]
+      }
+    ],
+    "elapsed_sec": 10.143780874001095
+  },
+  "suite_B03_2c_80_prio.json::000": {
+    "status": "ok",
+    "total_items": 80,
+    "n_steps": 28,
+    "n_placed_final": 27,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 27,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 7,
+        "length": 0.609,
+        "width": 0.842,
+        "height": 0.528,
+        "mass": 9.59,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.20550000667572021,
+        -0.2540000081062317,
+        0.3091000020503998
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100002050399732,
+        -0.8610000066757202,
+        -0.9968999979496003,
+        -0.44999999332427976,
+        -0.027004934036570227,
+        -0.04999999189376836,
+        -0.5180000081062317
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010000205039973221,
+        "all_excess": [
+          -0.00010000205039973221,
+          -0.8560000066757202,
+          -0.9918999979496003,
+          -0.44499999332427975,
+          -0.022004934036570226,
+          -0.04499999189376836,
+          -0.5130000081062317
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 24,
+        "item": {
+          "index": 32,
+          "length": 0.506,
+          "width": 0.346,
+          "height": 0.373,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.2731100022792816,
+          0.39166998863220215,
+          1.364483118057251
+        ],
+        "place_pos_global": [
+          0.2731100022792816,
+          0.39166998863220215,
+          1.364483118057251
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.1379831180572508,
+          -0.5138899977207183,
+          -0.01901688194274903,
+          -1.0601100022792815,
+          -1.2756749544125814,
+          -0.8636699886322022,
+          -0.04033001136779785
+        ]
+      },
+      {
+        "n_step": 25,
+        "item": {
+          "index": 33,
+          "length": 0.782,
+          "width": 0.47,
+          "height": 0.299,
+          "mass": 2.79,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.24097999930381775,
+          -0.04699999839067459,
+          1.275988221168518
+        ],
+        "place_pos_global": [
+          2.2590200901031494,
+          -0.04699999839067459,
+          1.275988221168518
+        ],
+        "container_idx": 1,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.000988221168518,
+          -1.0514799098968506,
+          -0.05901177883148198,
+          -0.5695200901031494,
+          -0.8443004534239382,
+          -0.2870000016093254,
+          -0.3409999983906745
+        ]
+      },
+      {
+        "n_step": 26,
+        "item": {
+          "index": 34,
+          "length": 0.451,
+          "width": 0.807,
+          "height": 0.386,
+          "mass": 5.55,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.20884999632835388,
+          -0.29767000675201416,
+          1.312976598739624
+        ],
+        "place_pos_global": [
+          -0.20884999632835388,
+          -0.29767000675201416,
+          1.312976598739624
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.079976598739624,
+          -0.9433499963283538,
+          -0.064023401260376,
+          -0.525650003671646,
+          -0.87323690570859,
+          -0.023829993247985737,
+          -0.579170006752014
+        ]
+      },
+      {
+        "n_step": 27,
+        "item": {
+          "index": 35,
+          "length": 0.244,
+          "width": 0.377,
+          "height": 0.522,
+          "mass": 2.21,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5623000264167786,
+          -0.5796700119972229,
+          0.24449999630451202
+        ],
+        "place_pos_global": [
+          3.062299966812134,
+          -0.5796700119972229,
+          0.24449999630451202
+        ],
+        "container_idx": 1,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.01599999630451196,
+          -0.13670003318786617,
+          -1.137000003695488,
+          -1.2612999668121336,
+          -0.5808096965201824,
+          -0.023329988002777094,
+          -1.1426700119972228
+        ]
+      },
+      {
+        "n_step": 28,
+        "item": {
+          "index": 7,
+          "length": 0.609,
+          "width": 0.842,
+          "height": 0.528,
+          "mass": 9.59,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.20550000667572021,
+          -0.2540000081062317,
+          0.3091000020503998
+        ],
+        "place_pos_global": [
+          -0.20550000667572021,
+          -0.2540000081062317,
+          0.3091000020503998
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100002050399732,
+          -0.8610000066757202,
+          -0.9968999979496003,
+          -0.44999999332427976,
+          -0.027004934036570227,
+          -0.04999999189376836,
+          -0.5180000081062317
+        ]
+      }
+    ],
+    "elapsed_sec": 20.00417538000329
+  },
+  "suite_B04_2c_80_noprio.json::000": {
+    "status": "ok",
+    "total_items": 80,
+    "n_steps": 46,
+    "n_placed_final": 45,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 45,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 1,
+        "length": 0.493,
+        "width": 0.888,
+        "height": 0.623,
+        "mass": 7.54,
+        "is_soft": true,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.26350000500679016,
+        -0.23100000619888306,
+        0.35659998655319214
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099986553192104,
+        -0.9770000050067902,
+        -0.9019000134468079,
+        -0.4499999949932098,
+        -0.027004923692209082,
+        -0.049999993801116915,
+        -0.472000006198883
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.998655319210393e-05,
+        "all_excess": [
+          -9.998655319210393e-05,
+          -0.9720000050067902,
+          -0.8969000134468079,
+          -0.4449999949932098,
+          -0.02200492369220908,
+          -0.04499999380111692,
+          -0.467000006198883
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 42,
+        "item": {
+          "index": 50,
+          "length": 0.524,
+          "width": 0.699,
+          "height": 0.341,
+          "mass": 3.08,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5944300293922424,
+          -0.2663300037384033,
+          1.0679337978363037
+        ],
+        "place_pos_global": [
+          0.5944300293922424,
+          -0.2663300037384033,
+          1.0679337978363037
+        ],
+        "container_idx": 0,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.7659337978363037,
+          -0.016069970607757555,
+          -0.24006620216369634,
+          -1.2049300293922425,
+          -1.09779724536608,
+          -0.2881699962615966,
+          -0.7808300037384033
+        ]
+      },
+      {
+        "n_step": 43,
+        "item": {
+          "index": 40,
+          "length": 0.665,
+          "width": 0.766,
+          "height": 0.276,
+          "mass": 4.25,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.1513800024986267,
+          -0.28665000200271606,
+          1.2930656671524048
+        ],
+        "place_pos_global": [
+          -0.1513800024986267,
+          -0.28665000200271606,
+          1.2930656671524048
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.1150656671524046,
+          -0.7788800024986267,
+          -0.13893433284759524,
+          -0.47611999750137324,
+          -0.8658832259281262,
+          -0.05534999799728385,
+          -0.588650002002716
+        ]
+      },
+      {
+        "n_step": 44,
+        "item": {
+          "index": 52,
+          "length": 0.507,
+          "width": 0.408,
+          "height": 0.238,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.4659000039100647,
+          -0.04699999839067459,
+          1.4178848266601562
+        ],
+        "place_pos_global": [
+          2.96589994430542,
+          -0.04699999839067459,
+          1.4178848266601562
+        ],
+        "container_idx": 1,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.2588848266601562,
+          -0.2901000556945801,
+          -0.033115173339843804,
+          -1.22189994430542,
+          -1.473966665893134,
+          -0.4245000016093254,
+          -0.47849999839067453
+        ]
+      },
+      {
+        "n_step": 45,
+        "item": {
+          "index": 34,
+          "length": 0.762,
+          "width": 0.798,
+          "height": 0.124,
+          "mass": 3.73,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.17671999335289001,
+          -0.29767000675201416,
+          1.493058681488037
+        ],
+        "place_pos_global": [
+          -0.17671999335289001,
+          -0.29767000675201416,
+          1.493058681488037
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.391058681488037,
+          -0.75571999335289,
+          -0.01494131851196294,
+          -0.40228000664710994,
+          -1.0204313642558025,
+          -0.02832999324798574,
+          -0.5836700067520141
+        ]
+      },
+      {
+        "n_step": 46,
+        "item": {
+          "index": 1,
+          "length": 0.493,
+          "width": 0.888,
+          "height": 0.623,
+          "mass": 7.54,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.26350000500679016,
+          -0.23100000619888306,
+          0.35659998655319214
+        ],
+        "place_pos_global": [
+          -0.26350000500679016,
+          -0.23100000619888306,
+          0.35659998655319214
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099986553192104,
+          -0.9770000050067902,
+          -0.9019000134468079,
+          -0.4499999949932098,
+          -0.027004923692209082,
+          -0.049999993801116915,
+          -0.472000006198883
+        ]
+      }
+    ],
+    "elapsed_sec": 41.95455905501149
+  },
+  "suite_C01_1c_40_shelf.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 21,
+    "n_placed_final": 20,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 20,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 10,
+        "length": 0.656,
+        "width": 0.73,
+        "height": 0.17,
+        "mass": 1.0,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.18199999630451202,
+        0.3100000023841858,
+        0.13009999692440033
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099996924400274,
+        -0.8139999963045119,
+        -1.3549000030755998,
+        -0.4500000036954879,
+        -0.02700493722006736,
+        -0.6700000023841859,
+        -0.009999997615814105
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999692440027397e-05,
+        "all_excess": [
+          -9.999692440027397e-05,
+          -0.8089999963045119,
+          -1.3499000030755999,
+          -0.4450000036954879,
+          -0.02200493722006736,
+          -0.6650000023841859,
+          -0.0049999976158141045
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 17,
+        "item": {
+          "index": 4,
+          "length": 0.763,
+          "width": 0.412,
+          "height": 0.294,
+          "mass": 1.29,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.7229499816894531,
+          -0.29767000675201416,
+          1.0080000162124634
+        ],
+        "place_pos_global": [
+          -0.7229499816894531,
+          -0.29767000675201416,
+          1.0080000162124634
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8210000162124633,
+          -1.4769499816894531,
+          -0.41499998378753666,
+          -0.03105001831054685,
+          -0.3489058001622261,
+          -0.04582999324798581,
+          -0.601170006752014
+        ]
+      },
+      {
+        "n_step": 18,
+        "item": {
+          "index": 8,
+          "length": 0.748,
+          "width": 0.225,
+          "height": 0.2,
+          "mass": 1.0,
+          "is_soft": true,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.49803000688552856,
+          -0.5483300089836121,
+          0.7144920825958252
+        ],
+        "place_pos_global": [
+          0.49803000688552856,
+          -0.5483300089836121,
+          0.7144920825958252
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.5744920825958252,
+          -0.0879699931144714,
+          -0.7555079174041749,
+          -1.0840300068855284,
+          -0.8748156926061866,
+          -0.06416999101638791,
+          -1.120830008983612
+        ]
+      },
+      {
+        "n_step": 19,
+        "item": {
+          "index": 34,
+          "length": 0.343,
+          "width": 0.407,
+          "height": 0.468,
+          "mass": 1.68,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.14459000527858734,
+          -0.32899999618530273,
+          0.8185126185417175
+        ],
+        "place_pos_global": [
+          -0.14459000527858734,
+          -0.32899999618530273,
+          0.8185126185417175
+        ],
+        "container_idx": 0,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6070126185417175,
+          -0.9010900052785873,
+          -0.5799873814582825,
+          -0.6119099947214126,
+          -0.5812966526768567,
+          -0.16200000381469723,
+          -0.7799999961853028
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 29,
+          "length": 0.334,
+          "width": 0.509,
+          "height": 0.583,
+          "mass": 1.17,
+          "is_soft": true,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          -0.6908199787139893,
+          -0.20366999506950378,
+          1.3216150999069214
+        ],
+        "place_pos_global": [
+          -0.6908199787139893,
+          -0.20366999506950378,
+          1.3216150999069214
+        ],
+        "container_idx": 0,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.1146150999069213,
+          -1.3963199787139893,
+          -0.08138490009307864,
+          -0.014680021286010703,
+          -0.5551517151050537,
+          -0.2298300049304962,
+          -0.5971699950695037
+        ]
+      },
+      {
+        "n_step": 21,
+        "item": {
+          "index": 10,
+          "length": 0.656,
+          "width": 0.73,
+          "height": 0.17,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.18199999630451202,
+          0.3100000023841858,
+          0.13009999692440033
+        ],
+        "place_pos_global": [
+          -0.18199999630451202,
+          0.3100000023841858,
+          0.13009999692440033
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099996924400274,
+          -0.8139999963045119,
+          -1.3549000030755998,
+          -0.4500000036954879,
+          -0.02700493722006736,
+          -0.6700000023841859,
+          -0.009999997615814105
+        ]
+      }
+    ],
+    "elapsed_sec": 98.84035369100457
+  },
+  "suite_C02_2c_55_shelfprio.json::000": {
+    "status": "ok",
+    "total_items": 55,
+    "n_steps": 37,
+    "n_placed_final": 36,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 36,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 47,
+        "length": 0.949,
+        "width": 0.908,
+        "height": 0.493,
+        "mass": 12.2,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.03550000116229057,
+        -0.22100000083446503,
+        0.29159998893737793
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.0050999889373778695,
+        -0.5210000011622906,
+        -1.0319000110626222,
+        -0.4499999988377094,
+        -0.027004928042454024,
+        -0.049999999165534936,
+        -0.45200000083446495
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.998893737786941e-05,
+        "all_excess": [
+          -9.998893737786941e-05,
+          -0.5160000011622906,
+          -1.0269000110626223,
+          -0.4449999988377094,
+          -0.022004928042454023,
+          -0.04499999916553494,
+          -0.44700000083446495
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 33,
+        "item": {
+          "index": 29,
+          "length": 0.267,
+          "width": 0.585,
+          "height": 0.554,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.6586899757385254,
+          -0.17233000695705414,
+          1.3365086317062378
+        ],
+        "place_pos_global": [
+          -0.6586899757385254,
+          -0.17233000695705414,
+          1.3365086317062378
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.1630086317062378,
+          -1.3416899757385252,
+          -0.09999136829376223,
+          -0.02431002426147455,
+          -0.5974378695842268,
+          -0.26016999304294586,
+          -0.5648300069570541
+        ]
+      },
+      {
+        "n_step": 34,
+        "item": {
+          "index": 0,
+          "length": 0.786,
+          "width": 0.213,
+          "height": 0.477,
+          "mass": 7.04,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5301600098609924,
+          -0.5796700119972229,
+          0.2944999933242798
+        ],
+        "place_pos_global": [
+          3.0301599502563477,
+          -0.5796700119972229,
+          0.2944999933242798
+        ],
+        "container_idx": 1,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.015999993324279704,
+          -0.03684004974365229,
+          -1.0370000066757203,
+          -1.0971599502563476,
+          -0.4703971707718075,
+          -0.038829988002777094,
+          -1.158170011997223
+        ]
+      },
+      {
+        "n_step": 35,
+        "item": {
+          "index": 54,
+          "length": 0.368,
+          "width": 0.332,
+          "height": 0.651,
+          "mass": 2.46,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5944300293922424,
+          -0.3603299856185913,
+          1.377956748008728
+        ],
+        "place_pos_global": [
+          0.5944300293922424,
+          -0.3603299856185913,
+          1.377956748008728
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.171956748008728,
+          -0.18156997060775754,
+          -0.026043251991272026,
+          -1.3704300293922425,
+          -1.5095572443234908,
+          -0.0391700143814086,
+          -0.7198299856185914
+        ]
+      },
+      {
+        "n_step": 36,
+        "item": {
+          "index": 11,
+          "length": 0.372,
+          "width": 0.923,
+          "height": 0.227,
+          "mass": 1.53,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.755079984664917,
+          0.01566999964416027,
+          1.4184833765029907
+        ],
+        "place_pos_global": [
+          3.255079984664917,
+          0.01566999964416027,
+          1.4184833765029907
+        ],
+        "container_idx": 1,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.2649833765029908,
+          -0.018920015335082974,
+          -0.03801662349700931,
+          -1.529079984664917,
+          -1.6851108833199728,
+          -0.2791699996441602,
+          -0.20783000035583965
+        ]
+      },
+      {
+        "n_step": 37,
+        "item": {
+          "index": 47,
+          "length": 0.949,
+          "width": 0.908,
+          "height": 0.493,
+          "mass": 12.2,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.03550000116229057,
+          -0.22100000083446503,
+          0.29159998893737793
+        ],
+        "place_pos_global": [
+          -0.03550000116229057,
+          -0.22100000083446503,
+          0.29159998893737793
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.0050999889373778695,
+          -0.5210000011622906,
+          -1.0319000110626222,
+          -0.4499999988377094,
+          -0.027004928042454024,
+          -0.049999999165534936,
+          -0.45200000083446495
+        ]
+      }
+    ],
+    "elapsed_sec": 136.21956643900194
+  },
+  "suite_C03_2c_80_prio.json::000": {
+    "status": "ok",
+    "total_items": 80,
+    "n_steps": 28,
+    "n_placed_final": 27,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 27,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 46,
+        "length": 0.742,
+        "width": 0.838,
+        "height": 0.545,
+        "mass": 3.77,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.13899999856948853,
+        -0.25600001215934753,
+        0.3176000118255615
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100011825561468,
+        -0.7279999985694885,
+        -0.9798999881744386,
+        -0.45000000143051144,
+        -0.027004946722445633,
+        -0.049999987840652516,
+        -0.5220000121593475
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010001182556146782,
+        "all_excess": [
+          -0.00010001182556146782,
+          -0.7229999985694885,
+          -0.9748999881744386,
+          -0.44500000143051144,
+          -0.022004946722445632,
+          -0.04499998784065252,
+          -0.5170000121593475
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 24,
+        "item": {
+          "index": 71,
+          "length": 0.374,
+          "width": 0.328,
+          "height": 0.534,
+          "mass": 4.92,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.3695099949836731,
+          -0.5170000195503235,
+          0.8739615678787231
+        ],
+        "place_pos_global": [
+          2.8695099353790283,
+          -0.5170000195503235,
+          0.8739615678787231
+        ],
+        "container_idx": 1,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.646961567878723,
+          -0.32349006462097163,
+          -0.5090384321212769,
+          -1.0625099353790284,
+          -0.9139628022381023,
+          -0.043999980449676485,
+          -1.0380000195503236
+        ]
+      },
+      {
+        "n_step": 25,
+        "item": {
+          "index": 57,
+          "length": 0.484,
+          "width": 0.746,
+          "height": 0.4,
+          "mass": 6.54,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.2731100022792816,
+          -0.32899999618530273,
+          1.2129396200180054
+        ],
+        "place_pos_global": [
+          2.2268900871276855,
+          -0.32899999618530273,
+          1.2129396200180054
+        ],
+        "container_idx": 1,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.9309396200180053,
+          -1.0331099128723145,
+          -0.11506037998199467,
+          -0.4868900871276855,
+          -0.7368857313779159,
+          -0.023000003814697245,
+          -0.6409999961853028
+        ]
+      },
+      {
+        "n_step": 26,
+        "item": {
+          "index": 34,
+          "length": 0.571,
+          "width": 0.308,
+          "height": 0.557,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.24097999930381775,
+          -0.39166998863220215,
+          0.20999999344348907
+        ],
+        "place_pos_global": [
+          -0.24097999930381775,
+          -0.39166998863220215,
+          0.20999999344348907
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.015999993443488986,
+          -0.9224799993038177,
+          -1.2060000065565109,
+          -0.4405200006961822,
+          -0.028693341339781075,
+          -0.04783001136779791,
+          -0.7911699886322022
+        ]
+      },
+      {
+        "n_step": 27,
+        "item": {
+          "index": 1,
+          "length": 0.79,
+          "width": 0.653,
+          "height": 0.418,
+          "mass": 2.19,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.2731100022792816,
+          -0.3603299856185913,
+          0.7589916586875916
+        ],
+        "place_pos_global": [
+          -0.2731100022792816,
+          -0.3603299856185913,
+          0.7589916586875916
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.3239916586875915,
+          -1.0241100022792815,
+          -0.4160083413124085,
+          -0.4778899977207184,
+          -0.28172649703596986,
+          -0.03817001438140866,
+          -0.7188299856185913
+        ]
+      },
+      {
+        "n_step": 28,
+        "item": {
+          "index": 46,
+          "length": 0.742,
+          "width": 0.838,
+          "height": 0.545,
+          "mass": 3.77,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.13899999856948853,
+          -0.25600001215934753,
+          0.3176000118255615
+        ],
+        "place_pos_global": [
+          -0.13899999856948853,
+          -0.25600001215934753,
+          0.3176000118255615
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100011825561468,
+          -0.7279999985694885,
+          -0.9798999881744386,
+          -0.45000000143051144,
+          -0.027004946722445633,
+          -0.049999987840652516,
+          -0.5220000121593475
+        ]
+      }
+    ],
+    "elapsed_sec": 118.71691482899769
+  },
+  "suite_D01_A_1c_40_softheavy.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 22,
+    "n_placed_final": 21,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 21,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 11,
+        "length": 0.517,
+        "width": 0.807,
+        "height": 0.487,
+        "mass": 1.68,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.2515000104904175,
+        0.27149999141693115,
+        0.28859999775886536
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099997758865327,
+        -0.9530000104904175,
+        -1.0379000022411347,
+        -0.4499999895095825,
+        -0.027004928295048858,
+        -0.592999991416931,
+        -0.010000008583068709
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999775886532659e-05,
+        "all_excess": [
+          -9.999775886532659e-05,
+          -0.9480000104904175,
+          -1.0329000022411348,
+          -0.44499998950958247,
+          -0.022004928295048857,
+          -0.587999991416931,
+          -0.005000008583068709
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 18,
+        "item": {
+          "index": 4,
+          "length": 0.708,
+          "width": 0.463,
+          "height": 0.296,
+          "mass": 3.83,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.24097999930381775,
+          -0.32899999618530273,
+          0.8028197884559631
+        ],
+        "place_pos_global": [
+          0.24097999930381775,
+          -0.32899999618530273,
+          0.8028197884559631
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6148197884559631,
+          -0.4875200006961822,
+          -0.6191802115440369,
+          -0.9694799993038177,
+          -0.827601104587939,
+          -0.04200000381469726,
+          -0.6599999961853028
+        ]
+      },
+      {
+        "n_step": 19,
+        "item": {
+          "index": 30,
+          "length": 0.348,
+          "width": 0.745,
+          "height": 0.575,
+          "mass": 5.84,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.24097999930381775,
+          -0.2663300037384033,
+          0.789472222328186
+        ],
+        "place_pos_global": [
+          -0.24097999930381775,
+          -0.2663300037384033,
+          0.789472222328186
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.376972222328186,
+          -1.0269799993038178,
+          -0.40802777767181403,
+          -0.5450200006961823,
+          -0.3660854658472359,
+          -0.17116999626159668,
+          -0.6638300037384033
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 33,
+          "length": 0.687,
+          "width": 0.682,
+          "height": 0.285,
+          "mass": 1.95,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.6908199787139893,
+          -0.32899999618530273,
+          1.027609944343567
+        ],
+        "place_pos_global": [
+          0.6908199787139893,
+          -0.32899999618530273,
+          1.027609944343567
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6466099443435669,
+          -0.12668002128601072,
+          -0.20139005565643314,
+          -1.5083199787139892,
+          -1.2135869093354363,
+          -0.052500003814697216,
+          -0.6704999961853028
+        ]
+      },
+      {
+        "n_step": 21,
+        "item": {
+          "index": 13,
+          "length": 0.744,
+          "width": 0.462,
+          "height": 0.458,
+          "mass": 10.11,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.24097999930381775,
+          -0.32899999618530273,
+          1.167040467262268
+        ],
+        "place_pos_global": [
+          0.24097999930381775,
+          -0.32899999618530273,
+          1.167040467262268
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8980404672622679,
+          -0.48802000069618223,
+          -0.17395953273773196,
+          -0.9699799993038177,
+          -1.0375037708481232,
+          -0.024000003814697246,
+          -0.6419999961853028
+        ]
+      },
+      {
+        "n_step": 22,
+        "item": {
+          "index": 11,
+          "length": 0.517,
+          "width": 0.807,
+          "height": 0.487,
+          "mass": 1.68,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.2515000104904175,
+          0.27149999141693115,
+          0.28859999775886536
+        ],
+        "place_pos_global": [
+          -0.2515000104904175,
+          0.27149999141693115,
+          0.28859999775886536
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099997758865327,
+          -0.9530000104904175,
+          -1.0379000022411347,
+          -0.4499999895095825,
+          -0.027004928295048858,
+          -0.592999991416931,
+          -0.010000008583068709
+        ]
+      }
+    ],
+    "elapsed_sec": 85.57685084699187
+  },
+  "suite_D02_A_1c_40_prioheavy_nocont.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 22,
+    "n_placed_final": 21,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 21,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 4,
+        "length": 0.283,
+        "width": 0.709,
+        "height": 0.495,
+        "mass": 1.0,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.3684999942779541,
+        -0.320499986410141,
+        0.29260000586509705
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100005865096985,
+        -1.186999994277954,
+        -1.029899994134903,
+        -0.4500000057220459,
+        -0.0270049451988576,
+        -0.05000001358985906,
+        -0.650999986410141
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010000586509698473,
+        "all_excess": [
+          -0.00010000586509698473,
+          -1.1819999942779542,
+          -1.024899994134903,
+          -0.4450000057220459,
+          -0.0220049451988576,
+          -0.04500001358985906,
+          -0.645999986410141
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 18,
+        "item": {
+          "index": 0,
+          "length": 0.2,
+          "width": 0.797,
+          "height": 0.4,
+          "mass": 1.12,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.24097999930381775,
+          -0.29767000675201416,
+          0.7899689674377441
+        ],
+        "place_pos_global": [
+          -0.24097999930381775,
+          -0.29767000675201416,
+          0.7899689674377441
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.649968967437744,
+          -1.0009799993038178,
+          -0.6800310325622558,
+          -0.5190200006961823,
+          -0.5505972048165519,
+          -0.028829993247985797,
+          -0.5841700067520141
+        ]
+      },
+      {
+        "n_step": 19,
+        "item": {
+          "index": 8,
+          "length": 0.414,
+          "width": 0.235,
+          "height": 0.496,
+          "mass": 3.15,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.6908199787139893,
+          0.01566999964416027,
+          0.9578675031661987
+        ],
+        "place_pos_global": [
+          0.6908199787139893,
+          0.01566999964416027,
+          0.9578675031661987
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.7108675031661987,
+          -0.02118002128601071,
+          -0.40513249683380137,
+          -1.4028199787139892,
+          -1.1901666723602877,
+          -0.6231699996441602,
+          -0.5518300003558396
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 35,
+          "length": 0.529,
+          "width": 0.246,
+          "height": 0.299,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.2731100022792816,
+          -0.17233000695705414,
+          1.0129727125167847
+        ],
+        "place_pos_global": [
+          -0.2731100022792816,
+          -0.17233000695705414,
+          1.0129727125167847
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8499727125167846,
+          -1.0836100022792816,
+          -0.4340272874832154,
+          -0.5373899977207184,
+          -0.7109449878539995,
+          -0.2881699930429458,
+          -0.592830006957054
+        ]
+      },
+      {
+        "n_step": 21,
+        "item": {
+          "index": 29,
+          "length": 0.465,
+          "width": 0.204,
+          "height": 0.341,
+          "mass": 3.64,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.2731100022792816,
+          -0.5796700119972229,
+          1.0604592561721802
+        ],
+        "place_pos_global": [
+          -0.2731100022792816,
+          -0.5796700119972229,
+          1.0604592561721802
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8499592561721802,
+          -1.0006100022792817,
+          -0.3390407438278199,
+          -0.4543899977207183,
+          -0.6551031890636911,
+          -0.04332998800277704,
+          -1.1626700119972229
+        ]
+      },
+      {
+        "n_step": 22,
+        "item": {
+          "index": 4,
+          "length": 0.283,
+          "width": 0.709,
+          "height": 0.495,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.3684999942779541,
+          -0.320499986410141,
+          0.29260000586509705
+        ],
+        "place_pos_global": [
+          -0.3684999942779541,
+          -0.320499986410141,
+          0.29260000586509705
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100005865096985,
+          -1.186999994277954,
+          -1.029899994134903,
+          -0.4500000057220459,
+          -0.0270049451988576,
+          -0.05000001358985906,
+          -0.650999986410141
+        ]
+      }
+    ],
+    "elapsed_sec": 98.68648974600364
+  },
+  "suite_D03_A_2c_60_prioheavy_cont.json::000": {
+    "status": "ok",
+    "total_items": 60,
+    "n_steps": 41,
+    "n_placed_final": 40,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 40,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 27,
+        "length": 0.789,
+        "width": 0.78,
+        "height": 0.554,
+        "mass": 9.26,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.11550000309944153,
+        -0.2849999964237213,
+        0.3221000134944916
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100013494491518,
+        -0.6810000030994414,
+        -0.9708999865055085,
+        -0.4499999969005584,
+        -0.02700494491017763,
+        -0.050000003576278707,
+        -0.5799999964237212
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010001349449151754,
+        "all_excess": [
+          -0.00010001349449151754,
+          -0.6760000030994414,
+          -0.9658999865055085,
+          -0.4449999969005584,
+          -0.02200494491017763,
+          -0.04500000357627871,
+          -0.5749999964237212
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 37,
+        "item": {
+          "index": 22,
+          "length": 0.246,
+          "width": 0.43,
+          "height": 0.203,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.49803000688552856,
+          -0.4543299973011017,
+          1.033913493156433
+        ],
+        "place_pos_global": [
+          0.49803000688552856,
+          -0.4543299973011017,
+          1.033913493156433
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8709134931564331,
+          -0.36046999311447137,
+          -0.41308650684356696,
+          -1.3565300068855286,
+          -1.277453109256527,
+          -0.0556700026988983,
+          -0.9243299973011018
+        ]
+      },
+      {
+        "n_step": 38,
+        "item": {
+          "index": 10,
+          "length": 0.236,
+          "width": 0.283,
+          "height": 0.311,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.7872099876403809,
+          -0.5796700119972229,
+          1.002500057220459
+        ],
+        "place_pos_global": [
+          1.7127900123596191,
+          -0.5796700119972229,
+          1.002500057220459
+        ],
+        "container_idx": 1,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.821000057220459,
+          -1.5917099876403809,
+          -0.4259999427795411,
+          -0.017290012359619106,
+          -0.33964984885726895,
+          -0.02732998800277707,
+          -1.1466700119972228
+        ]
+      },
+      {
+        "n_step": 39,
+        "item": {
+          "index": 19,
+          "length": 0.351,
+          "width": 0.253,
+          "height": 0.163,
+          "mass": 3.92,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.26985999941825867,
+          -0.37022000551223755,
+          0.48249274492263794
+        ],
+        "place_pos_global": [
+          2.769860029220581,
+          -0.37022000551223755,
+          0.48249274492263794
+        ],
+        "container_idx": 1,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.3159927449226379,
+          -0.6086399707794189,
+          -0.9610072550773621,
+          -1.1483600292205811,
+          -0.7268147295774504,
+          -0.17927999448776244,
+          -0.8797200055122376
+        ]
+      },
+      {
+        "n_step": 40,
+        "item": {
+          "index": 26,
+          "length": 0.311,
+          "width": 0.229,
+          "height": 0.366,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.7824599742889404,
+          -0.23916999995708466,
+          1.2494196891784668
+        ],
+        "place_pos_global": [
+          0.7824599742889404,
+          -0.23916999995708466,
+          1.2494196891784668
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.0949196891784667,
+          -0.022040025711059535,
+          -0.20608031082153325,
+          -1.5869599742889404,
+          -1.598208240375949,
+          -0.3028300000429153,
+          -0.7411699999570847
+        ]
+      },
+      {
+        "n_step": 41,
+        "item": {
+          "index": 27,
+          "length": 0.789,
+          "width": 0.78,
+          "height": 0.554,
+          "mass": 9.26,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.11550000309944153,
+          -0.2849999964237213,
+          0.3221000134944916
+        ],
+        "place_pos_global": [
+          -0.11550000309944153,
+          -0.2849999964237213,
+          0.3221000134944916
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100013494491518,
+          -0.6810000030994414,
+          -0.9708999865055085,
+          -0.4499999969005584,
+          -0.02700494491017763,
+          -0.050000003576278707,
+          -0.5799999964237212
+        ]
+      }
+    ],
+    "elapsed_sec": 118.3835332019953
+  },
+  "suite_D04_A_1c_40_flat.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 21,
+    "n_placed_final": 20,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 20,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 17,
+        "length": 0.645,
+        "width": 0.646,
+        "height": 0.275,
+        "mass": 2.03,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.1875,
+        0.35199999809265137,
+        0.1826000064611435
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100006461143447,
+        -0.825,
+        -1.2498999935388566,
+        -0.44999999999999996,
+        -0.02700494179083157,
+        -0.7539999980926515,
+        -0.01000000190734851
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010000646114344692,
+        "all_excess": [
+          -0.00010000646114344692,
+          -0.82,
+          -1.2448999935388567,
+          -0.44499999999999995,
+          -0.02200494179083157,
+          -0.7489999980926515,
+          -0.00500000190734851
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 17,
+        "item": {
+          "index": 21,
+          "length": 0.378,
+          "width": 0.359,
+          "height": 0.161,
+          "mass": 4.18,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.20884999632835388,
+          -0.20366999506950378,
+          0.36149394512176514
+        ],
+        "place_pos_global": [
+          -0.20884999632835388,
+          -0.20366999506950378,
+          0.36149394512176514
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.24099394512176509,
+          -0.9798499963283538,
+          -1.128006054878235,
+          -0.562150003671646,
+          -0.27699257639353325,
+          -0.3418300049304962,
+          -0.7091699950695037
+        ]
+      },
+      {
+        "n_step": 18,
+        "item": {
+          "index": 13,
+          "length": 0.855,
+          "width": 0.494,
+          "height": 0.147,
+          "mass": 1.19,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.49803000688552856,
+          -0.1096699982881546,
+          0.6189930438995361
+        ],
+        "place_pos_global": [
+          0.49803000688552856,
+          -0.1096699982881546,
+          0.6189930438995361
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.3319930438995361,
+          -0.03446999311447141,
+          -0.7040069561004639,
+          -1.0305300068855285,
+          -0.6593929416360058,
+          -0.5418300017118454,
+          -0.7211699982881545
+        ]
+      },
+      {
+        "n_step": 19,
+        "item": {
+          "index": 16,
+          "length": 0.807,
+          "width": 0.562,
+          "height": 0.151,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5301600098609924,
+          -0.4543299973011017,
+          0.619979977607727
+        ],
+        "place_pos_global": [
+          0.5301600098609924,
+          -0.4543299973011017,
+          0.619979977607727
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.298979977607727,
+          -0.026339990139007508,
+          -0.669020022392273,
+          -1.0866600098609924,
+          -0.6727223768695462,
+          -0.19517000269889828,
+          -1.0638299973011018
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 22,
+          "length": 0.387,
+          "width": 0.645,
+          "height": 0.329,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.7229499816894531,
+          -0.3603299856185913,
+          1.0255000591278076
+        ],
+        "place_pos_global": [
+          -0.7229499816894531,
+          -0.3603299856185913,
+          1.0255000591278076
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8210000591278075,
+          -1.489449981689453,
+          -0.3799999408721924,
+          -0.043550018310546834,
+          -0.357314241841963,
+          -0.04217001438140866,
+          -0.7228299856185914
+        ]
+      },
+      {
+        "n_step": 21,
+        "item": {
+          "index": 17,
+          "length": 0.645,
+          "width": 0.646,
+          "height": 0.275,
+          "mass": 2.03,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.1875,
+          0.35199999809265137,
+          0.1826000064611435
+        ],
+        "place_pos_global": [
+          -0.1875,
+          0.35199999809265137,
+          0.1826000064611435
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100006461143447,
+          -0.825,
+          -1.2498999935388566,
+          -0.44999999999999996,
+          -0.02700494179083157,
+          -0.7539999980926515,
+          -0.01000000190734851
+        ]
+      }
+    ],
+    "elapsed_sec": 87.18343694000214
+  },
+  "suite_D05_A_1c_40_tall.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 13,
+    "n_placed_final": 12,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 12,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 20,
+        "length": 0.351,
+        "width": 0.432,
+        "height": 0.603,
+        "mass": 1.0,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.3345000147819519,
+        0.45899999141693115,
+        0.3465999960899353
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.0050999960899353325,
+        -1.1190000147819519,
+        -0.9219000039100648,
+        -0.44999998521804807,
+        -0.027004924173342215,
+        -0.9679999914169313,
+        -0.010000008583068737
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999608993533238e-05,
+        "all_excess": [
+          -9.999608993533238e-05,
+          -1.114000014781952,
+          -0.9169000039100648,
+          -0.44499998521804807,
+          -0.022004924173342214,
+          -0.9629999914169313,
+          -0.005000008583068737
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 9,
+        "item": {
+          "index": 32,
+          "length": 0.461,
+          "width": 0.49,
+          "height": 0.504,
+          "mass": 2.74,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.6908199787139893,
+          -0.20366999506950378,
+          0.5944905281066895
+        ],
+        "place_pos_global": [
+          0.6908199787139893,
+          -0.20366999506950378,
+          0.5944905281066895
+        ],
+        "container_idx": 0,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.3239905281066894,
+          -0.02418002128601071,
+          -0.7450094718933106,
+          -1.4058199787139891,
+          -0.9059189134215426,
+          -0.2693300049304962,
+          -0.6366699950695037
+        ]
+      },
+      {
+        "n_step": 10,
+        "item": {
+          "index": 30,
+          "length": 0.485,
+          "width": 0.555,
+          "height": 0.41,
+          "mass": 4.83,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.6586899757385254,
+          -0.1096699982881546,
+          1.067478060722351
+        ],
+        "place_pos_global": [
+          0.6586899757385254,
+          -0.1096699982881546,
+          1.067478060722351
+        ],
+        "container_idx": 0,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.7849780607223511,
+          -0.02381002426147455,
+          -0.260021939277649,
+          -1.3411899757385253,
+          -1.2035472174622952,
+          -0.41033000171184536,
+          -0.5896699982881546
+        ]
+      },
+      {
+        "n_step": 11,
+        "item": {
+          "index": 33,
+          "length": 0.528,
+          "width": 0.571,
+          "height": 0.353,
+          "mass": 8.36,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.11246000230312347,
+          -0.23499999940395355,
+          0.8854862451553345
+        ],
+        "place_pos_global": [
+          -0.11246000230312347,
+          -0.23499999940395355,
+          0.8854862451553345
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6689862451553344,
+          -0.7869600023031235,
+          -0.5080137548446656,
+          -0.5620399976968765,
+          -0.5936072322668666,
+          -0.2260000005960464,
+          -0.6559999994039535
+        ]
+      },
+      {
+        "n_step": 12,
+        "item": {
+          "index": 15,
+          "length": 0.422,
+          "width": 0.33,
+          "height": 0.727,
+          "mass": 5.34,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.0803299993276596,
+          -0.17233000695705414,
+          1.2268975973129272
+        ],
+        "place_pos_global": [
+          -0.0803299993276596,
+          -0.17233000695705414,
+          1.2268975973129272
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.0218975973129272,
+          -0.6768299993276596,
+          -0.1781024026870728,
+          -0.5161700006723404,
+          -0.8238849850255204,
+          -0.3416699930429459,
+          -0.6463300069570541
+        ]
+      },
+      {
+        "n_step": 13,
+        "item": {
+          "index": 20,
+          "length": 0.351,
+          "width": 0.432,
+          "height": 0.603,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.3345000147819519,
+          0.45899999141693115,
+          0.3465999960899353
+        ],
+        "place_pos_global": [
+          -0.3345000147819519,
+          0.45899999141693115,
+          0.3465999960899353
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.0050999960899353325,
+          -1.1190000147819519,
+          -0.9219000039100648,
+          -0.44999998521804807,
+          -0.027004924173342215,
+          -0.9679999914169313,
+          -0.010000008583068737
+        ]
+      }
+    ],
+    "elapsed_sec": 87.09344161499757
+  },
+  "suite_P01_A_1c_pre6.json::000": {
+    "status": "ok",
+    "total_items": 40,
+    "n_steps": 14,
+    "n_placed_final": 19,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 13,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 26,
+        "length": 0.888,
+        "width": 0.245,
+        "height": 0.325,
+        "mass": 1.0,
+        "is_soft": true,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.06599999964237213,
+        0.5525000095367432,
+        0.20759999752044678
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099997520446764,
+        -0.5819999996423721,
+        -1.1999000024795532,
+        -0.4500000003576278,
+        -0.027004935415818387,
+        -1.1550000095367432,
+        -0.009999990463256739
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999752044676392e-05,
+        "all_excess": [
+          -9.999752044676392e-05,
+          -0.5769999996423721,
+          -1.1949000024795533,
+          -0.4450000003576278,
+          -0.022004935415818386,
+          -1.1500000095367433,
+          -0.004999990463256739
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 10,
+        "item": {
+          "index": 21,
+          "length": 0.735,
+          "width": 0.337,
+          "height": 0.175,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.14459000527858734,
+          -0.1096699982881546,
+          0.22450000047683716
+        ],
+        "place_pos_global": [
+          -0.14459000527858734,
+          -0.1096699982881546,
+          0.22450000047683716
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.016000000476837112,
+          -0.7370900052785874,
+          -1.1769999995231628,
+          -0.44790999472141263,
+          -0.03366439447260494,
+          -0.5278300017118454,
+          -0.7071699982881545
+        ]
+      },
+      {
+        "n_step": 11,
+        "item": {
+          "index": 24,
+          "length": 0.439,
+          "width": 0.839,
+          "height": 0.237,
+          "mass": 5.6,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.5205000042915344,
+          -0.445499986410141,
+          0.1745000034570694
+        ],
+        "place_pos_global": [
+          0.5205000042915344,
+          -0.445499986410141,
+          0.1745000034570694
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.016000003457069326,
+          -0.019999995708465557,
+          -1.2769999965429306,
+          -1.0610000042915344,
+          -0.44607336638655787,
+          -0.06000001358985904,
+          -0.910999986410141
+        ]
+      },
+      {
+        "n_step": 12,
+        "item": {
+          "index": 30,
+          "length": 0.765,
+          "width": 0.359,
+          "height": 0.374,
+          "mass": 5.18,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.5301600098609924,
+          -0.4856700003147125,
+          0.4724924862384796
+        ],
+        "place_pos_global": [
+          0.5301600098609924,
+          -0.4856700003147125,
+          0.4724924862384796
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.25299248623847953,
+          -0.047339990139007526,
+          -0.9180075137615205,
+          -1.1076600098609923,
+          -0.6528205178044123,
+          -0.05232999968528748,
+          -0.9836700003147125
+        ]
+      },
+      {
+        "n_step": 13,
+        "item": {
+          "index": 1,
+          "length": 0.446,
+          "width": 0.686,
+          "height": 0.279,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          -0.2731100022792816,
+          -0.4543299973011017,
+          0.39899998903274536
+        ],
+        "place_pos_global": [
+          -0.2731100022792816,
+          -0.4543299973011017,
+          0.39899998903274536
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.015999989032745243,
+          -1.0936100022792816,
+          -0.8280000109672547,
+          -0.5473899977207184,
+          -0.10058187756896741,
+          -0.04767000269889826,
+          -0.9163299973011017
+        ]
+      },
+      {
+        "n_step": 14,
+        "item": {
+          "index": 26,
+          "length": 0.888,
+          "width": 0.245,
+          "height": 0.325,
+          "mass": 1.0,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.06599999964237213,
+          0.5525000095367432,
+          0.20759999752044678
+        ],
+        "place_pos_global": [
+          -0.06599999964237213,
+          0.5525000095367432,
+          0.20759999752044678
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099997520446764,
+          -0.5819999996423721,
+          -1.1999000024795532,
+          -0.4500000003576278,
+          -0.027004935415818387,
+          -1.1550000095367432,
+          -0.009999990463256739
+        ]
+      }
+    ],
+    "elapsed_sec": 90.2121490490099
+  },
+  "suite_P02_A_1c_pre10.json::000": {
+    "status": "ok",
+    "total_items": 50,
+    "n_steps": 22,
+    "n_placed_final": 31,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 21,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 32,
+        "length": 0.622,
+        "width": 0.419,
+        "height": 0.499,
+        "mass": 6.04,
+        "is_soft": true,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.19900000095367432,
+        0.46549999713897705,
+        0.2946000099182129
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100009918212911,
+        -0.8480000009536743,
+        -1.0258999900817871,
+        -0.44999999904632565,
+        -0.027004943707344964,
+        -0.9809999971389771,
+        -0.010000002861022844
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010000991821291095,
+        "all_excess": [
+          -0.00010000991821291095,
+          -0.8430000009536743,
+          -1.0208999900817872,
+          -0.44499999904632564,
+          -0.022004943707344963,
+          -0.9759999971389771,
+          -0.005000002861022844
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 18,
+        "item": {
+          "index": 25,
+          "length": 0.385,
+          "width": 0.792,
+          "height": 0.242,
+          "mass": 3.72,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.4659000039100647,
+          -0.17233000695705414,
+          0.8279430270195007
+        ],
+        "place_pos_global": [
+          0.4659000039100647,
+          -0.17233000695705414,
+          0.8279430270195007
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6669430270195007,
+          -0.09809999608993525,
+          -0.6210569729804993,
+          -1.0299000039100648,
+          -0.9068120708680314,
+          -0.36016999304294584,
+          -0.6648300069570541
+        ]
+      },
+      {
+        "n_step": 19,
+        "item": {
+          "index": 23,
+          "length": 0.285,
+          "width": 0.859,
+          "height": 0.245,
+          "mass": 2.72,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.2731100022792816,
+          -0.2663300037384033,
+          0.6754945516586304
+        ],
+        "place_pos_global": [
+          -0.2731100022792816,
+          -0.2663300037384033,
+          0.6754945516586304
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.20599455165863034,
+          -1.1106100022792815,
+          -0.4650054483413697,
+          -0.5643899977207183,
+          -0.2526019056811323,
+          -0.31616999626159664,
+          -0.8088300037384033
+        ]
+      },
+      {
+        "n_step": 20,
+        "item": {
+          "index": 33,
+          "length": 0.29,
+          "width": 0.393,
+          "height": 0.511,
+          "mass": 1.0,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.30524998903274536,
+          -0.5483300089836121,
+          0.6504582166671753
+        ],
+        "place_pos_global": [
+          0.30524998903274536,
+          -0.5483300089836121,
+          0.6504582166671753
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.41395821666717525,
+          -0.3992500109672546,
+          -0.7230417833328248,
+          -1.0097499890327453,
+          -0.7060641049212791,
+          -0.03166999101638793,
+          -1.088330008983612
+        ]
+      },
+      {
+        "n_step": 21,
+        "item": {
+          "index": 37,
+          "length": 0.268,
+          "width": 0.505,
+          "height": 0.365,
+          "mass": 1.08,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.21679000556468964,
+          -0.1987600028514862,
+          1.1314048767089844
+        ],
+        "place_pos_global": [
+          0.21679000556468964,
+          -0.1987600028514862,
+          1.1314048767089844
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.9089048767089843,
+          -0.6092099944353103,
+          -0.2560951232910157,
+          -1.0427900055646897,
+          -1.09452009311392,
+          -0.27373999714851377,
+          -0.6312600028514861
+        ]
+      },
+      {
+        "n_step": 22,
+        "item": {
+          "index": 32,
+          "length": 0.622,
+          "width": 0.419,
+          "height": 0.499,
+          "mass": 6.04,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.19900000095367432,
+          0.46549999713897705,
+          0.2946000099182129
+        ],
+        "place_pos_global": [
+          -0.19900000095367432,
+          0.46549999713897705,
+          0.2946000099182129
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100009918212911,
+          -0.8480000009536743,
+          -1.0258999900817871,
+          -0.44999999904632565,
+          -0.027004943707344964,
+          -0.9809999971389771,
+          -0.010000002861022844
+        ]
+      }
+    ],
+    "elapsed_sec": 94.21450816799188
+  },
+  "suite_P03_A_2c_pre8_prio.json::000": {
+    "status": "ok",
+    "total_items": 68,
+    "n_steps": 31,
+    "n_placed_final": 38,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 30,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 59,
+        "length": 0.859,
+        "width": 0.843,
+        "height": 0.57,
+        "mass": 15.65,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.08049999922513962,
+        -0.2535000145435333,
+        0.33009999990463257
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005099999904632557,
+        -0.6109999992251396,
+        -0.9549000000953676,
+        -0.45000000077486035,
+        -0.027004937460634038,
+        -0.04999998545646672,
+        -0.5170000145435333
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -9.999990463255715e-05,
+        "all_excess": [
+          -9.999990463255715e-05,
+          -0.6059999992251396,
+          -0.9499000000953676,
+          -0.44500000077486035,
+          -0.022004937460634037,
+          -0.044999985456466725,
+          -0.5120000145435333
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 27,
+        "item": {
+          "index": 6,
+          "length": 0.256,
+          "width": 0.743,
+          "height": 0.231,
+          "mass": 5.72,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.3744699954986572,
+          -0.5500500202178955,
+          0.42750000953674316
+        ],
+        "place_pos_global": [
+          -0.3744699954986572,
+          -0.5500500202178955,
+          0.42750000953674316
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.016000009536743076,
+          -1.2189699954986573,
+          -0.770999990463257,
+          -0.47003000450134275,
+          -0.04854392995828388,
+          -0.04694997978210447,
+          -1.1070500202178954
+        ]
+      },
+      {
+        "n_step": 28,
+        "item": {
+          "index": 47,
+          "length": 0.708,
+          "width": 0.207,
+          "height": 0.299,
+          "mass": 1.0,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.7872099876403809,
+          -0.32899999618530273,
+          0.9645000100135803
+        ],
+        "place_pos_global": [
+          -0.7872099876403809,
+          -0.32899999618530273,
+          0.9645000100135803
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8210000100135803,
+          -1.5977099876403809,
+          -0.5019999899864197,
+          -0.02329001235961911,
+          -0.3436858506909857,
+          -0.04200000381469726,
+          -0.6599999961853028
+        ]
+      },
+      {
+        "n_step": 29,
+        "item": {
+          "index": 46,
+          "length": 0.751,
+          "width": 0.423,
+          "height": 0.13,
+          "mass": 4.74,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.6908199787139893,
+          -0.2663300037384033,
+          0.26750001311302185
+        ],
+        "place_pos_global": [
+          0.6908199787139893,
+          -0.2663300037384033,
+          0.26750001311302185
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.016000013113021766,
+          -0.2041800212860107,
+          -1.0909999868869782,
+          -1.5858199787139893,
+          -0.7991054920712101,
+          -0.08316999626159671,
+          -0.5758300037384032
+        ]
+      },
+      {
+        "n_step": 30,
+        "item": {
+          "index": 17,
+          "length": 0.382,
+          "width": 0.803,
+          "height": 0.134,
+          "mass": 3.05,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.33737999200820923,
+          -0.6110000014305115,
+          0.45750001072883606
+        ],
+        "place_pos_global": [
+          0.33737999200820923,
+          -0.6110000014305115,
+          0.45750001072883606
+        ],
+        "container_idx": 0,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.016000010728835945,
+          -0.43162000799179073,
+          -0.710999989271164,
+          -1.1063799920082091,
+          -0.4765992548961235,
+          -0.0469999985694885,
+          -1.2290000014305116
+        ]
+      },
+      {
+        "n_step": 31,
+        "item": {
+          "index": 59,
+          "length": 0.859,
+          "width": 0.843,
+          "height": 0.57,
+          "mass": 15.65,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.08049999922513962,
+          -0.2535000145435333,
+          0.33009999990463257
+        ],
+        "place_pos_global": [
+          -0.08049999922513962,
+          -0.2535000145435333,
+          0.33009999990463257
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005099999904632557,
+          -0.6109999992251396,
+          -0.9549000000953676,
+          -0.45000000077486035,
+          -0.027004937460634038,
+          -0.04999998545646672,
+          -0.5170000145435333
+        ]
+      }
+    ],
+    "elapsed_sec": 121.66298457299126
+  },
+  "suite_P04_B_1c_pre8_shelf.json::000": {
+    "status": "ok",
+    "total_items": 42,
+    "n_steps": 16,
+    "n_placed_final": 23,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 15,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 0,
+        "length": 0.616,
+        "width": 0.518,
+        "height": 0.564,
+        "mass": 6.34,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.20200000703334808,
+        -0.41600000858306885,
+        0.32710000872612
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100008726119987,
+        -0.854000007033348,
+        -0.96089999127388,
+        -0.4499999929666519,
+        -0.027004938735636586,
+        -0.04999999141693118,
+        -0.8420000085830689
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010000872611998658,
+        "all_excess": [
+          -0.00010000872611998658,
+          -0.849000007033348,
+          -0.95589999127388,
+          -0.4449999929666519,
+          -0.022004938735636585,
+          -0.04499999141693118,
+          -0.8370000085830689
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 12,
+        "item": {
+          "index": 20,
+          "length": 0.532,
+          "width": 0.458,
+          "height": 0.189,
+          "mass": 4.01,
+          "is_soft": false,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.6908199787139893,
+          -0.39166998863220215,
+          0.7884580492973328
+        ],
+        "place_pos_global": [
+          0.6908199787139893,
+          -0.39166998863220215,
+          0.7884580492973328
+        ],
+        "container_idx": 0,
+        "orientation": 3,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6539580492973327,
+          -0.0401800212860107,
+          -0.6870419507026673,
+          -1.4218199787139891,
+          -1.160837869973566,
+          -0.06733001136779782,
+          -0.8106699886322022
+        ]
+      },
+      {
+        "n_step": 13,
+        "item": {
+          "index": 1,
+          "length": 0.402,
+          "width": 0.619,
+          "height": 0.367,
+          "mass": 3.21,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.7229499816894531,
+          -0.29767000675201416,
+          1.0444999933242798
+        ],
+        "place_pos_global": [
+          -0.7229499816894531,
+          -0.29767000675201416,
+          1.0444999933242798
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8209999933242798,
+          -1.481949981689453,
+          -0.3420000066757203,
+          -0.03605001831054683,
+          -0.3522691471963235,
+          -0.11782999324798582,
+          -0.6731700067520141
+        ]
+      },
+      {
+        "n_step": 14,
+        "item": {
+          "index": 7,
+          "length": 0.498,
+          "width": 0.741,
+          "height": 0.228,
+          "mass": 1.33,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.17671999335289001,
+          -0.23499999940395355,
+          1.0884814262390137
+        ],
+        "place_pos_global": [
+          -0.17671999335289001,
+          -0.23499999940395355,
+          1.0884814262390137
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6779814262390136,
+          -1.0227199933528899,
+          -0.1110185737609864,
+          -0.66928000664711,
+          -0.6724005636668773,
+          -0.2410000005960464,
+          -0.6709999994039535
+        ]
+      },
+      {
+        "n_step": 15,
+        "item": {
+          "index": 23,
+          "length": 0.576,
+          "width": 0.729,
+          "height": 0.216,
+          "mass": 5.74,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.0717099979519844,
+          -0.27114999294281006,
+          1.0824881792068481
+        ],
+        "place_pos_global": [
+          0.0717099979519844,
+          -0.27114999294281006,
+          1.0824881792068481
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6779881792068481,
+          -0.7802900020480156,
+          -0.12301182079315193,
+          -0.9237099979519844,
+          -0.8435536935858996,
+          -0.16585000705718994,
+          -0.6681499929428101
+        ]
+      },
+      {
+        "n_step": 16,
+        "item": {
+          "index": 0,
+          "length": 0.616,
+          "width": 0.518,
+          "height": 0.564,
+          "mass": 6.34,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.20200000703334808,
+          -0.41600000858306885,
+          0.32710000872612
+        ],
+        "place_pos_global": [
+          -0.20200000703334808,
+          -0.41600000858306885,
+          0.32710000872612
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100008726119987,
+          -0.854000007033348,
+          -0.96089999127388,
+          -0.4499999929666519,
+          -0.027004938735636586,
+          -0.04999999141693118,
+          -0.8420000085830689
+        ]
+      }
+    ],
+    "elapsed_sec": 11.231831251003314
+  },
+  "suite_P05_C_2c_pre8_shelfprio.json::000": {
+    "status": "ok",
+    "total_items": 58,
+    "n_steps": 29,
+    "n_placed_final": 36,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 28,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 8,
+        "length": 0.721,
+        "width": 0.911,
+        "height": 0.652,
+        "mass": 12.65,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.14949999749660492,
+        -0.21950000524520874,
+        0.3711000084877014
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100008487701313,
+        -0.7489999974966048,
+        -0.8728999915122986,
+        -0.45000000250339506,
+        -0.027004944974328815,
+        -0.04999999475479122,
+        -0.44900000524520867
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010000848770131288,
+        "all_excess": [
+          -0.00010000848770131288,
+          -0.7439999974966048,
+          -0.8678999915122986,
+          -0.44500000250339505,
+          -0.022004944974328814,
+          -0.044999994754791224,
+          -0.44400000524520866
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 25,
+        "item": {
+          "index": 33,
+          "length": 0.372,
+          "width": 0.81,
+          "height": 0.472,
+          "mass": 11.1,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.43377000093460083,
+          -0.2663300037384033,
+          0.6799909472465515
+        ],
+        "place_pos_global": [
+          2.933769941329956,
+          -0.2663300037384033,
+          0.6799909472465515
+        ],
+        "container_idx": 1,
+        "orientation": 1,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.23499094724655145,
+          -0.3402300586700439,
+          -0.4850090527534485,
+          -1.207769941329956,
+          -0.7068416850294923,
+          -0.22266999626159664,
+          -0.7153300037384033
+        ]
+      },
+      {
+        "n_step": 26,
+        "item": {
+          "index": 39,
+          "length": 0.938,
+          "width": 0.695,
+          "height": 0.433,
+          "mass": 4.17,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.2731100022792816,
+          -0.3603299856185913,
+          0.5249999761581421
+        ],
+        "place_pos_global": [
+          -0.2731100022792816,
+          -0.3603299856185913,
+          0.5249999761581421
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.015999976158142082,
+          -1.0166100022792817,
+          -0.576000023841858,
+          -0.4703899977207183,
+          -0.04878606290481646,
+          -0.017170014381408638,
+          -0.6978299856185913
+        ]
+      },
+      {
+        "n_step": 27,
+        "item": {
+          "index": 49,
+          "length": 0.643,
+          "width": 0.675,
+          "height": 0.455,
+          "mass": 9.92,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.30524998903274536,
+          -0.3603299856185913,
+          1.2214950323104858
+        ],
+        "place_pos_global": [
+          -0.30524998903274536,
+          -0.3603299856185913,
+          1.2214950323104858
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.9539950323104858,
+          -0.9437499890327453,
+          -0.12100496768951419,
+          -0.3332500109672546,
+          -0.6505958555411443,
+          -0.027170014381408647,
+          -0.7078299856185913
+        ]
+      },
+      {
+        "n_step": 28,
+        "item": {
+          "index": 35,
+          "length": 0.861,
+          "width": 0.356,
+          "height": 0.6,
+          "mass": 1.75,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.01607000082731247,
+          -0.32899999618530273,
+          1.0835304260253906
+        ],
+        "place_pos_global": [
+          2.5160698890686035,
+          -0.32899999618530273,
+          1.0835304260253906
+        ],
+        "container_idx": 1,
+        "orientation": 4,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.6130304260253906,
+          -0.7659301109313965,
+          -0.05596957397460944,
+          -0.7980698890686035,
+          -0.7109741658485916,
+          -0.09600000381469725,
+          -0.7139999961853027
+        ]
+      },
+      {
+        "n_step": 29,
+        "item": {
+          "index": 8,
+          "length": 0.721,
+          "width": 0.911,
+          "height": 0.652,
+          "mass": 12.65,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.14949999749660492,
+          -0.21950000524520874,
+          0.3711000084877014
+        ],
+        "place_pos_global": [
+          -0.14949999749660492,
+          -0.21950000524520874,
+          0.3711000084877014
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100008487701313,
+          -0.7489999974966048,
+          -0.8728999915122986,
+          -0.45000000250339506,
+          -0.027004944974328815,
+          -0.04999999475479122,
+          -0.44900000524520867
+        ]
+      }
+    ],
+    "elapsed_sec": 123.97102913400158
+  },
+  "suite_P06_A_1c_pre12_dense.json::000": {
+    "status": "ok",
+    "total_items": 42,
+    "n_steps": 17,
+    "n_placed_final": 28,
+    "completed_without_sudden_death": false,
+    "death": {
+      "cause": "is_valid",
+      "n_placed_at_death": 16,
+      "death_item_index_in_pool": 0,
+      "death_item": {
+        "index": 4,
+        "length": 0.71,
+        "width": 0.864,
+        "height": 0.591,
+        "mass": 8.27,
+        "is_soft": false,
+        "is_prioritized": false
+      },
+      "place_pos_global": [
+        -0.1550000011920929,
+        -0.24300000071525574,
+        0.34060001373291016
+      ],
+      "orientation": 0,
+      "container_idx": 0,
+      "inclusion_dots": [
+        -0.005100013732910136,
+        -0.7600000011920929,
+        -0.9338999862670899,
+        -0.4499999988079071,
+        -0.027004946369614757,
+        -0.0499999992847443,
+        -0.4960000007152557
+      ],
+      "inclusion_margin": -0.005,
+      "overshoot": {
+        "max_excess": -0.00010001373291013572,
+        "all_excess": [
+          -0.00010001373291013572,
+          -0.7550000011920929,
+          -0.9288999862670899,
+          -0.4449999988079071,
+          -0.022004946369614756,
+          -0.0449999992847443,
+          -0.4910000007152557
+        ]
+      }
+    },
+    "last5_steps": [
+      {
+        "n_step": 13,
+        "item": {
+          "index": 10,
+          "length": 0.648,
+          "width": 0.55,
+          "height": 0.38,
+          "mass": 6.67,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.6586899757385254,
+          -0.3603299856185913,
+          1.1360000371932983
+        ],
+        "place_pos_global": [
+          -0.6586899757385254,
+          -0.3603299856185913,
+          1.1360000371932983
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.8210000371932983,
+          -1.4286899757385254,
+          -0.1589999628067017,
+          -0.11131002426147457,
+          -0.4028945381359579,
+          -0.04067001438140866,
+          -0.7213299856185913
+        ]
+      },
+      {
+        "n_step": 14,
+        "item": {
+          "index": 17,
+          "length": 0.38,
+          "width": 0.644,
+          "height": 0.4,
+          "mass": 5.16,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          0.33737999200820923,
+          -0.3603299856185913,
+          0.9879679083824158
+        ],
+        "place_pos_global": [
+          0.33737999200820923,
+          -0.3603299856185913,
+          0.9879679083824158
+        ],
+        "container_idx": 0,
+        "orientation": 2,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.7579679083824157,
+          -0.4226200079917907,
+          -0.39203209161758423,
+          -1.0973799920082092,
+          -1.0195569803973805,
+          -0.04267001438140866,
+          -0.7233299856185913
+        ]
+      },
+      {
+        "n_step": 15,
+        "item": {
+          "index": 9,
+          "length": 0.796,
+          "width": 0.805,
+          "height": 0.171,
+          "mass": 2.29,
+          "is_soft": true,
+          "is_prioritized": true
+        },
+        "place_pos_local": [
+          0.4659000039100647,
+          -0.1096699982881546,
+          1.275494933128357
+        ],
+        "place_pos_global": [
+          0.4659000039100647,
+          -0.1096699982881546,
+          1.275494933128357
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -1.1499949331283568,
+          -0.09609999608993525,
+          -0.2090050668716431,
+          -1.0279000039100645,
+          -1.2628961881402763,
+          -0.21283000171184535,
+          -0.3921699982881545
+        ]
+      },
+      {
+        "n_step": 16,
+        "item": {
+          "index": 0,
+          "length": 0.605,
+          "width": 0.399,
+          "height": 0.159,
+          "mass": 1.0,
+          "is_soft": true,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.14459000527858734,
+          -0.3603299856185913,
+          0.7914643287658691
+        ],
+        "place_pos_global": [
+          -0.14459000527858734,
+          -0.3603299856185913,
+          0.7914643287658691
+        ],
+        "container_idx": 0,
+        "orientation": 5,
+        "status": {
+          "is_included": true,
+          "is_valid": true,
+          "is_placed_safe": true
+        },
+        "inclusion_dots": [
+          -0.5519643287658691,
+          -1.0250900052785874,
+          -0.5790356712341309,
+          -0.7359099947214126,
+          -0.623975643555337,
+          -0.06217001438140868,
+          -0.7428299856185914
+        ]
+      },
+      {
+        "n_step": 17,
+        "item": {
+          "index": 4,
+          "length": 0.71,
+          "width": 0.864,
+          "height": 0.591,
+          "mass": 8.27,
+          "is_soft": false,
+          "is_prioritized": false
+        },
+        "place_pos_local": [
+          -0.1550000011920929,
+          -0.24300000071525574,
+          0.34060001373291016
+        ],
+        "place_pos_global": [
+          -0.1550000011920929,
+          -0.24300000071525574,
+          0.34060001373291016
+        ],
+        "container_idx": 0,
+        "orientation": 0,
+        "status": {
+          "is_included": true,
+          "is_valid": false,
+          "is_placed_safe": false
+        },
+        "inclusion_dots": [
+          -0.005100013732910136,
+          -0.7600000011920929,
+          -0.9338999862670899,
+          -0.4499999988079071,
+          -0.027004946369614757,
+          -0.0499999992847443,
+          -0.4960000007152557
+        ]
+      }
+    ],
+    "elapsed_sec": 95.2408290989988
+  }
+}
