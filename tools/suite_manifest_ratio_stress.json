@@ -1,0 +1,62 @@
+{
+  "ratiostress_soft30.json::000": {
+    "path": "configs/gen/ratiostress_soft30.json",
+    "n_items": 40,
+    "target_soft_ratio": 0.3,
+    "target_prioritized_ratio": 0.15,
+    "actual_n_prioritized": 8,
+    "actual_n_soft": 8,
+    "actual_prio_ratio": 0.2,
+    "actual_soft_ratio": 0.2
+  },
+  "ratiostress_soft50.json::000": {
+    "path": "configs/gen/ratiostress_soft50.json",
+    "n_items": 40,
+    "target_soft_ratio": 0.5,
+    "target_prioritized_ratio": 0.15,
+    "actual_n_prioritized": 10,
+    "actual_n_soft": 20,
+    "actual_prio_ratio": 0.25,
+    "actual_soft_ratio": 0.5
+  },
+  "ratiostress_soft70.json::000": {
+    "path": "configs/gen/ratiostress_soft70.json",
+    "n_items": 40,
+    "target_soft_ratio": 0.7,
+    "target_prioritized_ratio": 0.15,
+    "actual_n_prioritized": 4,
+    "actual_n_soft": 32,
+    "actual_prio_ratio": 0.1,
+    "actual_soft_ratio": 0.8
+  },
+  "ratiostress_prio30.json::000": {
+    "path": "configs/gen/ratiostress_prio30.json",
+    "n_items": 40,
+    "target_soft_ratio": 0.2,
+    "target_prioritized_ratio": 0.3,
+    "actual_n_prioritized": 16,
+    "actual_n_soft": 7,
+    "actual_prio_ratio": 0.4,
+    "actual_soft_ratio": 0.175
+  },
+  "ratiostress_prio50.json::000": {
+    "path": "configs/gen/ratiostress_prio50.json",
+    "n_items": 40,
+    "target_soft_ratio": 0.2,
+    "target_prioritized_ratio": 0.5,
+    "actual_n_prioritized": 24,
+    "actual_n_soft": 11,
+    "actual_prio_ratio": 0.6,
+    "actual_soft_ratio": 0.275
+  },
+  "ratiostress_prio70.json::000": {
+    "path": "configs/gen/ratiostress_prio70.json",
+    "n_items": 40,
+    "target_soft_ratio": 0.2,
+    "target_prioritized_ratio": 0.7,
+    "actual_n_prioritized": 25,
+    "actual_n_soft": 8,
+    "actual_prio_ratio": 0.625,
+    "actual_soft_ratio": 0.2
+  }
+}
