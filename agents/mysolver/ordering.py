@@ -459,8 +459,20 @@ ALNS_STATS: dict = {}
 # 【採用】26シーンA/B(1.55e7)で fill_strict 24.413 → 26.263(**+1.850**)、σ=3.060 /
 # SE=0.600 / **t=3.082** と採用基準 t>2 を通過し、**悪化したシーンが1件も無かった**
 # (改善9 / 不変17)。Phase23 以来はじめて t>2 を満たした変更である
-# (results/phase35_report.md §3)。既定を有効にする。
-REPLICA_SELECT = os.environ.get('MYSOLVER_REPLICA_SELECT', '1') == '1'
+# (results/phase35_report.md §3)。Phase35〜43 は既定を有効にしていた。
+#
+# Phase44: **既定を無効に戻す**。Phase42提出(replica.pyの防御的書き直し+候補単位ラッチ)の
+# 結果、fill_score は 38.09476291926298 のまま13桁一致 —— 本番では一度も機能していないと
+# 確定した(候補単位ラッチ自体は効いていて optimization は 155.46→165.109 に変化し
+# HARD_WALL_LIMIT=165.0 に初めて到達したが、ρ-testそのものの得点効果はゼロのまま)。
+# 一方で複製評価は45秒(REPLICA_RESERVE_S)の壁時計取り置きを常に消費し、
+# optimization_timeout(180s)への余裕を24.5s→14.9sまで縮める副作用がある。
+# 機能していないものに安全マージンを支払い続ける理由が無いため、**無効化は純粋な
+# 安全側の改善**として既定を戻す(results/phase41_report.md Phase44節参照)。
+# replica.py・候補単位ラッチ・回帰テスト(tools/test_replica_*.py)は削除しない
+# ——原因(ρ-testが本番でなぜ機能しないか)が判明すれば '1' に戻すだけで復帰できる
+# 状態を保つ。
+REPLICA_SELECT = os.environ.get('MYSOLVER_REPLICA_SELECT', '0') == '1'
 # 実評価に回す候補数(上位K件、代理スコア降順)。**固定値**にしてあるのは決定性のため
 # (「残り時間で入るだけ」にすると машина速度で結果が変わり、Phase17 で確保した
 #  決定性が壊れる)。壁時計の保険は別途 deadline で持つ。
