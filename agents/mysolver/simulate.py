@@ -75,6 +75,66 @@ def _place(container: dict, item: dict, action: dict) -> dict:
     return placed
 
 
+# ---------------------------------------------------------------------------
+# Phase49(作業1): cog(質量加重重心)の影シミュレータ代理。
+#
+# 正規化式は tools/scorer.py::Scorer._get_floor_ceil_z / calculate_cog_score から
+# **そのまま移植**(独自の式は作らない、という指示どおり)。本物は real Container
+# オブジェクトの属性アクセス(.points/.n_vecs/.center)・pybulletの実姿勢
+# (item.get_pose)を使うのに対し、こちらは observation の dict 表現
+# (container['points']/container['n_vecs']/container['center']、
+# item['pos'])を読む点だけが違う——CLAUDE_CODE_指示書.md §2が示す観測dictの
+# 契約上、container dict は本物のContainer.create()と同じ points/n_vecs を
+# 持つため、床/天井面の推定ロジックも含めて完全に同一の計算になる。
+#
+# 本物との違いは「real physics(pybulletの沈降)後の位置」ではなく「候補構築時点の
+# pos(=plannerが狙った着地点)」を使うことだけ(simulate.pyの他の全指標と同じ性質の
+# sim-to-realギャップ)。この代理が本物のcog_score順位をどれだけ保つかはPhase49
+# 作業2でSpearman相関により検証する(結果次第でこの先には進まない)。
+# ---------------------------------------------------------------------------
+def _floor_ceil_z(container: dict) -> tuple[float, float]:
+    """tools/scorer.py::Scorer._get_floor_ceil_z と同一の正規化式。"""
+    center = container['center']
+    height = container['height']
+    floor_z = center[2] - height / 2.0
+    ceil_z = center[2] + height / 2.0
+    for pt, nv in zip(container.get('points', []), container.get('n_vecs', [])):
+        if abs(nv[0]) < 1e-6 and abs(nv[1]) < 1e-6:
+            if nv[2] < -0.5:
+                floor_z = pt[2]
+            elif nv[2] > 0.5:
+                ceil_z = pt[2]
+    return floor_z, ceil_z
+
+
+def cog_proxy_score(containers: list[dict]) -> float:
+    """tools/scorer.py::Scorer.calculate_cog_score と同一の質量加重・正規化式。
+    container['packed_items'] の各要素の pos[2](世界座標z)と mass だけを使う。"""
+    total_mass = 0.0
+    weighted_h = 0.0
+    for container in containers:
+        packed = container.get('packed_items', [])
+        if not packed:
+            continue
+        floor_z, ceil_z = _floor_ceil_z(container)
+        effective_height = max(ceil_z - floor_z, 1e-6)
+        for item in packed:
+            pos = item.get('pos')
+            if pos is None:
+                continue
+            mass = item.get('mass', 0.0)
+            normalized_h = (pos[2] - floor_z) / effective_height
+            normalized_h = min(max(normalized_h, 0.0), 1.0)
+            weighted_h += mass * normalized_h
+            total_mass += mass
+
+    if total_mass == 0:
+        return 100.0
+
+    avg_h = weighted_h / total_mass
+    return min(max(100.0 * (1.0 - avg_h), 0.0), 100.0)
+
+
 def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], order: list[int],
                     lookahead_k: int, budget: planner.SearchBudget, per_step_time_budget: float = 0.7,
                     prepacked_ids: dict | None = None,
@@ -85,7 +145,8 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
                     snapshot_after: int | None = None,
                     snapshot_out: dict | None = None,
                     snapshots_out: dict | None = None,
-                    contrib_out: list | None = None) -> tuple[list[int], float, float]:
+                    contrib_out: list | None = None,
+                    compute_cog_proxy: bool = False) -> tuple:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
@@ -154,6 +215,12 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
     `contrib_out` にリストを渡すと `(item index, risk割引率)` を配置順に記録する
     (ALNS の worst removal が「最も割引された=無駄の大きい配置」を選ぶのに使う)。
     どちらも既定 None で、渡さない呼び出しは Phase33 までの経路と完全に同一である。
+
+    Phase49(作業1、既定無効): `compute_cog_proxy=True` を渡すと、戻り値の末尾に
+    `cog_proxy_score(containers)`(質量加重重心の代理スコア、tools/scorer.py::
+    calculate_cog_score と同一の正規化式)を追加した **6要素タプル** を返す。
+    **既定Falseのときは戻り値は従来どおり5要素タプルのまま**(既存の呼び出し側は
+    5値でunpackしており、6要素に変えると壊れるため)。
     """
     if resume_state is not None:
         containers = resume_state['containers']
@@ -321,6 +388,11 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
 
     violation_ratio = n_prio_misrouted / n_prio_placed if n_prio_placed else 0.0
     stability_risk_ratio = stacking_risk_sum / n_stacked if n_stacked else 0.0
+    if compute_cog_proxy:
+        # Phase49(作業1): 既定Falseのときはこの分岐に入らず、従来の5要素タプルのまま
+        # (呼び出し側のビット単位不変を保つ)。
+        return (placed_ids, placed_volume, risk_adjusted_volume, violation_ratio,
+                stability_risk_ratio, cog_proxy_score(containers))
     return placed_ids, placed_volume, risk_adjusted_volume, violation_ratio, stability_risk_ratio
 
 
