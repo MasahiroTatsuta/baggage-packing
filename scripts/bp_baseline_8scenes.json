@@ -9,7 +9,7 @@
       "MYSOLVER_UNITS_PER_SEC": "デフォルト2.00e7(未設定)",
       "time_budget": "30.0(bp_check.sh固定値)"
     },
-    "note": "A03は本ファイル記録時点でPhase41-48の基準値と異なる値が安定的に(7回連続、HARD_WALL_LIMIT/FACTOR/POLICY_HARD_WALL/REPLICA_RUN_ORDER_HARD_WALLをすべて外しても)再現している。原因未特定(results/phase50_report.md参照)。numpy.show_config()がenv_snapshot.txt記録時のOpenBLASではなくAccelerateを使っていることを確認済みだが、これが直接の原因と確定はしていない。A03はstatus=unresolvedとして自動照合の対象外にする(不一致で警告のみ、失敗扱いにしない)。他7シーンは今回時点で長期間(Phase41〜Phase50)一貫して一致しており、strict(不一致ならエラー)として扱う。"
+    "note": "Phase51で原因特定: A03の値の違いはPhase44のMYSOLVER_REPLICA_SELECT既定値変更(1->0)によるもので、環境ドリフトではない。詳細はA03エントリの_historical_noteとresults/phase51_report.mdを参照。全8シーンをstatus=stableとして厳格照合する。"
   },
   "B01": {
     "order": [
@@ -491,8 +491,7 @@
       17
     ],
     "optimize_time_ref": 11.88,
-    "status": "unresolved",
-    "historical_order_phase41_48": null,
+    "status": "stable",
     "historical_first10_phase41_48": [
       13,
       37,
@@ -505,6 +504,6 @@
       29,
       7
     ],
-    "_historical_note": "Phase41-48で確認していたのはfirst10のみ(会話ログに記録)。全40要素の履歴は保存されていなかったため、ここに捏造した値を置かないようNoneにしてある。"
+    "_historical_note": "Phase41-43(2026-08-17〜18、REPLICA_SELECT既定=1だった当時)はbp_check.shがREPLICA_SELECTを明示指定しないため、build_order()内でρ-testが自動的に有効化され、その実結果として first10=[13,37,28,35,22,15,25,32,29,7] が出ていた(Phase51でMYSOLVER_REPLICA_SELECT=1を明示指定して現行コードで再現し確認済み)。Phase44(fe42180)でREPLICA_SELECTの既定値を1->0に変更したため、bp_check.shのこの呼び出しはρ-test無効の経路に切り替わり、以後は本ファイルに記録したfirst10=[38,0,6,26,7,33,21,25,1,19]が正しい既定挙動になった。Phase44〜48はこの変化に気づかず旧値を前提としたまま報告書を書き継いでいた(bp_check.shの8シーン確認をPhase44〜48では再実行していなかったため)。Phase49で初めてPhaseA43以来の再実行を行い不一致を検出、Phase50で壁時計/BLAS等の環境要因を調査したが原因特定に至らず、Phase51でREPLICA_SELECT既定値の変更が直接の原因と断定した(同一.venv環境でMYSOLVER_REPLICA_SELECT=1を指定すると現行コードでも旧値が完全再現することを確認)。したがってこれは環境ドリフトではなく、Phase44の意図した仕様変更の副作用であり、現在の値(本ファイル記載)が正しい既定挙動である。"
   }
 }

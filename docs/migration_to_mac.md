@@ -44,10 +44,11 @@ pip install $(grep -E '^(numpy|scipy|pybullet|gymnasium|pillow|Pillow)==' env_sn
 **【Phase50で実測確認】** `env_snapshot.txt`は`"openblas configuration": "OpenBLAS
 0.3.33.112.0..."`を記録しているのに対し、この`.venv`の`numpy.show_config()`は
 `"name": "accelerate"`(Accelerateフレームワーク)を報告する——上記の懸念どおり
-BLAS実装は実際に異なる。決定的8シーンのうちA03がPhase41〜48の基準値と異なる値を
-安定的に返すようになった件(壁時計非拘束・全関連env変数を外しても再現)の**候補要因**
-として記録するが、**この差異が具体的にいつ・どうA03の決定を変えたのかは特定できていない**
-(原因未確定、`results/phase50_report.md`参照)。
+BLAS実装は実際に異なる。**【Phase51で訂正】** 決定的8シーンのうちA03がPhase41〜48の
+基準値と異なる値を返すようになった件について、当初(Phase50)はこのBLAS相違を候補要因と
+記録したが、**Phase51で無関係と判明した**(真因は`MYSOLVER_REPLICA_SELECT`既定値の
+変更、詳細は§5.1)。ただしBLAS実装がCodespaces記録時と異なること自体は事実であり、
+D03のような真の境界判定差(Phase39)の原因としては引き続き有効な説明。
 
 ---
 
@@ -132,10 +133,9 @@ fill±0.90pt程度、Phase10実測)、移植ミスかもしれないので先に
 (B01-B04, P04, A01-A03)の`build_order()`出力(全要素)を記録した。取得条件:
 `MYSOLVER_HARD_WALL_LIMIT=3000`・`MYSOLVER_HARD_WALL_FACTOR`は既定1.4のまま
 (Phase50の実測で無関係と確認済み)・`MYSOLVER_UNITS_PER_SEC`は既定2.00e7(未設定)・
-`time_budget=30.0`(bp_check.sh固定値)。`bp_check.sh`はこのファイルと自動照合し、
-`status="stable"`の7シーン(B01-B04, P04, A01, A02)は不一致なら**exit 1で失敗**、
-`status="unresolved"`のA03は不一致でも警告のみで失敗にしない
-(上記5.1の訂正参照。A03自体が「基準値」と呼べる状態にないため)。
+`time_budget=30.0`(bp_check.sh固定値)。`bp_check.sh`はこのファイルと**8シーン全件を
+strict**(不一致なら`exit 1`で失敗)で自動照合する(Phase51でA03の原因が判明したため、
+Phase50時点の`status="unresolved"`扱いは解除した。下記5.1参照)。
 
 ---
 
@@ -151,25 +151,29 @@ fill±0.90pt程度、Phase10実測)、移植ミスかもしれないので先に
 持てば従来の採用基準(t>2・悪化シーン0件・kカウント)はそのまま使え、Codespaces側との
 突き合わせは不要になる。
 
-> **【Phase50による重大な訂正】** 上記の「同一マシン上は決定的」という前提が**崩れた
-> 実例**を発見した。決定的8シーンのうちA03が、Phase41〜48では一貫して同じ値
-> (`first10=[13, 37, 28, 35, 22, 15, 25, 32, 29, 7]`)を返していたが、**Phase49の
-> セッションから安定して別の値**(`first10=[38, 0, 6, 26, 7, 33, 21, 25, 1, 19]`、
-> こちらも7回連続で決定的に再現)に切り替わっている。コードは無変更(`git stash`で
-> コミット済みコードに戻しても新しい値のまま)、壁時計関連の全env変数(HARD_WALL_LIMIT/
-> FACTOR/POLICY_HARD_WALL/REPLICA_RUN_ORDER_HARD_WALL)を外しても変化しない
-> ——**同一マシン・同一コードでも、セッションをまたぐと結果が変わりうる**ことが
-> A03で実証された(D03の3回連続一致はPhase39の「短時間の1セッション内」の話であり、
-> 「セッションをまたいでも決定的」までは実証していなかった)。
+> **【Phase50→Phase51で訂正】** Phase50はA03の基準値差異を「同一マシン上でもセッションを
+> またぐとドリフトする」という未解決の重大懸念として記録したが、**Phase51で原因を
+> 完全に特定し、この懸念は解消した。** 真因は**Phase44(コミット`fe42180`)で
+> `MYSOLVER_REPLICA_SELECT`の既定値を`'1'`→`'0'`に変更したこと**——`bp_check.sh`の
+> 決定的8シーン確認(§5.0)は`build_order()`を直接呼ぶだけでこの環境変数を明示指定して
+> いないため、既定値の変化をそのまま受ける。A03は既積み荷物が無い(`is_applicable=True`)
+> シーンのため、既定`REPLICA_SELECT=1`だった当時(Phase41〜43)はρ-test(複製評価器)が
+> 自動的に有効化され、その実結果として`first10=[13,37,28,35,22,15,25,32,29,7]`が出ていた。
+> Phase44で既定が`0`になって以降は`first10=[38,0,6,26,7,33,21,25,1,19]`が正しい既定挙動
+> であり、これは**同じ現行コードに`MYSOLVER_REPLICA_SELECT=1`を明示指定すると旧値が
+> 完全に再現する**ことで直接実証済み(壁時計・BLAS等の環境要因ではなく、確定的な
+> コード分岐の結果)。7シーン(B01-B04, A01, A02。P04は既積みありでρ-test対象外)は
+> ρ-testが有効でも無効でも同じ候補が勝者に選ばれたため差が出なかっただけで、
+> 「A03だけ非決定的」だったわけではない。
 >
-> この件は`phase40_baseline_off_mac.json`(26シーン集計値の対照)の信頼性にも波及する
-> ——同じ環境で取得されたものであり、A03のような未検出の乖離が他のシーンに紛れている
-> 可能性を否定できない。**原因は未特定**(候補: BLAS実装がCodespaces記録時のOpenBLASと
-> 異なりAccelerateであることを実測確認済みだが、これがA03の変化の直接原因かは未確認。
-> 詳細は`results/phase50_report.md`)。**原因が判明するまで、シーン単位の微小な差分を
-> 「変更の効果」と断定しないこと。** 26シーン平均のt検定(t>2基準)は個々のシーンの
-> 微小なノイズに対して頑健なはずだが、A03のような大きな飛びが他のシーンでも
-> 起きていないとは言い切れない以上、慎重な解釈が必要。
+> `phase40_baseline_off_mac.json`(26シーン集計)は`bp_ab.sh`/`tools/measure_regime.py`
+> 経由で**常に`MYSOLVER_REPLICA_SELECT`を明示指定**して測定されており、既定値の変更に
+> 一切影響されない。実際、Codespaces基線(`phase38_baseline_off_codespaces.json`)と
+> Mac基線(`phase40_baseline_off_mac.json`)を26シーン全件で突き合わせると、A03の
+> fill_strict/fill_loose は**完全一致(diff 0.000000)**であり、D03(fill_strict
+> +1.3552、fill_loose一致=BLAS境界判定反転、Phase39の結論どおり)以外はすべて一致する
+> (詳細は`results/phase51_report.md`)。**`phase40_baseline_off_mac.json`は引き続き
+> 有効な対照であり、26シーンA/Bを再開してよい。**
 
 **マシンをまたいだシーン単位の数値比較は行わないこと。** Phase39でD03のみ
 fill_strict +1.36ptの乖離が見つかったが、fill_loose(margin=0.01の緩い判定)は

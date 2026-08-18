@@ -13,8 +13,8 @@ git rev-parse --show-toplevel | grep -q "baggage-packing$" || { echo "FATAL: リ
 git remote get-url origin | grep -q "MasahiroTatsuta/baggage-packing" || { echo "FATAL: remote が不正" >&2; exit 1; }
 
 echo "== 1. 決定的8シーン(B01-B04, P04, A01-A03)の build_order 出力を確認 =="
-echo "   (scripts/bp_baseline_8scenes.json と自動照合。Phase50参照:A03はstatus=unresolvedで"
-echo "    既知の未解決差異のため不一致でも警告のみ・失敗扱いにしない)"
+echo "   (scripts/bp_baseline_8scenes.json と自動照合。全8シーンをstrictで比較する。"
+echo "    Phase51: A03の旧基準値との差異はPhase44のREPLICA_SELECT既定値変更が原因と特定済み)"
 MYSOLVER_HARD_WALL_LIMIT=3000 PYTHONPATH=. .venv/bin/python - <<'PY'
 import io, json, os, sys, time
 from contextlib import redirect_stdout
