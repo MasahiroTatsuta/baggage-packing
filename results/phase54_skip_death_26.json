@@ -1,0 +1,477 @@
+{
+  "suite_A01_1c_40_plain.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 22,
+    "n_placed_final": 21,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 22
+    },
+    "fill_score": 20.647925343201454,
+    "cog_score": 75.4655600133707,
+    "stability_score": 98.0177235604597,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 99.56348165300733,
+    "skipped_item_global_index": 19,
+    "n_placed_before_skip_run": 20
+  },
+  "suite_A02_1c_80_plain.json::000": {
+    "status": "ok",
+    "total_items": 79,
+    "n_steps": 18,
+    "n_placed_final": 17,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 18
+    },
+    "fill_score": 30.319506131307005,
+    "cog_score": 57.00769850956841,
+    "stability_score": 97.94345550463612,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 109.2019189690036,
+    "skipped_item_global_index": 55,
+    "n_placed_before_skip_run": 17
+  },
+  "suite_A03_1c_40_shelf.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 24,
+    "n_placed_final": 23,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 24
+    },
+    "fill_score": 24.863778351661676,
+    "cog_score": 57.40912549974722,
+    "stability_score": 98.16431574938017,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 87.86269202199765,
+    "skipped_item_global_index": 11,
+    "n_placed_before_skip_run": 19
+  },
+  "suite_A04_2c_80_noprio.json::000": {
+    "status": "ok",
+    "total_items": 79,
+    "n_steps": 33,
+    "n_placed_final": 32,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 33
+    },
+    "fill_score": 32.40158205339886,
+    "cog_score": 57.74577791628697,
+    "stability_score": 98.20305759681034,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 111.17891347799741,
+    "skipped_item_global_index": 8,
+    "n_placed_before_skip_run": 32
+  },
+  "suite_A05_2c_80_prio.json::000": {
+    "status": "ok",
+    "total_items": 79,
+    "n_steps": 28,
+    "n_placed_final": 27,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 28
+    },
+    "fill_score": 26.262267642731068,
+    "cog_score": 62.62904985615487,
+    "stability_score": 98.31545340558172,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 104.25000124500366,
+    "skipped_item_global_index": 36,
+    "n_placed_before_skip_run": 24
+  },
+  "suite_A07_1c_40_bulky.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 9,
+    "n_placed_final": 8,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 9
+    },
+    "fill_score": 21.229519817438383,
+    "cog_score": 68.33188192015436,
+    "stability_score": 98.97459499533704,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 69.02515336200304,
+    "skipped_item_global_index": 31,
+    "n_placed_before_skip_run": 12
+  },
+  "suite_A08_2c_140_extreme.json::000": {
+    "status": "ok",
+    "total_items": 139,
+    "n_steps": 24,
+    "n_placed_final": 23,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 24
+    },
+    "fill_score": 31.031659348596047,
+    "cog_score": 64.67430416416938,
+    "stability_score": 98.2550623670307,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 101.24990377899667,
+    "skipped_item_global_index": 132,
+    "n_placed_before_skip_run": 20
+  },
+  "suite_B01_1c_40_plain.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 23,
+    "n_placed_final": 22,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 23
+    },
+    "fill_score": 19.985740094275585,
+    "cog_score": 63.991826007251085,
+    "stability_score": 98.04338586296811,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 12.202315136004472,
+    "skipped_item_global_index": 2,
+    "n_placed_before_skip_run": 22
+  },
+  "suite_B02_1c_40_shelf.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 20,
+    "n_placed_final": 19,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 20
+    },
+    "fill_score": 22.588293113730085,
+    "cog_score": 66.30952078250844,
+    "stability_score": 98.16101482846686,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 9.462441306997789,
+    "skipped_item_global_index": 6,
+    "n_placed_before_skip_run": 20
+  },
+  "suite_B03_2c_80_prio.json::000": {
+    "status": "ok",
+    "total_items": 79,
+    "n_steps": 31,
+    "n_placed_final": 30,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 31
+    },
+    "fill_score": 26.439119226069728,
+    "cog_score": 60.60174815552084,
+    "stability_score": 98.0738487656847,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 22.974337425999693,
+    "skipped_item_global_index": 7,
+    "n_placed_before_skip_run": 27
+  },
+  "suite_B04_2c_80_noprio.json::000": {
+    "status": "ok",
+    "total_items": 79,
+    "n_steps": 44,
+    "n_placed_final": 43,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 44
+    },
+    "fill_score": 30.048157575688005,
+    "cog_score": 61.78984381461804,
+    "stability_score": 97.97136729993616,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 39.3895041430078,
+    "skipped_item_global_index": 1,
+    "n_placed_before_skip_run": 45
+  },
+  "suite_C01_1c_40_shelf.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 23,
+    "n_placed_final": 22,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 23
+    },
+    "fill_score": 32.9634705264009,
+    "cog_score": 58.58117952001645,
+    "stability_score": 97.5005339891506,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 87.9823199280072,
+    "skipped_item_global_index": 10,
+    "n_placed_before_skip_run": 20
+  },
+  "suite_C02_2c_55_shelfprio.json::000": {
+    "status": "ok",
+    "total_items": 54,
+    "n_steps": 38,
+    "n_placed_final": 37,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 38
+    },
+    "fill_score": 25.488867955041634,
+    "cog_score": 55.237053833310654,
+    "stability_score": 97.89054700488936,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 134.1981944040017,
+    "skipped_item_global_index": 47,
+    "n_placed_before_skip_run": 36
+  },
+  "suite_C03_2c_80_prio.json::000": {
+    "status": "ok",
+    "total_items": 79,
+    "n_steps": 26,
+    "n_placed_final": 25,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 26
+    },
+    "fill_score": 27.137397266666923,
+    "cog_score": 57.77834106002061,
+    "stability_score": 98.03774549541976,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 116.33591020699532,
+    "skipped_item_global_index": 46,
+    "n_placed_before_skip_run": 27
+  },
+  "suite_D01_A_1c_40_softheavy.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 22,
+    "n_placed_final": 21,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 22
+    },
+    "fill_score": 31.53175988575923,
+    "cog_score": 66.30268311492223,
+    "stability_score": 98.60831395282716,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 85.86949339800049,
+    "skipped_item_global_index": 11,
+    "n_placed_before_skip_run": 21
+  },
+  "suite_D02_A_1c_40_prioheavy_nocont.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 25,
+    "n_placed_final": 24,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 25
+    },
+    "fill_score": 35.79265101662699,
+    "cog_score": 63.19788273138373,
+    "stability_score": 97.9028799374207,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 100.96859967699856,
+    "skipped_item_global_index": 4,
+    "n_placed_before_skip_run": 21
+  },
+  "suite_D03_A_2c_60_prioheavy_cont.json::000": {
+    "status": "ok",
+    "total_items": 59,
+    "n_steps": 35,
+    "n_placed_final": 34,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 35
+    },
+    "fill_score": 25.45303238651791,
+    "cog_score": 59.387904318173725,
+    "stability_score": 98.0748602449197,
+    "placement_score": 94.11764705882352,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 116.35014285800571,
+    "skipped_item_global_index": 27,
+    "n_placed_before_skip_run": 40
+  },
+  "suite_D04_A_1c_40_flat.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 18,
+    "n_placed_final": 17,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 18
+    },
+    "fill_score": 12.863902878380102,
+    "cog_score": 74.21083048624236,
+    "stability_score": 98.37396550337976,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 81.26953947699803,
+    "skipped_item_global_index": 17,
+    "n_placed_before_skip_run": 20
+  },
+  "suite_D05_A_1c_40_tall.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 13,
+    "n_placed_final": 12,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 13
+    },
+    "fill_score": 25.314762030019637,
+    "cog_score": 50.74157115479716,
+    "stability_score": 98.06422264313417,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 86.60103167100169,
+    "skipped_item_global_index": 20,
+    "n_placed_before_skip_run": 12
+  },
+  "suite_P01_A_1c_pre6.json::000": {
+    "status": "ok",
+    "total_items": 39,
+    "n_steps": 18,
+    "n_placed_final": 23,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 18
+    },
+    "fill_score": 23.06319488811512,
+    "cog_score": 73.2772587860928,
+    "stability_score": 98.41077965205629,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 88.65216254399274,
+    "skipped_item_global_index": 26,
+    "n_placed_before_skip_run": 13
+  },
+  "suite_P02_A_1c_pre10.json::000": {
+    "status": "ok",
+    "total_items": 49,
+    "n_steps": 22,
+    "n_placed_final": 31,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 22
+    },
+    "fill_score": 26.890978932741298,
+    "cog_score": 69.54823330794201,
+    "stability_score": 96.94848838364581,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 115.87088211200899,
+    "skipped_item_global_index": 32,
+    "n_placed_before_skip_run": 21
+  },
+  "suite_P03_A_2c_pre8_prio.json::000": {
+    "status": "ok",
+    "total_items": 67,
+    "n_steps": 33,
+    "n_placed_final": 40,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 33
+    },
+    "fill_score": 21.697039450697975,
+    "cog_score": 68.59121931663648,
+    "stability_score": 98.38173512570712,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 122.28012117899198,
+    "skipped_item_global_index": 59,
+    "n_placed_before_skip_run": 30
+  },
+  "suite_P04_B_1c_pre8_shelf.json::000": {
+    "status": "ok",
+    "total_items": 41,
+    "n_steps": 16,
+    "n_placed_final": 23,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 16
+    },
+    "fill_score": 24.113487153311222,
+    "cog_score": 73.74423451385783,
+    "stability_score": 98.23027169791362,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 10.518365334006376,
+    "skipped_item_global_index": 0,
+    "n_placed_before_skip_run": 15
+  },
+  "suite_P05_C_2c_pre8_shelfprio.json::000": {
+    "status": "ok",
+    "total_items": 57,
+    "n_steps": 32,
+    "n_placed_final": 39,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 32
+    },
+    "fill_score": 20.124449517870136,
+    "cog_score": 65.51535355723807,
+    "stability_score": 98.44597890432857,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 128.40220760300872,
+    "skipped_item_global_index": 8,
+    "n_placed_before_skip_run": 28
+  },
+  "suite_P06_A_1c_pre12_dense.json::000": {
+    "status": "ok",
+    "total_items": 41,
+    "n_steps": 17,
+    "n_placed_final": 28,
+    "completed_without_second_death": false,
+    "second_death": {
+      "cause": "is_included",
+      "n_step": 17
+    },
+    "fill_score": 25.439765948186356,
+    "cog_score": 74.31158546753286,
+    "stability_score": 98.47485696036577,
+    "placement_score": 100.0,
+    "soft_item_score": 100.0,
+    "elapsed_sec": 93.2433813509997,
+    "skipped_item_global_index": 4,
+    "n_placed_before_skip_run": 16
+  }
+}
