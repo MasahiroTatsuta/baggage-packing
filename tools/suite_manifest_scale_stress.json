@@ -1,0 +1,32 @@
+{
+  "scalestress_200.json::000": {
+    "path": "configs/gen/scalestress_200.json",
+    "n_items": 200,
+    "target_soft_ratio": 0.3,
+    "target_prioritized_ratio": 0.08,
+    "actual_n_prioritized": 20,
+    "actual_n_soft": 65,
+    "actual_prio_ratio": 0.1,
+    "actual_soft_ratio": 0.325
+  },
+  "scalestress_300.json::000": {
+    "path": "configs/gen/scalestress_300.json",
+    "n_items": 300,
+    "target_soft_ratio": 0.3,
+    "target_prioritized_ratio": 0.08,
+    "actual_n_prioritized": 19,
+    "actual_n_soft": 94,
+    "actual_prio_ratio": 0.06333333333333334,
+    "actual_soft_ratio": 0.31333333333333335
+  },
+  "scalestress_500.json::000": {
+    "path": "configs/gen/scalestress_500.json",
+    "n_items": 500,
+    "target_soft_ratio": 0.3,
+    "target_prioritized_ratio": 0.08,
+    "actual_n_prioritized": 38,
+    "actual_n_soft": 154,
+    "actual_prio_ratio": 0.076,
+    "actual_soft_ratio": 0.308
+  }
+}
