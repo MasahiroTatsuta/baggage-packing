@@ -54,6 +54,15 @@ def _scene_specs():
         specs.append({
             'name': f'prio{int(level * 100)}', 'soft_ratio': 0.2, 'prioritized_ratio': level,
         })
+    # Phase47 ステップ2: sample_config.json の実測比率(prio 5〜10%、soft 26〜32%)を
+    # 踏まえ、prio を「下げる」方向も検証する(分母が小さいほど1件の違反が効きやすい)。
+    # soft比率は sample_config に合わせて 0.3 に固定。
+    # prio=5%・n=40 だと期待値2個で二項乱数のばらつきにより0個になる回もある(既定seedの
+    # 5000+si=5006 が実際にそうだった)。プールに優先手荷物が2個以上存在するseedを
+    # 明示的に選ぶ(seed_override。5014は事前探索でn_prio=2を確認済み)。
+    specs.append({'name': 'lowprio5', 'soft_ratio': 0.3, 'prioritized_ratio': 0.05,
+                  'seed_override': 5014})
+    specs.append({'name': 'lowprio10', 'soft_ratio': 0.3, 'prioritized_ratio': 0.10})
     return specs
 
 
@@ -63,7 +72,8 @@ def main():
     manifest = {}
 
     for si, spec in enumerate(specs):
-        rng = np.random.default_rng(5000 + si)  # gen_suite.py(1000+si)と衝突しない専用シード帯
+        seed = spec.get('seed_override', 5000 + si)  # gen_suite.py(1000+si)と衝突しない専用シード帯
+        rng = np.random.default_rng(seed)
         dist = dict(BASE_DIST, soft_ratio=spec['soft_ratio'],
                     prioritized_ratio=spec['prioritized_ratio'])
         items = _gen_items(rng, N_ITEMS, start_index=0, **dist)

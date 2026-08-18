@@ -102,29 +102,29 @@ def run_one_scene_diag(task_config: dict, module_path: str, agent_module: str,
 
         containers = env.container_manager.containers
         scorer = Scorer(client=env.client, config=task_config)
-        metrics = scorer.evaluate(containers, env.num_total_items)
 
+        # Phase47で発覚した順序バグの修正: Scorer.evaluate() を1回のブラックボックス呼び出しに
+        # せず、evaluate()内部と同じ順序(fill→placement→soft→cog→stability)で個別に呼ぶ。
+        # 理由: calculate_stability_score() は蓋をして揺らす**破壊的**な計算で、荷物位置を
+        # 実際に動かす。evaluate()を先に呼んでから自前で _find_stacking_pairs()/geoダンプを
+        # 別途行うと、それは揺らし**後**の状態を数えることになり、placement_score/
+        # soft_item_score が確定した時点(揺らし前)の状態と食い違う。
+        # placement_score/soft_item_score 自体(evaluate()の戻り値)は元々evaluate()内部で
+        # stability計算より前に確定しているため常に正しいが、本ツールが追加で出す
+        # pairs/geo はこの修正前は揺らし後の値を報告していた。
+        fill_score, num_out_items = scorer.calculate_fill_score(containers)
+        placement_score = scorer.calculate_placement_score(containers)
+        soft_item_score = scorer.calculate_soft_item_score(containers)
         pairs = scorer._find_stacking_pairs(containers)
+        cog_score = scorer.calculate_cog_score(containers)
+
         all_items = [item for c in containers for item in c.packed_items]
         n_prioritized = sum(1 for it in all_items if it.is_prioritized)
         n_soft = sum(1 for it in all_items if it.is_soft)
         n_prio_crushed = sum(1 for b, t in pairs if b.is_prioritized and not t.is_prioritized)
         n_soft_crushed = sum(1 for b, t in pairs if b.is_soft and not t.is_soft)
 
-        result = {
-            'status': 'ok',
-            'episode_status': episode_status,
-            'total_items': env.num_total_items,
-            'n_placed': len(all_items),
-            'n_prioritized_placed': n_prioritized,
-            'n_soft_placed': n_soft,
-            'n_stacking_pairs': len(pairs),
-            'n_prio_crushed_pairs': n_prio_crushed,
-            'n_soft_crushed_pairs': n_soft_crushed,
-            'placement_score': metrics['placement_score'],
-            'soft_item_score': metrics['soft_item_score'],
-            'fill_score': metrics['fill_score'],
-        }
+        geo = None
         if include_geo:
             geo = []
             for c in containers:
@@ -138,6 +138,27 @@ def run_one_scene_diag(task_config: dict, module_path: str, agent_module: str,
                         'is_prioritized': it.is_prioritized, 'is_soft': it.is_soft,
                         'container_index': c.index,
                     })
+
+        # stability は破壊的なので必ず最後に呼ぶ(Scorer.evaluate()と同じ規約)。
+        stability_score = scorer.calculate_stability_score(containers)
+
+        result = {
+            'status': 'ok',
+            'episode_status': episode_status,
+            'total_items': env.num_total_items,
+            'n_placed': len(all_items),
+            'n_prioritized_placed': n_prioritized,
+            'n_soft_placed': n_soft,
+            'n_stacking_pairs': len(pairs),
+            'n_prio_crushed_pairs': n_prio_crushed,
+            'n_soft_crushed_pairs': n_soft_crushed,
+            'placement_score': placement_score,
+            'soft_item_score': soft_item_score,
+            'fill_score': fill_score,
+            'cog_score': cog_score,
+            'stability_score': stability_score,
+        }
+        if geo is not None:
             result['geo'] = geo
         return result
     except Exception:

@@ -58,5 +58,25 @@
     "actual_n_soft": 8,
     "actual_prio_ratio": 0.625,
     "actual_soft_ratio": 0.2
+  },
+  "ratiostress_lowprio5.json::000": {
+    "path": "configs/gen/ratiostress_lowprio5.json",
+    "n_items": 40,
+    "target_soft_ratio": 0.3,
+    "target_prioritized_ratio": 0.05,
+    "actual_n_prioritized": 2,
+    "actual_n_soft": 8,
+    "actual_prio_ratio": 0.05,
+    "actual_soft_ratio": 0.2
+  },
+  "ratiostress_lowprio10.json::000": {
+    "path": "configs/gen/ratiostress_lowprio10.json",
+    "n_items": 40,
+    "target_soft_ratio": 0.3,
+    "target_prioritized_ratio": 0.1,
+    "actual_n_prioritized": 3,
+    "actual_n_soft": 11,
+    "actual_prio_ratio": 0.075,
+    "actual_soft_ratio": 0.275
   }
 }
