@@ -13,6 +13,8 @@ git rev-parse --show-toplevel | grep -q "baggage-packing$" || { echo "FATAL: リ
 git remote get-url origin | grep -q "MasahiroTatsuta/baggage-packing" || { echo "FATAL: remote が不正" >&2; exit 1; }
 
 echo "== 1. 決定的8シーン(B01-B04, P04, A01-A03)の build_order 出力を確認 =="
+echo "   (scripts/bp_baseline_8scenes.json と自動照合。Phase50参照:A03はstatus=unresolvedで"
+echo "    既知の未解決差異のため不一致でも警告のみ・失敗扱いにしない)"
 MYSOLVER_HARD_WALL_LIMIT=3000 PYTHONPATH=. .venv/bin/python - <<'PY'
 import io, json, os, sys, time
 from contextlib import redirect_stdout
@@ -41,12 +43,37 @@ def load_scene(cp):
     finally:
         env.close()
 
+baseline = {}
+baseline_path = 'scripts/bp_baseline_8scenes.json'
+if os.path.exists(baseline_path):
+    baseline = json.load(open(baseline_path))
+
+n_strict_mismatch = 0
 for label, cp in SCENES.items():
     cl, items, lk = load_scene(cp)
     t0 = time.perf_counter()
     with redirect_stdout(io.StringIO()):
         order = ordering_mod.build_order(items, cl, lk, time_budget=30.0)
-    print(f'[{label}] n={len(order)} first10={order[:10]} ({time.perf_counter()-t0:.1f}s)')
+    dt = time.perf_counter() - t0
+    ref = baseline.get(label)
+    if ref is None:
+        mark = '(基準値未登録)'
+    else:
+        match = (order == ref['order'])
+        status = ref.get('status', 'stable')
+        if match:
+            mark = 'OK(基準値と一致)'
+        elif status == 'unresolved':
+            mark = 'WARN(既知の未解決差異、Phase50参照。失敗扱いにしない)'
+        else:
+            mark = '★★MISMATCH(基準値と不一致。原因を特定するまで次のA/Bに進まないこと)'
+            n_strict_mismatch += 1
+    print(f'[{label}] n={len(order)} first10={order[:10]} ({dt:.1f}s) {mark}')
+
+if n_strict_mismatch:
+    print(f'\n!!! {n_strict_mismatch}件のシーンで基準値と不一致(status=stable指定)。'
+          f'原因を特定するまで次のA/Bに進まないこと(Phase50 results/phase50_report.md参照)。', file=sys.stderr)
+    sys.exit(1)
 PY
 
 echo ""

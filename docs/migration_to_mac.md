@@ -41,6 +41,14 @@ pip install $(grep -E '^(numpy|scipy|pybullet|gymnasium|pillow|Pillow)==' env_sn
 出力が env_snapshot.txt に記録済みなので、Mac側でも同じコマンドを打って**BLAS実装が
 違うことを認識した上で**数値比較すること(浮動小数点の丸め方がわずかに変わりうる)。
 
+**【Phase50で実測確認】** `env_snapshot.txt`は`"openblas configuration": "OpenBLAS
+0.3.33.112.0..."`を記録しているのに対し、この`.venv`の`numpy.show_config()`は
+`"name": "accelerate"`(Accelerateフレームワーク)を報告する——上記の懸念どおり
+BLAS実装は実際に異なる。決定的8シーンのうちA03がPhase41〜48の基準値と異なる値を
+安定的に返すようになった件(壁時計非拘束・全関連env変数を外しても再現)の**候補要因**
+として記録するが、**この差異が具体的にいつ・どうA03の決定を変えたのかは特定できていない**
+(原因未確定、`results/phase50_report.md`参照)。
+
 ---
 
 ## 3. 恒久ルール: ローカル計測は壁時計を必ず非拘束にする
@@ -59,6 +67,15 @@ export MYSOLVER_HARD_WALL_LIMIT=3000
 
 同様に `MYSOLVER_POLICY_HARD_WALL`(既定6.0)・`MYSOLVER_HARD_WALL_FACTOR`(既定1.4)も
 環境変数化済み(Phase38ステップA)。通常はHARD_WALL_LIMITだけ触れば足りる。
+
+**【Phase50による訂正】** 上記「通常はHARD_WALL_LIMITだけ触れば足りる」という記述は、
+`bp_check.sh`(`time_budget=30.0`固定)の文脈では実測により再確認できていない。
+`hard_deadline = start + min(HARD_WALL_LIMIT-reserve, build_budget_s*HARD_WALL_FACTOR)`の
+第2項は`30*1.4=42s`だが、実測の`optimize_time`は常に42s未満(6〜17s台)であり、
+`MYSOLVER_HARD_WALL_FACTOR=100`(実質無制限化)にしても`MYSOLVER_POLICY_HARD_WALL`/
+`MYSOLVER_REPLICA_RUN_ORDER_HARD_WALL`も併せて外しても、**A03の出力(下記参照)は
+一切変化しなかった**——少なくともbp_check.shの計測条件では、この4つの壁時計定数は
+律速していない。詳細は`results/phase50_report.md`。
 
 ---
 
@@ -108,6 +125,59 @@ fill±0.90pt程度、Phase10実測)、移植ミスかもしれないので先に
 可能性があるため、まず`bp_check.sh`の決定的8シーンが一致するかを先に見る
 (こちらはpybullet物理演算を経由しない`build_order`のみのテストなので、
 一致すれば少なくとも探索ロジック側は移植できている)。
+
+### 5.0 決定的8シーンの基準値(Phase50、bp_check.shが自動照合)
+
+`scripts/bp_baseline_8scenes.json`(2026-08-18取得)に、決定的8シーン
+(B01-B04, P04, A01-A03)の`build_order()`出力(全要素)を記録した。取得条件:
+`MYSOLVER_HARD_WALL_LIMIT=3000`・`MYSOLVER_HARD_WALL_FACTOR`は既定1.4のまま
+(Phase50の実測で無関係と確認済み)・`MYSOLVER_UNITS_PER_SEC`は既定2.00e7(未設定)・
+`time_budget=30.0`(bp_check.sh固定値)。`bp_check.sh`はこのファイルと自動照合し、
+`status="stable"`の7シーン(B01-B04, P04, A01, A02)は不一致なら**exit 1で失敗**、
+`status="unresolved"`のA03は不一致でも警告のみで失敗にしない
+(上記5.1の訂正参照。A03自体が「基準値」と呼べる状態にないため)。
+
+---
+
+### 5.1 恒久ルール(Phase40): A/BのbeforeはMac側基線に固定する
+
+**すべてのA/B比較の`--before`は`results/phase40_baseline_off_mac.json`
+(旧`migration_check_off.json`、Mac上でREPLICA_SELECT=0・26シーンを実測したもの)
+を使うこと。** `phase38_baseline_off_codespaces.json` / `phase38_baseline_off_nowall.json`
+はCodespaces側の参考値として残すが、**A/Bの対照には使わない。**
+
+理由: BLAS由来の丸め差は**マシンをまたぐ比較でのみ**効く。同一マシン上のoff/on比較は
+決定的であることがD03の3回連続bit一致(Phase39)で実証済みなので、Mac側の基線さえ
+持てば従来の採用基準(t>2・悪化シーン0件・kカウント)はそのまま使え、Codespaces側との
+突き合わせは不要になる。
+
+> **【Phase50による重大な訂正】** 上記の「同一マシン上は決定的」という前提が**崩れた
+> 実例**を発見した。決定的8シーンのうちA03が、Phase41〜48では一貫して同じ値
+> (`first10=[13, 37, 28, 35, 22, 15, 25, 32, 29, 7]`)を返していたが、**Phase49の
+> セッションから安定して別の値**(`first10=[38, 0, 6, 26, 7, 33, 21, 25, 1, 19]`、
+> こちらも7回連続で決定的に再現)に切り替わっている。コードは無変更(`git stash`で
+> コミット済みコードに戻しても新しい値のまま)、壁時計関連の全env変数(HARD_WALL_LIMIT/
+> FACTOR/POLICY_HARD_WALL/REPLICA_RUN_ORDER_HARD_WALL)を外しても変化しない
+> ——**同一マシン・同一コードでも、セッションをまたぐと結果が変わりうる**ことが
+> A03で実証された(D03の3回連続一致はPhase39の「短時間の1セッション内」の話であり、
+> 「セッションをまたいでも決定的」までは実証していなかった)。
+>
+> この件は`phase40_baseline_off_mac.json`(26シーン集計値の対照)の信頼性にも波及する
+> ——同じ環境で取得されたものであり、A03のような未検出の乖離が他のシーンに紛れている
+> 可能性を否定できない。**原因は未特定**(候補: BLAS実装がCodespaces記録時のOpenBLASと
+> 異なりAccelerateであることを実測確認済みだが、これがA03の変化の直接原因かは未確認。
+> 詳細は`results/phase50_report.md`)。**原因が判明するまで、シーン単位の微小な差分を
+> 「変更の効果」と断定しないこと。** 26シーン平均のt検定(t>2基準)は個々のシーンの
+> 微小なノイズに対して頑健なはずだが、A03のような大きな飛びが他のシーンでも
+> 起きていないとは言い切れない以上、慎重な解釈が必要。
+
+**マシンをまたいだシーン単位の数値比較は行わないこと。** Phase39でD03のみ
+fill_strict +1.36ptの乖離が見つかったが、fill_loose(margin=0.01の緩い判定)は
+Mac/Codespaces間でbit単位一致しており、配置そのもの(どの荷物をどこに置いたか)は
+同一だった。乖離はstrict margin(-0.005)の閾値ぎりぎりの荷物1〜数個で、BLAS実装差
+(Mac Accelerate対Codespaces側)由来の浮動小数点丸め差が境界判定を反転させたものと
+推定される(詳細はresults/phase39_report.md §3-3)。この種の乖離は同一マシン内の
+A/Bには影響しないため、Mac側基線だけで採否判断を続けてよい。
 
 ---
 
