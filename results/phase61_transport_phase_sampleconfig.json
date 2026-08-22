@@ -1,0 +1,35 @@
+{
+  "results": {
+    "sample_config.json::000": {
+      "status": "ok",
+      "n_steps": 24,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 23,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 105.50990828000067
+    },
+    "sample_config.json::001": {
+      "status": "ok",
+      "n_steps": 26,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 25,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 15.260807568993187
+    }
+  },
+  "tally": {
+    "is_valid / Y\u533a\u9593(phase1)": 2
+  }
+}

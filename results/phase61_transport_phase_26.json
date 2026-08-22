@@ -1,0 +1,365 @@
+{
+  "results": {
+    "suite_A01_1c_40_plain.json::000": {
+      "status": "ok",
+      "n_steps": 21,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 20,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 99.22903884800326
+    },
+    "suite_A02_1c_80_plain.json::000": {
+      "status": "ok",
+      "n_steps": 18,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 17,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 120.88840569099557
+    },
+    "suite_A03_1c_40_shelf.json::000": {
+      "status": "ok",
+      "n_steps": 20,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 19,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 107.15652881899587
+    },
+    "suite_A04_2c_80_noprio.json::000": {
+      "status": "ok",
+      "n_steps": 33,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 32,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 124.66977358899749
+    },
+    "suite_A05_2c_80_prio.json::000": {
+      "status": "ok",
+      "n_steps": 25,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 24,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 112.20387417599704
+    },
+    "suite_A06_1c_40_small.json::000": {
+      "status": "ok",
+      "n_steps": 40,
+      "completed_without_sudden_death": true,
+      "death": null,
+      "elapsed_sec": 165.13464890299656
+    },
+    "suite_A07_1c_40_bulky.json::000": {
+      "status": "ok",
+      "n_steps": 13,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 12,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 69.20440847999998
+    },
+    "suite_A08_2c_140_extreme.json::000": {
+      "status": "ok",
+      "n_steps": 21,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 20,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 102.51979037799902
+    },
+    "suite_B01_1c_40_plain.json::000": {
+      "status": "ok",
+      "n_steps": 23,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 22,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 12.788459342998976
+    },
+    "suite_B02_1c_40_shelf.json::000": {
+      "status": "ok",
+      "n_steps": 21,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 20,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 9.778554281001561
+    },
+    "suite_B03_2c_80_prio.json::000": {
+      "status": "ok",
+      "n_steps": 28,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 27,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 18.814411280996865
+    },
+    "suite_B04_2c_80_noprio.json::000": {
+      "status": "ok",
+      "n_steps": 46,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 45,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 41.41552906599827
+    },
+    "suite_C01_1c_40_shelf.json::000": {
+      "status": "ok",
+      "n_steps": 21,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 20,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 96.35843965000095
+    },
+    "suite_C02_2c_55_shelfprio.json::000": {
+      "status": "ok",
+      "n_steps": 37,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 36,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 136.66902174300049
+    },
+    "suite_C03_2c_80_prio.json::000": {
+      "status": "ok",
+      "n_steps": 28,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 27,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 121.50033933800296
+    },
+    "suite_D01_A_1c_40_softheavy.json::000": {
+      "status": "ok",
+      "n_steps": 22,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 21,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 89.4566773589977
+    },
+    "suite_D02_A_1c_40_prioheavy_nocont.json::000": {
+      "status": "ok",
+      "n_steps": 22,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 21,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 105.20000177800102
+    },
+    "suite_D03_A_2c_60_prioheavy_cont.json::000": {
+      "status": "ok",
+      "n_steps": 41,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 40,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 126.26949546200194
+    },
+    "suite_D04_A_1c_40_flat.json::000": {
+      "status": "ok",
+      "n_steps": 21,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 20,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 91.22942274899833
+    },
+    "suite_D05_A_1c_40_tall.json::000": {
+      "status": "ok",
+      "n_steps": 13,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 12,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 90.27937199000007
+    },
+    "suite_P01_A_1c_pre6.json::000": {
+      "status": "ok",
+      "n_steps": 14,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 13,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 92.97130790800293
+    },
+    "suite_P02_A_1c_pre10.json::000": {
+      "status": "ok",
+      "n_steps": 22,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 21,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 95.0535258289965
+    },
+    "suite_P03_A_2c_pre8_prio.json::000": {
+      "status": "ok",
+      "n_steps": 31,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 30,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 120.51135757400334
+    },
+    "suite_P04_B_1c_pre8_shelf.json::000": {
+      "status": "ok",
+      "n_steps": 16,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 15,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 11.32824536300177
+    },
+    "suite_P05_C_2c_pre8_shelfprio.json::000": {
+      "status": "ok",
+      "n_steps": 29,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 28,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 125.73452225299843
+    },
+    "suite_P06_A_1c_pre12_dense.json::000": {
+      "status": "ok",
+      "n_steps": 17,
+      "completed_without_sudden_death": false,
+      "death": {
+        "cause": "is_valid",
+        "n_placed_at_death": 16,
+        "transport_phase": "Y\u533a\u9593(phase1)",
+        "move_item_calls": [
+          false
+        ]
+      },
+      "elapsed_sec": 95.78503847600223
+    }
+  },
+  "tally": {
+    "is_valid / Y\u533a\u9593(phase1)": 25,
+    "no_death": 1
+  }
+}

@@ -15,6 +15,13 @@
 
 経緯: Phase52でstability_score(本番70.44 / ローカル98.2)の乖離調査に着手するにあたり、
 「どのアイテムがどれだけ動いたか」を特定する必要があったため新規作成。
+
+Phase61追記: 揺らしの加速度振幅を `MYSOLVER_DIAG_SHAKE_AMPLITUDE`(既定 '6.0'、単位m/s²)で
+env化した。公式チュートリアルセミナーで運営が開示した範囲(最大1〜3G程度=9.8〜29.4m/s²)
+での**ロバスト性確認**(この範囲全体でstabilityがどう分布するか)のために使う。
+**「本番のstability_score(70.44)に最も近い水準はどれか」を特定・採用する目的では
+使わない**(評価関数内の非公開パラメーターの解析に該当するため。
+docs/submission_policy.md §4 Phase61追記を参照)。
 """
 import argparse
 import glob
@@ -61,7 +68,7 @@ def stability_with_item_detail(scorer: Scorer, containers, shake_steps: int = 15
     for container in containers:
         container.create_cap(client)
 
-    amplitude = 6.0
+    amplitude = float(os.environ.get('MYSOLVER_DIAG_SHAKE_AMPLITUDE', '6.0'))
     for step in range(shake_steps):
         angle = 2 * math.pi * step / 30.0
         gx = amplitude * math.sin(angle)
@@ -178,17 +185,21 @@ def main():
     paths = sorted(glob.glob(args.config_path))
     results = {}
     for cp in paths:
-        task = list(json.load(open(cp)).values())[0]
-        label = os.path.basename(cp)
-        t0 = time.perf_counter()
-        r = run_one_scene(task, args.module_path, agent_module)
-        r['elapsed_sec'] = time.perf_counter() - t0
-        results[label] = r
-        n_items = r.get('n_items', 0)
-        top = r.get('items', [])[:3]
-        top_str = ', '.join(f"idx{it['index']}:disp={it['disp']:.4f}m,ke={it['ke']:.4f}" for it in top)
-        print(f"[{label}] stability={r.get('stability_score')} n_items={n_items} "
-              f"mean_disp={r.get('mean_disp')} mean_energy={r.get('mean_energy')} top3=[{top_str}]")
+        # Phase61: 1ファイルに複数タスクを持つconfig(例: sample_config.json)でも
+        # 全タスクを回すよう修正(旧実装は最初のタスクのみ処理していた。26シーンの
+        # suite_*.jsonは1ファイル1タスクなのでこの修正による影響はない)。
+        tasks = json.load(open(cp))
+        for tk, task in tasks.items():
+            label = f'{os.path.basename(cp)}::{tk}' if len(tasks) > 1 else os.path.basename(cp)
+            t0 = time.perf_counter()
+            r = run_one_scene(task, args.module_path, agent_module)
+            r['elapsed_sec'] = time.perf_counter() - t0
+            results[label] = r
+            n_items = r.get('n_items', 0)
+            top = r.get('items', [])[:3]
+            top_str = ', '.join(f"idx{it['index']}:disp={it['disp']:.4f}m,ke={it['ke']:.4f}" for it in top)
+            print(f"[{label}] stability={r.get('stability_score')} n_items={n_items} "
+                  f"mean_disp={r.get('mean_disp')} mean_energy={r.get('mean_energy')} top3=[{top_str}]")
 
     with open(args.out, 'w') as f:
         json.dump(results, f, indent=2)
