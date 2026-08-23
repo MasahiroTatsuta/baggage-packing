@@ -38,6 +38,14 @@ FALLBACK_CLEARANCE_EPS = float(os.environ.get('MYSOLVER_FALLBACK_CLEARANCE_EPS',
 # 現行動作(修正前)は100%決定論的なバグのため、検証後は既定有効にする方針。
 FALLBACK_SAFE_POS = os.environ.get('MYSOLVER_FALLBACK_SAFE_POS', '1') == '1'
 
+# Phase63: _fallback_place_pos は6面inclusion marginだけを見ており、既配置荷物の
+# 位置を一切考慮しない。Phase62で27/27件のis_valid sudden deathが、まさにこの
+# フォールバックが既配置荷物へ深く食い込む(-34.6mm〜-360.0mm)位置を選んだ結果だと
+# 判明した(planner.plan()がNoneを返した時点でlegal1/legal2は一度も評価されていない)。
+# 既定有効(現状が明確なバグのため)。'0'で旧来(障害物を見ない)挙動に戻せる
+# (ビット単位確認用)。
+FALLBACK_AVOID_OBSTACLES = os.environ.get('MYSOLVER_FALLBACK_AVOID_OBSTACLES', '1') == '1'
+
 # ---------------------------------------------------------------------------
 # Phase38(ステップB): policy の壁時計を2値(1-B)から4値に拡張する。
 #
@@ -73,6 +81,12 @@ def _fallback_place_pos(container: dict, item: dict) -> np.ndarray:
     選んだ候補がmarginを満たす保証はない(既に荷物が詰まっていれば他の荷物と
     干渉しうる)。目的は「フォールバックが構造的に必ず死ぬ」状態の解消であり、
     「絶対に死なない」ことではない。
+
+    Phase63追記: 上記の「他の荷物と干渉しうる」を軽減するため、9候補のうち
+    搬入経路(legal1×legal2、`_fallback_transport_legal`)が合法なものがあれば
+    その中でslack最小を選ぶ(`MYSOLVER_FALLBACK_AVOID_OBSTACLES=0`で旧挙動に戻せる)。
+    1つも合法な候補が無い場合は従来どおりslack最小(全候補中)のまま——
+    「絶対に死なない」ことは依然として目指さない。
     """
     thickness = container.get('thickness', 0.05)
     height = item.get('height', 0.2)
@@ -114,8 +128,82 @@ def _fallback_place_pos(container: dict, item: dict) -> np.ndarray:
     # (=最大の)dots値」を返す(dots<=marginが合法、値が大きいほど外側に近い)。
     # したがって安全な候補ほどこの値は小さい(より負)——argminで選ぶ。
     slack = geo.inclusion_slack_batch(container, half, world_candidates)
+
+    # Phase63: 9候補のうち搬入経路が合法(legal1×legal2)なものがあれば、その中で
+    # slack最小を選ぶ。1つも合法な候補が無ければ、従来どおりslack最小(全候補中)を
+    # 返す(「絶対に死なない」ことは目指さない、Phase55と同じ方針)。
+    # 何らかの理由で判定自体に失敗した場合も従来動作にフォールバックする(下方リスクなし)。
+    if FALLBACK_AVOID_OBSTACLES:
+        try:
+            legal_mask = _fallback_transport_legal(container, half, world_candidates)
+            if np.any(legal_mask):
+                masked_slack = np.where(legal_mask, slack, np.inf)
+                chosen = local_candidates[int(np.argmin(masked_slack))]
+                return np.array(chosen, dtype=np.float32)
+        except Exception:
+            pass
+
     chosen = local_candidates[int(np.argmin(slack))]
     return np.array(chosen, dtype=np.float32)
+
+
+def _fallback_transport_legal(container: dict, half: np.ndarray, world_pos: np.ndarray) -> np.ndarray:
+    """Phase63: `_fallback_place_pos`の3x3候補について、搬入経路(legal1=Y掃引・
+    legal2=X掃引)が合法かを判定する。
+
+    `planner._collect_obstacles`・`planner._apply_obstacle_filters`はそのまま呼び、
+    モジュール化されていないインライン部分(sweep_z・掃引範囲の計算式)だけをここに
+    複製する。定数・式とも`planner._evaluate_candidates`(該当コメント: validator.py の
+    check_transport_path と同式にすること)と完全に一致させること。
+    Phase62実測: 27/27件の実死亡例に対しこの式を単独適用したところ全件で正しく
+    legal1=Falseと判定できており、式自体の正しさは検証済み。
+
+    world_pos: (N,3) ワールド座標。戻り値: (N,) bool、True=搬入経路が合法。
+    """
+    thickness = container['thickness']; height = container['height']
+    buffer = container.get('buffer', 0.0)
+    ox = container['center'][0]
+    n = world_pos.shape[0]
+
+    world_x = world_pos[:, 0]; world_y = world_pos[:, 1]; world_z = world_pos[:, 2]
+    local_x = world_x - ox
+
+    bottom_z = world_z - half[2]
+    resting_values = [thickness, height / 2.0 + thickness + buffer]
+    is_resting = np.zeros(n, dtype=bool)
+    for rv in resting_values:
+        d = bottom_z - rv
+        is_resting |= (d >= 0.0) & (d <= 0.05)
+
+    top_z = world_z + half[2]
+    effective_start = np.where(is_resting, 0.0, geo.START_Z)
+    handled = is_resting.copy()
+    for c_z in (height / 2.0 + buffer, height + buffer - thickness):
+        clearance = c_z - top_z
+        trigger = (~handled) & (clearance >= 0.0) & (clearance < (effective_start + geo.CEILING_MARGIN))
+        clipped = np.maximum(0.0, clearance - geo.CEILING_MARGIN - 0.0005)
+        effective_start = np.where(trigger, clipped, effective_start)
+        handled = handled | trigger
+
+    ceiling_sweep = height + buffer - thickness - half[2] - geo.START_MARGIN
+    sweep_z = np.minimum(ceiling_sweep, world_z + effective_start)
+
+    x_min_local, x_max_local = geo.transport_x_bounds(container, half[0])
+    x_min_local -= ox; x_max_local -= ox
+    start_x_local = np.clip(local_x, x_min_local, x_max_local)
+    start_x_world = start_x_local + ox
+
+    y_entry = -container['width'] / 2.0
+    y1_lo = np.minimum(y_entry, world_y); y1_hi = np.maximum(y_entry, world_y)
+    x1_lo = start_x_world; x1_hi = start_x_world
+
+    x2_lo = np.minimum(start_x_world, world_x); x2_hi = np.maximum(start_x_world, world_x)
+    y2_lo = world_y; y2_hi = world_y
+
+    obstacles = planner._collect_obstacles(container)
+    legal1 = planner._apply_obstacle_filters(world_pos, half, obstacles, x1_lo, x1_hi, y1_lo, y1_hi, sweep_z)
+    legal2 = planner._apply_obstacle_filters(world_pos, half, obstacles, x2_lo, x2_hi, y2_lo, y2_hi, sweep_z)
+    return legal1 & legal2
 
 
 class Agent:

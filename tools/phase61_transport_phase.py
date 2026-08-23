@@ -239,11 +239,42 @@ def run_one_scene(task_config: dict, module_path: str, agent_module: str) -> dic
         truncated = False
         n_step = 0
         death = None
+        fallback_attempts = 0
+        fallback_success = 0
 
         while not terminated and not truncated:
             obs_before = obs
             action, _ = runner.call('policy', time_out_sec=task_config['agent']['policy_timeout'],
                                      fallback=env.action_space.sample(), observation=obs)
+
+            # Phase63: 死亡手だけでなく毎手番で、同一observationに対しplanner.plan()を
+            # 主プロセス側から呼び直し(agent.pyのsubprocessとは別に、決定的な純関数として
+            # 直接呼ぶだけなので副作用はない)、Noneが返る手番(=_fallback_place_posが
+            # 使われた手番)で、フォールバックの9候補grid中に合法な候補が
+            # 実際にあったか(agent.py::_fallback_transport_legal)を集計する。
+            try:
+                if obs_before.get('pool_list') and obs_before.get('container_list'):
+                    shadow_action = planner_mod.plan(
+                        obs_before['container_list'], obs_before['pool_list'],
+                        time_budget=agent_mod.POLICY_TIME_BUDGET,
+                        hard_deadline=time.perf_counter() + agent_mod.POLICY_HARD_WALL,
+                        strict_support=not optimize_flag, prepacked_ids=prepacked_ids,
+                    )
+                    if shadow_action is None:
+                        fallback_attempts += 1
+                        container0 = obs_before['container_list'][0]
+                        item0 = obs_before['pool_list'][0]
+                        half0 = geo.half_extent([item0['length'], item0['width'], item0['height']], 0)
+                        fb_pos_local = agent_mod._fallback_place_pos(container0, item0)
+                        fb_pos_world = np.array(
+                            geo.local_to_world(container0, fb_pos_local), dtype=np.float64)
+                        legal = agent_mod._fallback_transport_legal(
+                            container0, half0, fb_pos_world[None, :])[0]
+                        if bool(legal):
+                            fallback_success += 1
+            except Exception:
+                pass
+
             env.validator._phase61_calls = []
             obs, reward, terminated, truncated, info = env.step(action)
             n_step += 1
@@ -323,11 +354,15 @@ def run_one_scene(task_config: dict, module_path: str, agent_module: str) -> dic
                 }
 
         completed = env.stream_manager.is_empty()
+        n_placed_final = sum(len(c.packed_items) for c in env.container_manager.containers)
         return {
             'status': 'ok',
             'n_steps': n_step,
+            'n_placed_final': n_placed_final,
             'completed_without_sudden_death': completed,
             'death': death,
+            'fallback_attempts': fallback_attempts,
+            'fallback_success': fallback_success,
         }
     except Exception:
         return {'status': f'error: {traceback.format_exc().splitlines()[-1]}'}
@@ -354,6 +389,7 @@ def main():
             r['elapsed_sec'] = time.perf_counter() - t0
             results[label] = r
             death = r.get('death')
+            fa, fs = r.get('fallback_attempts', 0), r.get('fallback_success', 0)
             if death:
                 key = f"{death['cause']}" + (f" / {death['transport_phase']}" if death['transport_phase'] else '')
                 tally[key] = tally.get(key, 0) + 1
@@ -362,17 +398,26 @@ def main():
                       f"plan_none={replay.get('planner_plan_returned_none')} "
                       f"fallback_sig={replay.get('action_has_fallback_signature(item0_orn0)')} "
                       f"matches_replan={replay.get('replan_matches_actual_action')} "
+                      f"n_placed_at_death={death['n_placed_at_death']} "
+                      f"n_placed_final={r.get('n_placed_final')} "
+                      f"fallback={fs}/{fa} "
                       f"({r['elapsed_sec']:.1f}s)")
             else:
                 tally['no_death'] = tally.get('no_death', 0) + 1
-                print(f"[{label}] completed={r.get('completed_without_sudden_death')} ({r['elapsed_sec']:.1f}s)")
+                print(f"[{label}] completed={r.get('completed_without_sudden_death')} "
+                      f"n_placed_final={r.get('n_placed_final')} fallback={fs}/{fa} ({r['elapsed_sec']:.1f}s)")
 
     print('=== tally ===')
     for k, v in sorted(tally.items(), key=lambda kv: -kv[1]):
         print(f'  {k}: {v}')
+    total_fa = sum(r.get('fallback_attempts', 0) for r in results.values())
+    total_fs = sum(r.get('fallback_success', 0) for r in results.values())
+    print(f'=== fallback (全手番集計): {total_fs}/{total_fa} ===')
 
     with open(args.out, 'w') as f:
-        json.dump({'results': results, 'tally': tally}, f, indent=2, default=str)
+        json.dump({'results': results, 'tally': tally,
+                    'fallback_total': {'success': total_fs, 'attempts': total_fa}},
+                   f, indent=2, default=str)
     print(f"wrote {args.out}")
 
 

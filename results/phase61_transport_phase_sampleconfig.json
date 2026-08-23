@@ -3,6 +3,7 @@
     "sample_config.json::000": {
       "status": "ok",
       "n_steps": 24,
+      "n_placed_final": 23,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -439,11 +440,14 @@
           }
         }
       },
-      "elapsed_sec": 102.71968548400037
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 99.8999251040077
     },
     "sample_config.json::001": {
       "status": "ok",
       "n_steps": 26,
+      "n_placed_final": 25,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -925,10 +929,16 @@
           }
         }
       },
-      "elapsed_sec": 15.250759221999033
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 23.26723329098604
     }
   },
   "tally": {
     "is_valid / Y\u533a\u9593(phase1)": 2
+  },
+  "fallback_total": {
+    "success": 0,
+    "attempts": 2
   }
 }

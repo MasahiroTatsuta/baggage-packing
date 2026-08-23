@@ -3,6 +3,7 @@
     "suite_A01_1c_40_plain.json::000": {
       "status": "ok",
       "n_steps": 21,
+      "n_placed_final": 20,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -394,11 +395,14 @@
           }
         }
       },
-      "elapsed_sec": 86.05744646600215
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 89.15150445399922
     },
     "suite_A02_1c_80_plain.json::000": {
       "status": "ok",
       "n_steps": 18,
+      "n_placed_final": 17,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -745,11 +749,14 @@
           }
         }
       },
-      "elapsed_sec": 107.78425101000175
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 114.41515630499634
     },
     "suite_A03_1c_40_shelf.json::000": {
       "status": "ok",
       "n_steps": 20,
+      "n_placed_final": 19,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -1141,11 +1148,14 @@
           }
         }
       },
-      "elapsed_sec": 94.1000716980052
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 96.3282204040006
     },
     "suite_A04_2c_80_noprio.json::000": {
       "status": "ok",
       "n_steps": 33,
+      "n_placed_final": 32,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -1462,11 +1472,14 @@
           }
         }
       },
-      "elapsed_sec": 111.27366527199774
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 116.10854271199787
     },
     "suite_A05_2c_80_prio.json::000": {
       "status": "ok",
       "n_steps": 25,
+      "n_placed_final": 24,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -1693,18 +1706,24 @@
           }
         }
       },
-      "elapsed_sec": 108.18510091499775
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 104.19406837900169
     },
     "suite_A06_1c_40_small.json::000": {
       "status": "ok",
       "n_steps": 40,
+      "n_placed_final": 40,
       "completed_without_sudden_death": true,
       "death": null,
-      "elapsed_sec": 156.44524689399987
+      "fallback_attempts": 0,
+      "fallback_success": 0,
+      "elapsed_sec": 160.7255073970009
     },
     "suite_A07_1c_40_bulky.json::000": {
       "status": "ok",
       "n_steps": 13,
+      "n_placed_final": 12,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -1976,11 +1995,14 @@
           }
         }
       },
-      "elapsed_sec": 69.54200404200674
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 69.98793614900205
     },
     "suite_A08_2c_140_extreme.json::000": {
       "status": "ok",
       "n_steps": 21,
+      "n_placed_final": 20,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -2222,11 +2244,14 @@
           }
         }
       },
-      "elapsed_sec": 103.29929133000405
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 103.69559442499303
     },
     "suite_B01_1c_40_plain.json::000": {
       "status": "ok",
       "n_steps": 23,
+      "n_placed_final": 22,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -2648,11 +2673,14 @@
           }
         }
       },
-      "elapsed_sec": 13.714568739000242
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 21.25152128400805
     },
     "suite_B02_1c_40_shelf.json::000": {
       "status": "ok",
       "n_steps": 21,
+      "n_placed_final": 20,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -3059,11 +3087,14 @@
           }
         }
       },
-      "elapsed_sec": 10.404913006997958
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 16.853176582008018
     },
     "suite_B03_2c_80_prio.json::000": {
       "status": "ok",
       "n_steps": 28,
+      "n_placed_final": 27,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -3305,11 +3336,14 @@
           }
         }
       },
-      "elapsed_sec": 20.425225793995196
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 33.18024347399478
     },
     "suite_B04_2c_80_noprio.json::000": {
       "status": "ok",
       "n_steps": 46,
+      "n_placed_final": 45,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -3731,11 +3765,14 @@
           }
         }
       },
-      "elapsed_sec": 43.630376518995035
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 66.54412162800145
     },
     "suite_C01_1c_40_shelf.json::000": {
       "status": "ok",
       "n_steps": 21,
+      "n_placed_final": 20,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -4142,11 +4179,14 @@
           }
         }
       },
-      "elapsed_sec": 97.71117947000312
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 99.06850552000105
     },
     "suite_C02_2c_55_shelfprio.json::000": {
       "status": "ok",
       "n_steps": 37,
+      "n_placed_final": 36,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -4508,11 +4548,14 @@
           }
         }
       },
-      "elapsed_sec": 137.56551109899738
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 140.43194321099145
     },
     "suite_C03_2c_80_prio.json::000": {
       "status": "ok",
       "n_steps": 28,
+      "n_placed_final": 27,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -4724,11 +4767,14 @@
           }
         }
       },
-      "elapsed_sec": 118.95152257600421
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 126.81747936399188
     },
     "suite_D01_A_1c_40_softheavy.json::000": {
       "status": "ok",
       "n_steps": 22,
+      "n_placed_final": 21,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -5135,11 +5181,14 @@
           }
         }
       },
-      "elapsed_sec": 92.61387778299832
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 86.884273535994
     },
     "suite_D02_A_1c_40_prioheavy_nocont.json::000": {
       "status": "ok",
       "n_steps": 22,
+      "n_placed_final": 21,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -5546,11 +5595,14 @@
           }
         }
       },
-      "elapsed_sec": 113.51435684000171
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 101.08299517699925
     },
     "suite_D03_A_2c_60_prioheavy_cont.json::000": {
       "status": "ok",
       "n_steps": 41,
+      "n_placed_final": 40,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -5927,11 +5979,14 @@
           }
         }
       },
-      "elapsed_sec": 123.01312517299812
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 123.07612028700532
     },
     "suite_D04_A_1c_40_flat.json::000": {
       "status": "ok",
       "n_steps": 21,
+      "n_placed_final": 20,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -6323,11 +6378,14 @@
           }
         }
       },
-      "elapsed_sec": 86.20934781999676
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 88.436482952995
     },
     "suite_D05_A_1c_40_tall.json::000": {
       "status": "ok",
       "n_steps": 13,
+      "n_placed_final": 12,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -6599,11 +6657,14 @@
           }
         }
       },
-      "elapsed_sec": 88.4623888510032
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 88.92715514100564
     },
     "suite_P01_A_1c_pre6.json::000": {
       "status": "ok",
       "n_steps": 14,
+      "n_placed_final": 19,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -6980,11 +7041,14 @@
           }
         }
       },
-      "elapsed_sec": 91.43667282199749
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 93.83964931000082
     },
     "suite_P02_A_1c_pre10.json::000": {
       "status": "ok",
       "n_steps": 22,
+      "n_placed_final": 31,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -7541,11 +7605,14 @@
           }
         }
       },
-      "elapsed_sec": 94.29760153999814
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 96.47251416300423
     },
     "suite_P03_A_2c_pre8_prio.json::000": {
       "status": "ok",
       "n_steps": 31,
+      "n_placed_final": 38,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -7892,11 +7959,14 @@
           }
         }
       },
-      "elapsed_sec": 119.32663593799953
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 122.11037789299735
     },
     "suite_P04_B_1c_pre8_shelf.json::000": {
       "status": "ok",
       "n_steps": 16,
+      "n_placed_final": 23,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -8348,11 +8418,14 @@
           }
         }
       },
-      "elapsed_sec": 12.034537946005003
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 17.747520292992704
     },
     "suite_P05_C_2c_pre8_shelfprio.json::000": {
       "status": "ok",
       "n_steps": 29,
+      "n_placed_final": 36,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -8684,11 +8757,14 @@
           }
         }
       },
-      "elapsed_sec": 124.94401651000226
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 133.56899000699923
     },
     "suite_P06_A_1c_pre12_dense.json::000": {
       "status": "ok",
       "n_steps": 17,
+      "n_placed_final": 28,
       "completed_without_sudden_death": false,
       "death": {
         "cause": "is_valid",
@@ -9200,11 +9276,17 @@
           }
         }
       },
-      "elapsed_sec": 95.3865721330003
+      "fallback_attempts": 1,
+      "fallback_success": 0,
+      "elapsed_sec": 96.19224226899678
     }
   },
   "tally": {
     "is_valid / Y\u533a\u9593(phase1)": 25,
     "no_death": 1
+  },
+  "fallback_total": {
+    "success": 0,
+    "attempts": 25
   }
 }
