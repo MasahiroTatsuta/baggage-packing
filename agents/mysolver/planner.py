@@ -986,6 +986,22 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
         if stats is not None:
             if not np.any(support_ok):
                 stats['fail_support'] = stats.get('fail_support', 0) + 1
+                # Phase66(ステップ1-1): support_ok=False の内訳(閾値未達 vs forbidden_hit、
+                # 下敷き禁止ハード制約)を分けて数える診断カウンタ。support_ok/stacked_ok/
+                # forbidden_hit の判定式自体はどこも変更していない(既に計算済みの配列を
+                # 事後にnp.sum()で内訳集計するだけ)。on_floorはこの分岐内では全件Falseの
+                # はずだが(True なら support_ok も True になり this 分岐に入らない)、
+                # 念のため明示的に除外する。
+                need_support = ~on_floor
+                forbidden_only = need_support & forbidden_hit & stacked_ok
+                threshold_only = need_support & ~forbidden_hit & ~stacked_ok
+                both = need_support & forbidden_hit & ~stacked_ok
+                stats['fail_support_forbidden_only'] = (
+                    stats.get('fail_support_forbidden_only', 0) + int(np.sum(forbidden_only)))
+                stats['fail_support_threshold_only'] = (
+                    stats.get('fail_support_threshold_only', 0) + int(np.sum(threshold_only)))
+                stats['fail_support_both'] = (
+                    stats.get('fail_support_both', 0) + int(np.sum(both)))
             elif not np.any(incl):
                 stats['fail_inclusion'] = stats.get('fail_inclusion', 0) + 1
             elif not np.any(valid_h):
