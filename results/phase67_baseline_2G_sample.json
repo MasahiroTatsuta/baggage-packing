@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "shake_amplitude": "19.6",
+    "min_union_support_ratio": "0.55",
+    "min_support_span_ratio": "0.6",
+    "max_support_centroid_offset": "0.15",
+    "strict_support_disable": "0"
+  },
+  "results": {
+    "sample_config.json::000": {
+      "status": "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']",
+      "fill_score": 27.971218195467095,
+      "placement_A": 100.0,
+      "soft_A": 100.0,
+      "placement_B": 75.0,
+      "soft_B": 0.0,
+      "cog_score": 55.86970469823116,
+      "stability_score": 83.91379799228895,
+      "composite_A": 66.51681291810205,
+      "composite_B": 48.65967006095919,
+      "num_placed_items": 23,
+      "total_items": 41,
+      "n_prio_pool": 4,
+      "n_prio_placed": 3,
+      "n_prio_crushed": 0,
+      "n_prio_wrong_container": 0,
+      "n_soft_pool": 13,
+      "n_soft_placed": 0,
+      "n_soft_crushed": 0,
+      "mean_disp": 0.06894074372011205,
+      "mean_energy": 9.491006079568289e-07,
+      "elapsed_sec": 97.67253482999968
+    },
+    "sample_config.json::001": {
+      "status": "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']",
+      "fill_score": 22.853366928511438,
+      "placement_A": 100.0,
+      "soft_A": 100.0,
+      "placement_B": 50.0,
+      "soft_B": 63.63636363636363,
+      "cog_score": 56.63571522902136,
+      "stability_score": 87.2020353698567,
+      "composite_A": 65.92333710790571,
+      "composite_B": 53.58567477024337,
+      "num_placed_items": 25,
+      "total_items": 42,
+      "n_prio_pool": 2,
+      "n_prio_placed": 1,
+      "n_prio_crushed": 0,
+      "n_prio_wrong_container": 0,
+      "n_soft_pool": 11,
+      "n_soft_placed": 7,
+      "n_soft_crushed": 0,
+      "mean_disp": 0.05483608617308944,
+      "mean_energy": 9.592854741416701e-05,
+      "elapsed_sec": 14.576248443000168
+    }
+  },
+  "elapsed_sec": 113.11552286148071
+}

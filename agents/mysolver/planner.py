@@ -149,10 +149,12 @@ MIN_SUPPORT_RATIO = 0.9     # 荷物の底面がこれだけ支持面に乗っ�
 #   (2) 接触領域の外接矩形が底面の各軸を MIN_SUPPORT_SPAN_RATIO 以上またぐ(=端に寄っていない)
 #   (3) 接触面積の重心が底面中心から MAX_SUPPORT_CENTROID_OFFSET(半寸法比)以内
 # の3条件で判定する((2)(3)が「角にちょこんと乗る」不安定配置を排除する)。
-MIN_UNION_SUPPORT_RATIO = 0.55
+# Phase67(ステップ1-1): 支持閾値スイープ用にenv化(既定値は変更しない、8/8ビット単位不変を
+# scripts/bp_check.shで確認済み)。Phase66で一度実装して差分から除去したものの復活。
+MIN_UNION_SUPPORT_RATIO = float(os.environ.get('MYSOLVER_MIN_UNION_SUPPORT_RATIO', '0.55'))
 SUPPORT_LEVEL_TOL = 0.02        # 「同じ高さ帯の支持面」とみなす上面zの許容差
-MIN_SUPPORT_SPAN_RATIO = 0.6    # 接触領域の外接矩形が底面の各軸方向をまたぐ最小割合
-MAX_SUPPORT_CENTROID_OFFSET = 0.15  # 接触面積重心の底面中心からのずれ(半寸法に対する比)
+MIN_SUPPORT_SPAN_RATIO = float(os.environ.get('MYSOLVER_MIN_SUPPORT_SPAN_RATIO', '0.6'))    # 接触領域の外接矩形が底面の各軸方向をまたぐ最小割合
+MAX_SUPPORT_CENTROID_OFFSET = float(os.environ.get('MYSOLVER_MAX_SUPPORT_CENTROID_OFFSET', '0.15'))  # 接触面積重心の底面中心からのずれ(半寸法に対する比)
 # Phase13(ターゲット2): B01_1c_40_plain の stability(94.20 < 97制約)回収。
 #
 # phase11 §5.2 で「union のしきい値を全シーン一律に締めるのは割に合わない」(B01 fill -10.51,
@@ -1386,6 +1388,11 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
     """
     if budget is None:
         budget = SearchBudget.from_seconds(time_budget, hard_deadline=hard_deadline)
+
+    # Phase67(ステップ1-3): strict_support(Phase13導入)を丸ごと無効化する診断フック。
+    # 既定'0'では呼び出し元(agent.py)が渡した値をそのまま使うため既定挙動は不変。
+    if os.environ.get('MYSOLVER_STRICT_SUPPORT_DISABLE', '0') == '1':
+        strict_support = False
 
     n_pool = len(pool_list) if max_pool_items is None else min(len(pool_list), max_pool_items)
     has_prioritized_container = any(c.get('is_prioritized', False) for c in container_list)
