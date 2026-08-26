@@ -181,6 +181,14 @@ def _strategy_layer_first(item_list: list[dict]) -> list[dict]:
 # ランダムリスタートでのみ種として使い、フェーズ1の時間配分は一切変えない。
 STRATEGIES = [_strategy_volume_desc, _strategy_count_first, _strategy_big_first, _strategy_layer_first]
 
+# Phase72: build_order()の探索結果を左右しない読み取り専用の診断記録(既定で常時収集、
+# 戻り値・探索の挙動は一切変えない)。呼び出しごとに上書きされるだけの副チャネルで、
+# Phase71が発見した「shuffle_tiesがis_soft優先の並びを破壊しているか」「破壊した側が
+# best_orderとして採用されているか」を、build_order自体を変更せずに外部から診断できるように
+# するためのもの。診断ツール(tools/phase72_winner_trace.py)がbuild_order呼び出し直後に
+# この辞書を読む。
+LAST_BUILD_DIAGNOSTICS: dict = {}
+
 
 def order_items(item_list: list[dict]) -> list[int]:
     """決定的ヒューリスティック順(探索の初期シード兼、最終フォールバック)。
@@ -735,6 +743,9 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     heuristic_order = order_items(item_list)
 
     if not container_list or not item_list:
+        LAST_BUILD_DIAGNOSTICS.clear()
+        LAST_BUILD_DIAGNOSTICS.update({'winner_source': 'heuristic', 'winner_strategy': 'order_items(volume_desc)',
+                                        'n_items': len(item_list)})
         return heuristic_order
     k = max(1, int(lookahead_k or 1))
 
@@ -743,6 +754,8 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # Phase11: placement ペナルティで目的関数が負になりうるため、初期値は -inf にする
     # (旧 -1.0 のままだと、全候補が負スコアのシーンで貪欲構築の結果が一切採用されない)。
     best_score = None
+    # Phase72: best_orderが最後に更新された時点の由来(heuristic/phase1/phase2)と種戦略名。
+    _winner = {'source': 'heuristic', 'strategy': 'order_items(volume_desc)'}
 
     total_container_volume = sum(c.get('volume', 0.0) for c in container_list)
     # Phase15(ターゲット1): container_list はこの時点でまだ初期状態(get_init_states直後、
@@ -832,8 +845,8 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     rng = np.random.default_rng(0)
     all_indices = set(items_by_index.keys())
 
-    def try_construct(seed_items, window, use_noise, slice_units):
-        nonlocal best_order, best_score, best_stall, best_snaps, best_contribs
+    def try_construct(seed_items, window, use_noise, slice_units, source_label='phase?', strategy_label='?'):
+        nonlocal best_order, best_score, best_stall, best_snaps, best_contribs, _winner
         if slice_units <= 0:
             return
         try:
@@ -855,6 +868,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                 if score is not None and (best_score is None or _better(score, best_score)):
                     best_order, best_score, best_stall = order, score, stall
                     best_snaps, best_contribs = (snaps or {}), (contribs or [])
+                    _winner = {'source': source_label, 'strategy': strategy_label}
         except Exception:
             pass
 
@@ -878,7 +892,8 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         if total_budget.remaining() < construct_units + final_margin_units:
             break
         window = pending_windows.pop(0)
-        try_construct(default_items, window, use_noise=False, slice_units=construct_units)
+        try_construct(default_items, window, use_noise=False, slice_units=construct_units,
+                      source_label='phase1', strategy_label=strategy_orders[0][0])
 
     # フェーズ2: 残り予算でランダム化(shuffle+noise)リスタートを繰り返し、
     # window と戦略の両方をランダムに振って多様性を確保する(単一戦略への依存を避ける)。
@@ -888,8 +903,9 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         if total_budget.remaining() < phase2_units + final_margin_units:
             break
         window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
-        _, seed_items = strategy_orders[int(rng.integers(0, len(strategy_orders)))]
-        try_construct(seed_items, window, use_noise=True, slice_units=phase2_units)
+        strat_name, seed_items = strategy_orders[int(rng.integers(0, len(strategy_orders)))]
+        try_construct(seed_items, window, use_noise=True, slice_units=phase2_units,
+                      source_label='phase2', strategy_label=strat_name)
 
     # フェーズ3(Phase29): 衝突駆動の順序修正。
     #
@@ -971,6 +987,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                           flush=True)
                 if score is not None and (best_score is None or _better(score, best_score)):
                     best_order, best_score, best_stall = repaired, score, stall
+                    _winner = {'source': 'repair', 'strategy': _winner.get('strategy')}
                     improved = True
                     break
             if improved:
@@ -1101,6 +1118,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                     old_order = best_order
                     best_order, best_score = new_order, score
                     best_stall = stall2
+                    _winner = {'source': 'alns', 'strategy': _winner.get('strategy')}
                     # 接頭辞が一致しているので k 以下のスナップショットはそのまま使い回せる
                     # (末尾の並びだけ差し替える)。k 以上は今の再開ロールアウトが記録済み。
                     best_snaps = alns.refresh_snapshots(best_snaps, k, old_order, new_order, snaps2)
@@ -1270,6 +1288,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
                 # 代理の1位とは違う候補が実評価で勝った = ρ-test が効いた瞬間
                 rstats['changed'] = True
                 best_order = best_real[1]
+                _winner = {'source': 'replica_select', 'strategy': _winner.get('strategy')}
         if rstats['stopped'] is None:
             rstats['stopped'] = 'done'
         REPLICA_STATS.clear()
@@ -1305,4 +1324,10 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         REPLICA_STATS['telemetry_n'] = _telem_n
         REPLICA_STATS['telemetry_padded'] = padded
 
+    # Phase72: 診断記録の書き出し(読み取り専用、best_order自体には一切影響しない)。
+    LAST_BUILD_DIAGNOSTICS.clear()
+    LAST_BUILD_DIAGNOSTICS.update({
+        'winner_source': _winner['source'], 'winner_strategy': _winner['strategy'],
+        'n_items': len(item_list),
+    })
     return best_order

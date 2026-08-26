@@ -1,0 +1,48 @@
+{
+  "sample_config.json::000": {
+    "winner_source": "heuristic",
+    "winner_strategy": "order_items(volume_desc)",
+    "n_items": 41,
+    "n_soft": 13,
+    "mean_soft_pos_ratio": 0.8500000000000001,
+    "ideal_soft_pos_ratio": 0.8500000000000001,
+    "positions_ratio": [
+      0.7,
+      0.725,
+      0.75,
+      0.775,
+      0.8,
+      0.825,
+      0.85,
+      0.875,
+      0.9,
+      0.925,
+      0.95,
+      0.975,
+      1.0
+    ],
+    "elapsed_sec": 16.10045754300154
+  },
+  "sample_config.json::001": {
+    "winner_source": "heuristic",
+    "winner_strategy": "order_items(volume_desc)",
+    "n_items": 42,
+    "n_soft": 11,
+    "mean_soft_pos_ratio": 0.8780487804878049,
+    "ideal_soft_pos_ratio": 0.8780487804878049,
+    "positions_ratio": [
+      0.7560975609756098,
+      0.7804878048780488,
+      0.8048780487804879,
+      0.8292682926829268,
+      0.8536585365853658,
+      0.8780487804878049,
+      0.9024390243902439,
+      0.926829268292683,
+      0.9512195121951219,
+      0.975609756097561,
+      1.0
+    ],
+    "elapsed_sec": 7.810463967998658
+  }
+}
