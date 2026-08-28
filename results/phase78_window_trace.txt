@@ -1,0 +1,35 @@
+[A01_1c_40_plain           ] n_soft= 6 | w15:4sp/1sbh w20:7sp/2sbh w25:9sp/3sbh w30:23sp/5sbh wNone:28sp/5sbh
+[A02_1c_80_plain           ] n_soft=18 | w15:0sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:0sp/0sbh wNone:13sp/3sbh
+[A03_1c_40_shelf           ] n_soft= 8 | w15:8sp/3sbh w20:13sp/5sbh w25:13sp/5sbh w30:19sp/4sbh wNone:22sp/6sbh
+[A04_2c_80_noprio          ] n_soft=15 | w15:0sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:0sp/0sbh wNone:7sp/1sbh
+[A05_2c_80_prio            ] n_soft=13 | w15:0sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:0sp/0sbh wNone:8sp/0sbh
+[A06_1c_40_small           ] n_soft= 8 | w15:18sp/8sbh w20:20sp/8sbh w25:24sp/7sbh w30:28sp/6sbh wNone:28sp/5sbh
+[A07_1c_40_bulky           ] n_soft= 8 | w15:0sp/0sbh w20:0sp/0sbh w25:2sp/0sbh w30:8sp/2sbh wNone:9sp/3sbh
+[A08_2c_140_extreme        ] n_soft=31 | w15:0sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:0sp/0sbh wNone:7sp/1sbh
+[B01_1c_40_plain           ] n_soft=10 | w15:10sp/6sbh w20:15sp/10sbh w25:18sp/6sbh w30:25sp/8sbh wNone:26sp/7sbh
+[B02_1c_40_shelf           ] n_soft= 9 | w15:3sp/0sbh w20:12sp/7sbh w25:15sp/9sbh w30:21sp/7sbh wNone:20sp/7sbh
+[B03_2c_80_prio            ] n_soft=18 | w15:0sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:0sp/0sbh wNone:8sp/2sbh
+[B04_2c_80_noprio          ] n_soft=15 | w15:0sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:0sp/0sbh wNone:7sp/1sbh
+[C01_1c_40_shelf           ] n_soft= 8 | w15:2sp/0sbh w20:9sp/5sbh w25:13sp/6sbh w30:19sp/4sbh wNone:24sp/5sbh
+[C02_2c_55_shelfprio       ] n_soft= 9 | w15:2sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:2sp/0sbh wNone:11sp/0sbh
+[C03_2c_80_prio            ] n_soft=23 | w15:0sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:0sp/0sbh wNone:8sp/1sbh
+[D01_A_1c_40_softheavy     ] n_soft=24 | w15:14sp/5sbh w20:19sp/10sbh w25:23sp/14sbh w30:19sp/11sbh wNone:21sp/16sbh
+[D02_A_1c_40_prioheavy_nocont] n_soft= 2 | w15:3sp/0sbh w20:7sp/1sbh w25:11sp/1sbh w30:9sp/2sbh wNone:14sp/2sbh
+[D03_A_2c_60_prioheavy_cont] n_soft= 7 | w15:1sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:0sp/0sbh wNone:12sp/1sbh
+[D04_A_1c_40_flat          ] n_soft=10 | w15:9sp/3sbh w20:15sp/7sbh w25:18sp/7sbh w30:21sp/7sbh wNone:24sp/6sbh
+[D05_A_1c_40_tall          ] n_soft= 7 | w15:1sp/0sbh w20:4sp/0sbh w25:13sp/5sbh w30:20sp/4sbh wNone:20sp/5sbh
+[P01_A_1c_pre6             ] n_soft= 3 | w15:0sp/0sbh w20:6sp/1sbh w25:11sp/3sbh w30:16sp/2sbh wNone:19sp/2sbh
+[P02_A_1c_pre10            ] n_soft= 7 | w15:2sp/0sbh w20:10sp/4sbh w25:14sp/6sbh w30:15sp/5sbh wNone:20sp/5sbh
+[P03_A_2c_pre8_prio        ] n_soft=10 | w15:0sp/0sbh w20:0sp/0sbh w25:0sp/0sbh w30:0sp/0sbh wNone:9sp/1sbh
+[P04_B_1c_pre8_shelf       ] n_soft= 7 | w15:3sp/1sbh w20:11sp/4sbh w25:12sp/5sbh w30:17sp/5sbh wNone:18sp/5sbh
+[P05_C_2c_pre8_shelfprio   ] n_soft=12 | w15:8sp/5sbh w20:6sp/0sbh w25:6sp/1sbh w30:9sp/1sbh wNone:12sp/3sbh
+[P06_A_1c_pre12_dense      ] n_soft= 7 | w15:7sp/4sbh w20:11sp/7sbh w25:15sp/5sbh w30:16sp/4sbh wNone:16sp/4sbh
+
+=== window 別 集計(全シーン合算)===
+  window |      境界またぎ step 合計 |      soft先取り step 合計 |     該当シーン数
+      15 |                 95 |                   36 |          9
+      20 |                165 |                   71 |         13
+      25 |                217 |                   83 |         15
+      30 |                287 |                   77 |         16
+    None |                411 |                   97 |         24
+wrote results/phase78_window_trace.json

@@ -1,0 +1,45 @@
+[A01_1c_40_plain           ] n_soft= 6/ 40 mean=0.509 ideal=0.936 diff=-0.427 first_soft@10(r=0.256) hard_after=24 (129s)
+[A02_1c_80_plain           ] n_soft=18/ 80 mean=0.892 ideal=0.892 diff=0.000 first_soft@62(r=0.785) hard_after=0 (128s)
+[A03_1c_40_shelf           ] n_soft= 8/ 40 mean=0.821 ideal=0.910 diff=-0.090 first_soft@22(r=0.564) hard_after=10 (141s)
+[A04_2c_80_noprio          ] n_soft=15/ 80 mean=0.911 ideal=0.911 diff=0.000 first_soft@65(r=0.823) hard_after=0 (114s)
+[A05_2c_80_prio            ] n_soft=13/ 80 mean=0.924 ideal=0.924 diff=0.000 first_soft@67(r=0.848) hard_after=0 (152s)
+[A06_1c_40_small           ] n_soft= 8/ 40 mean=0.609 ideal=0.910 diff=-0.301 first_soft@18(r=0.462) hard_after=14 (197s)
+[A07_1c_40_bulky           ] n_soft= 8/ 40 mean=0.670 ideal=0.910 diff=-0.240 first_soft@9(r=0.231) hard_after=23 (112s)
+[A08_2c_140_extreme        ] n_soft=31/140 mean=0.892 ideal=0.892 diff=0.000 first_soft@109(r=0.784) hard_after=0 (111s)
+[B01_1c_40_plain           ] n_soft=10/ 40 mean=0.505 ideal=0.885 diff=-0.379 first_soft@0(r=0.000) hard_after=30 (142s)
+[B02_1c_40_shelf           ] n_soft= 9/ 40 mean=0.897 ideal=0.897 diff=0.000 first_soft@31(r=0.795) hard_after=0 (135s)
+[B03_2c_80_prio            ] n_soft=18/ 80 mean=0.892 ideal=0.892 diff=0.000 first_soft@62(r=0.785) hard_after=0 (162s)
+[B04_2c_80_noprio          ] n_soft=15/ 80 mean=0.911 ideal=0.911 diff=0.000 first_soft@65(r=0.823) hard_after=0 (149s)
+[C01_1c_40_shelf           ] n_soft= 8/ 40 mean=0.667 ideal=0.910 diff=-0.244 first_soft@16(r=0.410) hard_after=16 (143s)
+[C02_2c_55_shelfprio       ] n_soft= 9/ 55 mean=0.926 ideal=0.926 diff=0.000 first_soft@46(r=0.852) hard_after=0 (158s)
+[C03_2c_80_prio            ] n_soft=23/ 80 mean=0.861 ideal=0.861 diff=0.000 first_soft@57(r=0.722) hard_after=0 (146s)
+[D01_A_1c_40_softheavy     ] n_soft=24/ 40 mean=0.478 ideal=0.705 diff=-0.228 first_soft@0(r=0.000) hard_after=16 (128s)
+[D02_A_1c_40_prioheavy_nocont] n_soft= 2/ 40 mean=0.987 ideal=0.987 diff=0.000 first_soft@38(r=0.974) hard_after=0 (128s)
+[D03_A_2c_60_prioheavy_cont] n_soft= 7/ 60 mean=0.949 ideal=0.949 diff=0.000 first_soft@53(r=0.898) hard_after=0 (120s)
+[D04_A_1c_40_flat          ] n_soft=10/ 40 mean=0.492 ideal=0.885 diff=-0.392 first_soft@5(r=0.128) hard_after=25 (134s)
+[D05_A_1c_40_tall          ] n_soft= 7/ 40 mean=0.923 ideal=0.923 diff=0.000 first_soft@33(r=0.846) hard_after=0 (142s)
+[P01_A_1c_pre6             ] n_soft= 3/ 34 mean=0.303 ideal=0.970 diff=-0.667 first_soft@5(r=0.152) hard_after=26 (138s)
+[P02_A_1c_pre10            ] n_soft= 7/ 40 mean=0.549 ideal=0.923 diff=-0.374 first_soft@15(r=0.385) hard_after=18 (145s)
+[P03_A_2c_pre8_prio        ] n_soft=10/ 60 mean=0.924 ideal=0.924 diff=0.000 first_soft@50(r=0.847) hard_after=0 (120s)
+[P04_B_1c_pre8_shelf       ] n_soft= 7/ 34 mean=0.476 ideal=0.909 diff=-0.433 first_soft@3(r=0.091) hard_after=24 (132s)
+[P05_C_2c_pre8_shelfprio   ] n_soft=12/ 50 mean=0.888 ideal=0.888 diff=0.000 first_soft@38(r=0.776) hard_after=0 (147s)
+[P06_A_1c_pre12_dense      ] n_soft= 7/ 30 mean=0.680 ideal=0.897 diff=-0.217 first_soft@12(r=0.414) hard_after=11 (135s)
+
+=== サマリ ===
+ソフト有りシーン: 26
+|diff| > 0.05 のシーン数: 12
+  P01_A_1c_pre6              diff=-0.667 first_soft_ratio=0.152 hard_after_first_soft=26/31
+  P04_B_1c_pre8_shelf        diff=-0.433 first_soft_ratio=0.091 hard_after_first_soft=24/27
+  A01_1c_40_plain            diff=-0.427 first_soft_ratio=0.256 hard_after_first_soft=24/34
+  D04_A_1c_40_flat           diff=-0.392 first_soft_ratio=0.128 hard_after_first_soft=25/30
+  B01_1c_40_plain            diff=-0.379 first_soft_ratio=0.000 hard_after_first_soft=30/30
+  P02_A_1c_pre10             diff=-0.374 first_soft_ratio=0.385 hard_after_first_soft=18/33
+  A06_1c_40_small            diff=-0.301 first_soft_ratio=0.462 hard_after_first_soft=14/32
+  C01_1c_40_shelf            diff=-0.244 first_soft_ratio=0.410 hard_after_first_soft=16/32
+  A07_1c_40_bulky            diff=-0.240 first_soft_ratio=0.231 hard_after_first_soft=23/32
+  D01_A_1c_40_softheavy      diff=-0.228 first_soft_ratio=0.000 hard_after_first_soft=16/16
+  P06_A_1c_pre12_dense       diff=-0.217 first_soft_ratio=0.414 hard_after_first_soft=11/23
+  A03_1c_40_shelf            diff=-0.090 first_soft_ratio=0.564 hard_after_first_soft=10/32
+wrote results/phase78_soft_positions_b150.json
+
+[exited with code 0]

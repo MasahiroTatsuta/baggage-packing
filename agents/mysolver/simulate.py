@@ -53,6 +53,20 @@ REACH_UNIT_COST = float(os.environ.get('MYSOLVER_REACH_UNIT_COST', '3.0'))
 # この路線を不採用で確定した(results/phase33_report.md §1.3)。
 RISK_SLACK_FACES = os.environ.get('MYSOLVER_RISK_SLACK_FACES', 'all')
 
+# Phase78: beam_construct_order の window が「ハード/ソフト境界をまたいだ」頻度と、
+# 「window 内にハードが残っているのにソフト荷物が選ばれた(=ハード先積みが崩れた)」
+# 回数を外部から測るための読み取り専用トレース。環境変数 MYSOLVER_BEAM_TRACE=1 の
+# ときだけ1ステップ1行を追記する。既定(未設定)では下の if 分岐に入らないため、
+# 探索・戻り値・予算消費はビット単位で不変(Phase72 の ordering.LAST_BUILD_DIAGNOSTICS と
+# 同じ扱い)。呼び出し側が LAST_BEAM_TRACE.clear() してから使う。
+LAST_BEAM_TRACE: list = []
+
+# Phase78: beam_construct_order の1ステップで、window 内にハード荷物が残っている限り
+# ソフト荷物を候補から外す(ハード先積みを厳守する)。既定 '0' で無効(=従来と
+# ビット単位で同一)。ステップ1の実測(境界またぎ→ソフト先取りが26シーン中多数で発生)を
+# 受けた A/B 用のスイッチ。
+_BEAM_SOFT_LAST = os.environ.get('MYSOLVER_BEAM_SOFT_LAST', '0') == '1'
+
 
 def clone_containers(container_list: list[dict]) -> list[dict]:
     """container dict のリストを、packed_items も含めて浅くない複製にする。"""
@@ -489,10 +503,39 @@ def beam_construct_order(container_list: list[dict], item_list: list[dict], budg
             pool = list(st['remaining'].values())
             if window is not None:
                 pool = pool[:window]
+            if _BEAM_SOFT_LAST:
+                # Phase78: window がハード/ソフト境界をまたぐと、window 内で最高スコアの
+                # ソフト荷物が(ハードが残っていても)先に選ばれ、「ハード先積み」が崩れる
+                # (results/phase78_report.md ステップ1で26シーン中12シーンの崩れと、
+                #  境界またぎ→ソフト先取りの機序を実測)。window 内にハードが1つでも
+                #  残っている間はソフトを候補から外す。全部ソフトになったら通常どおり。
+                _hard_pool = [it for it in pool if not it.get('is_soft', False)]
+                if _hard_pool:
+                    pool = _hard_pool
             acts = planner.plan_topk(st['containers'], pool, top_k,
                                      budget.child_seconds(per_step_time_budget),
                                      max_pool_items=None, rng=rng, score_noise=score_noise,
                                      prepacked_ids=prepacked_ids)
+            if acts and os.environ.get('MYSOLVER_BEAM_TRACE') == '1':
+                # 読み取り専用: acts[0] は top_k>=1 のとき plan_topk が返す最良手であり、
+                # beam_width=1・top_k=1(フェーズ1の設定)ではそのまま採用される手。
+                _pool_soft = sum(1 for _it in pool if _it.get('is_soft', False))
+                _rem_soft = sum(1 for _it in st['remaining'].values() if _it.get('is_soft', False))
+                _sel = pool[acts[0]['item_idx']]
+                _sel_soft = bool(_sel.get('is_soft', False))
+                LAST_BEAM_TRACE.append({
+                    'step': len(st['order']),
+                    'window': window,
+                    'pool_n': len(pool),
+                    'pool_hard': len(pool) - _pool_soft,
+                    'pool_soft': _pool_soft,
+                    'rem_n': len(st['remaining']),
+                    'rem_hard': len(st['remaining']) - _rem_soft,
+                    'rem_soft': _rem_soft,
+                    'spans_boundary': (len(pool) - _pool_soft) > 0 and _pool_soft > 0,
+                    'sel_is_soft': _sel_soft,
+                    'soft_before_hard': _sel_soft and (len(pool) - _pool_soft) > 0,
+                })
             for a in acts:
                 item = pool[a['item_idx']]
                 cont = st['containers'][a['container_idx']]
