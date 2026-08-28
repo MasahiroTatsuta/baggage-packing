@@ -157,6 +157,161 @@ placement低下は**不安定な高積みの典型的症状**であり、`MAX_SU
 union/spanは緩2と同じ0.35/0.4に固定し、centroidを0.225/0.275/0.300の3水準で
 提出して最適点を詰める(詳細はPhase74報告`results/phase74_report.md`参照)。
 
+### Phase75追記: centroid スイープ完了(ピーク確定)と幾何定数へ軸を移す
+
+centroid 3水準の本番結果(union/span=0.35/0.4 固定):
+
+| centroid | public | num_placed_items(配置率) |
+|---:|---:|---:|
+| 0.225(`mysolver_submit_c0225.zip`) | 57.06 | 63.84% |
+| **0.25(緩2、主枠)** | **57.18** | **64.34%** |
+| 0.275(`mysolver_submit_c0275.zip`) | 56.94 | 63.40% |
+
+**頂上付近は幅0.24でほぼ平坦。配置率も同じ山形。閾値軸は終了。**
+`MAX_SUPPORT_CENTROID_OFFSET` を主レバーとした支持閾値の全収穫は
+**53.64 → 57.18(+3.54)**。カーブ全体:
+0.15→53.76 / 0.20→56.05 / **0.25→57.18(ピーク)** / 0.275→56.94 / 0.30(union/span別)→54.80。
+
+**主枠は緩2(`mysolver_submit_loose2.zip`、public 57.18)で確定。変更なし。**
+**2枠目を緩1(56.05)から `mysolver_submit_c0225.zip`(public 57.06)に差し替える**
+(§5参照)。最終評価は public と別シーンのため多様性にも価値があるが、頂上付近が
+平坦で3構成の挙動差が小さい以上、public の高い方(c0225)を取る。
+
+#### 本フェーズの根拠: ローカルA/Bは本番の主効果を検出できない
+
+Phase67 のローカル測定は Δstability +0.01 と予測したが本番は **+4.05** だった。
+原因は `tools/scorer.py` が足切りを実装していないこと(Phase61で確認)。
+そして **Phase60 は `SAFETY_MARGIN_XY` を「効果なし」としてローカル測定で棄却した。
+その前提は崩れている。** centroid と同じく、以下の幾何定数はいずれも公式値より
+約7mm 保守的で、実測の裏づけなく安全側に置かれた自制である:
+
+| 定数 | 現在値 | 公式値 | これまでの扱い |
+|---|---:|---:|---|
+| `SAFETY_MARGIN_XY` | 0.022 | 0.015 | Phase60でローカル棄却(env化済み) |
+| `INCLUSION_MARGIN` | −0.012 | −0.005 | 一度も本番で試していない |
+| `REST_CLEARANCE` | 0.016 | — | 未検証 |
+
+`agents/mysolver/geometry.py` の `INCLUSION_MARGIN` / `REST_CLEARANCE` を env 化した
+(`MYSOLVER_INCLUSION_MARGIN` / `MYSOLVER_REST_CLEARANCE`、既定は現行値 −0.012 / 0.016 で
+不変。`SAFETY_MARGIN_XY` は Phase60 で env 化済み)。決定的8シーンは既定値で 8/8
+ビット単位不変を確認。
+
+3本の提出用zip(いずれも緩2の閾値 0.35/0.4/0.25 が土台、**1本につき幾何定数1つだけ**
+公式値へ1段ずつ寄せる):
+
+| zip | 動かした定数 | 値 | SHA256 |
+|---|---|---:|---|
+| `mysolver_submit_incl008.zip` | `INCLUSION_MARGIN` | −0.008 | `c29ed11b5ccd9d17526fc4a1ccf692445a50cd6ae668c35376fa66e993c6d613` |
+| `mysolver_submit_safexy018.zip` | `SAFETY_MARGIN_XY` | 0.018 | `cea29d7e73eebaacdc749e8e917f86fe1c4960dc51117a56f14a34b861668c0d` |
+| `mysolver_submit_rest012.zip` | `REST_CLEARANCE` | 0.012 | `e5f2376ddd01a6ed11290eee29fd7f16727f9bf108ada602a68a0cb33d579753` |
+
+`INCLUSION_MARGIN` は公式値ちょうど(−0.005)にはしない(`geometry.py`に記録された
+「−0.016付近で候補が急減する崖」の逆方向だが、閾値そのものでは余裕がゼロになるため
+1段手前に留める)。判定対照は緩2=57.18。**public だけでなく `num_placed_items` を
+必ず見る**(配置率が伸びているかがこの軸の一次判定)。
+57.18を明確に超えた→新レバー、さらに1段緩める / 57.18前後→効かない /
+下がった→現行値が適正で、centroid と違いこの定数には実測の意味があった。
+詳細はPhase75報告 `results/phase75_report.md`。
+
+### Phase76追記: Phase75 は3本とも「公式値に近づける」方向が誤り → 逆方向を試す
+
+Phase75 の3本の本番結果:
+
+| 定数 | 変更 | public | num_placed% | 判定 |
+|---|---|---:|---:|---|
+| `INCLUSION_MARGIN` | −0.012→−0.008 | 57.180 | — | **完全に無効(−0.005)。以後触らない** |
+| `SAFETY_MARGIN_XY` | 0.022→0.018 | 54.00 | — | **−3.19** |
+| `REST_CLEARANCE` | 0.016→0.012 | **9.19** | 36.42 | **−48.0。崖の縁だった** |
+
+**`rest012` は足切りの直接的な証拠**: fill 22.01 に対し cog 3.02 / stab 4.17 /
+place 4.50 / soft 5.00。運営が言った「一定数置けないと fill 以外は0点」がそのまま
+観測された。**足切りは実在し、効果は桁違いに大きい。**
+
+解釈: planner の判定は AABB による解析的近似、本物は pybullet の1cm刻みシミュレーション
+(Phase61 §3-1)。**余分なマージンはこのモデル誤差を吸収するために必要だった。**
+centroid だけが例外で、あれは「支持の質」という別種の自制だった
+(詳細は `docs/official_spec.md` §4 に記録)。
+
+**残り2枠で逆方向(より保守的な側)を試す**(いずれも緩2閾値 0.35/0.4/0.25 が土台、
+1本1定数、`INCLUSION_MARGIN` は既定 −0.012 のまま):
+
+| zip | 動かした定数 | 現行 | この zip | SHA256 |
+|---|---|---:|---:|---|
+| (I) `mysolver_submit_rest020.zip` | `REST_CLEARANCE` | 0.016 | **0.020** | `e13ee35996c5bcc6819f62657b30d271521abe8efcae6c0b2fb0380238e3ff12` |
+| (J) `mysolver_submit_safexy026.zip` | `SAFETY_MARGIN_XY` | 0.022 | **0.026** | `6eb91e020fff8402925f4571ddae0dcca2b8109937f97ddb6ccf44ae476e39ac` |
+
+`REST_CLEARANCE` は 0.012 で −48 という崖があるため、0.020 も崖の可能性を考えて
+いきなり 0.024 等へは飛ばさない。判定対照は緩2=57.18、**`num_placed_items` も必ず見る**:
+超えた→まだ保守側に振る余地あり、さらに1段 / 前後→現行値が最適点、終了 /
+下がった→現行値が最適点、両側確認済みで終了。詳細はPhase76報告
+`results/phase76_report.md`。
+
+### Phase77追記: `REST_CLEARANCE` 両側で低下 → 現行構成は「崖のすぐ上」。2枠目を保険に振り直す
+
+`REST_CLEARANCE` の3点が揃った:
+
+| REST_CLEARANCE | public | num_placed% | 内訳 |
+|---:|---:|---:|---|
+| 0.012 | **9.19** | 36.42 | 足切り。fill 以外が 3〜5 に崩落。**−48.0** |
+| **0.016(現行)** | **57.18** | **64.34** | 最適点 |
+| 0.020 | 55.96 | 61.50 | stability +0.19 / placement +0.65 だが **soft_item −8.05** で相殺。配置率 −2.84pp が足切りに落ちた。**−1.23** |
+
+**非対称が極端: −0.004 で −48.0、+0.004 で −1.23(40倍差)。現行構成は崖のすぐ上に
+立っている。** `SAFETY_MARGIN_XY` も同じ形(0.018→54.00、下側が悪い)。
+
+#### 2枠目を `mysolver_submit_rest020.zip`(public 55.96)に差し替える
+
+**変更前の2枠は同じ危険を共有していた:**
+
+| 枠 | zip | public | REST_CLEARANCE | 配置率 |
+|---|---|---:|---:|---:|
+| 主枠 | 緩2 | 57.18 | 0.016 | 64.34% |
+| 旧2枠目 | c0225 | 57.06 | 0.016 | 63.84% |
+
+c0225 は緩2 とほぼ同一構成で、**両方とも同じ崖の上。保険になっていない。**
+
+**方針の転換**: 最終評価は SIGNATE が「最終評価スコアの高い方を自動採用」する。
+2枠目に public 2位を並べても、主枠と同じ失敗の仕方をするなら保険価値はゼロ。
+**public の高い順ではなく、失敗の仕方が異なる2つを置く。**
+
+- `rest020` は崖から 0.004 離れている(REST_CLEARANCE=0.020)。
+- 最終評価は public と別シーンなので、**緩2 が別シーンで崖に落ちたときだけ `rest020`
+  が拾う。** 落ちなければ主枠(緩2)がそのまま採用されるだけで、2枠目を置くコストは
+  ゼロ(自動で高い方が採られる)。
+- public −1.22 の見かけの劣位は、保険としての機能(独立な故障モード)と引き換え。
+
+`c0225` は枠から外す(緩2 とほぼ同一構成、多様性なし)。
+
+### Phase80追記: `BEAM_SOFT_LAST` 本番結果 → 不採用、配置数を増やす軸の探索を終了
+
+`mysolver_submit_loose2_softlast.zip`(緩2 + `MYSOLVER_BEAM_SOFT_LAST=1`)の本番結果:
+
+| | 緩2(主枠) | softlast | Δ |
+|---|---:|---:|---:|
+| public | 57.18 | 55.68 | **−1.51** |
+| num_placed_items | 64.34% | 63.37% | **−0.97pp**(ローカル予測 +0.89pp と**逆方向**) |
+| soft_item | — | — | **−9.90**(換算寄与 −1.41、崩壊の94%を占める) |
+
+**不採用。** `MYSOLVER_BEAM_SOFT_LAST` の既定は Phase78 のとおり `'0'`(無効)のまま
+維持する(変更していない)。「window 内でハードを先に積み切る」という制約が探索の
+柔軟性を奪い、**配置数そのものを減らす方向に効いた**(ローカルA/Bが予測した方向と
+正反対)。`submissions/mysolver_submit_loose2_softlast.zip` は削除せず、失敗の記録として
+保管する。主枠(緩2, public 57.18)・2枠目(`rest020`, public 55.96)とも変更なし。
+
+**教訓の追記**: ローカルA/Bの弱いシグナル(per-scene がカオス的で符号が一貫しない
+水準の効果)は本番で再現しないことがある。緩2(Phase67ではローカルで
+`stability t=−1.93・悪化13件` として不採用寄りだったが、本番は緩1を上回る
+57.18を記録)と、本件(softlast、ローカル `num_placed_items +0.89pp` の弱い正の
+シグナルが本番では −0.97pp の負に反転)の2件が実例。**弱いローカルシグナルは
+「本番では効かないかもしれない」だけでなく「符号ごと反転しうる」** ため、
+弱いシグナルのみを根拠にした本番投入判断そのものの信頼性を割り引く必要がある
+(詳細は `results/phase80_report.md`)。
+
+**配置数(num_placed_items)を増やす経路は、Phase73〜80の棚卸しにより実質的に
+尽きたと判断する。** 現在のベストは緩2(public 57.18)で、Phase55以降の純増
++3.54ptはすべて `MAX_SUPPORT_CENTROID_OFFSET` 一軸(Phase74で分離実験により確定)
+に由来する。詳細は `results/phase80_report.md` §2「現状の総括」を参照。
+
 ---
 
 ## 2. ステップ1: 最終評価の方式(確認結果)
@@ -342,9 +497,10 @@ Phase37/40で既に実施している手法)を直接禁止する文言ではな
 
 | 項目 | 内容 |
 |---|---|
-| **主枠(Phase71更新)** | `submissions/mysolver_submit_loose2.zip`(緩2、支持閾値0.35/0.4/0.25)。**public 57.18**(Phase70で2枠目提出→Phase71で主枠に入れ替え) |
-| **2枠目(Phase71更新)** | `submissions/mysolver_submit_phase67_loose1.zip`(緩1、支持閾値0.45/0.5/0.20)。public 56.05。Phase55(53.64)は枠から外した |
-| 緩3(判定待ち) | `submissions/mysolver_submit_loose3.zip`(支持閾値0.25/0.3/0.30)。Phase71で提出、本番結果次第で主枠・2枠目を再度入れ替える可能性あり |
+| **主枠(Phase71更新、Phase75で確定)** | `submissions/mysolver_submit_loose2.zip`(緩2、支持閾値0.35/0.4/0.25、REST_CLEARANCE=0.016)。**public 57.18**。centroidスイープでピーク確定、閾値軸は終了 |
+| **2枠目(Phase77更新)** | `submissions/mysolver_submit_rest020.zip`(緩2閾値、REST_CLEARANCE=**0.020**)。**public 55.96**。public 2位ではなく「主枠と失敗の仕方が異なる保険」として選定。緩2 が崖(REST_CLEARANCE の非対称は40倍)に落ちたときだけ拾う。c0225(57.06、緩2とほぼ同一構成)は枠から外した(§1 Phase77追記) |
+| 幾何定数の探索(Phase75〜77) | `INCLUSION_MARGIN` は無効(触らない)。`REST_CLEARANCE` は 0.016 が最適点で両側とも低下、確定。`SAFETY_MARGIN_XY` は `safexy026`(0.026)の本番結果待ち。それが下がれば幾何定数の探索は終了 |
+| ビーム is_soft 修正(Phase78実装、Phase80で不採用確定) | `submissions/mysolver_submit_loose2_softlast.zip`(緩2 + `MYSOLVER_BEAM_SOFT_LAST=1`、SHA256 `04a6a1b88f7fcc7f57b32c164744f3abf59d910062f0bcaab2db8887811701b6`)。本番 public 57.18→55.68(**−1.51**)、num_placed_items −0.97pp・soft_item −9.90(崩壊の94%)。ローカル予測(num_placed_items +0.89pp)と逆方向。**不採用。既定 `MYSOLVER_BEAM_SOFT_LAST=0` のまま、枠には入れない**(zipは失敗の記録として保管、詳細はPhase80追記) |
 | 旧・主枠(Phase55以前) | Phase55以前の構成(public 53.643289を記録した過去の提出をSIGNATE上で選択) |
 | 選択期限 | 2026-10-12(締切2026-10-19 23:55の1週間前) |
 | ρ-test診断ビルド | **断念(確定)**。公式セミナーで運営が評価関数パラメーター解析をNGと明言(§4 Phase61追記)、以後再開しない |
