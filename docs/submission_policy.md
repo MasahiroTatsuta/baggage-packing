@@ -352,6 +352,31 @@ Phase81ステップ0で予見していたback_termとの軸競合が実際に負
 
 **判定は本番結果待ち**(対照: 緩2=57.185 / cutcorner=57.394(現主枠) / rcl=57.334)。
 
+### Phase83追記: Phase82本番結果(新ベスト57.545・加法性確認)とrcl_k15/k50の不具合調査
+
+Phase82本番結果: **cc_rcl(cutcorner+rcl両方)が57.545(+0.360)で新ベスト。**
+加法性の検証(cutcorner単独+0.209 + rcl単独+0.149 = +0.358 ≈ 実測+0.360、誤差0.002)が
+成立し、独立な機序を重ねれば足し算になることが確認された。cc_strong(候補点2倍)は
+cutcorner単体から+0.013で誤差範囲、**候補点を増やす方向は飽和**(N_Yは既定5のまま)。
+
+一方、rcl_k15/rcl_k50が緩2と13桁完全一致するという不具合が判明。**zipの中身
+(sed置換結果)・読み取り順序・依存関係の確認、直接呼び出し・フル`build_order`経由
+での例外捕捉診断(2シーン×複数設定、本番相当120s予算含む)のいずれでも原因を
+特定できなかった。** 指示どおり推測でzipを作り直さず、rcl_k15/k50は再作成を
+見送った。26シーン全体でのphase2勝率はRCL=0/k=30/k=15のいずれも0/26で完全に同一
+——「kの巧拙」ではなく「低確率事象(phase2が勝つこと自体)がどの乱数列で偶然
+当たるか」という運の要素で説明できる可能性を未検証の仮説として記録。
+
+新規独立軸としてPhase82で未使用と確認された`MYSOLVER_ALNS`/`MYSOLVER_REPAIR`/
+`MYSOLVER_WALL_MODE`を再検討: ALNS(Phase34、代理関数の精度不足)とWALL_MODE
+(Phase9/13/14/26、統計的に有意な悪化)はいずれも不採用理由がcutcorner/rclという
+新しい土台と無関係な構造的欠陥のため再挑戦せず、REPAIR(Phase29、到達シーン数
+2/26という統計的検出力不足が理由で機構自体は機能していた)のみ再挑戦の価値ありと
+判断し、`mysolver_submit_cc_rcl_repair.zip`(cutcorner+rcl+REPAIR)を作成した。
+6シーンサブセットで1/6・決定的8シーンで3/8がorder変化(cutcorner/rcl単体はいずれも
+0/8だった)、REPAIRが新しい土台でも機能していることを確認。**主枠をcc_rcl
+(57.545)に更新、2枠目はrest020を維持。** 詳細は`results/phase83_report.md`。
+
 ---
 
 ## 2. ステップ1: 最終評価の方式(確認結果)
@@ -537,12 +562,13 @@ Phase37/40で既に実施している手法)を直接禁止する文言ではな
 
 | 項目 | 内容 |
 |---|---|
-| **主枠(Phase82更新)** | `submissions/mysolver_submit_cutcorner.zip`(緩2 + `MYSOLVER_CUTCORNER_CANDIDATES=1`)。**public 57.394**。cog +0.77 / soft +1.20。moving extreme points(cut_x/cut_y斜面対応)が単独でPhase71以来はじめてcentroid以外の軸で前進 |
-| **2枠目(Phase77選定、Phase82継続)** | `submissions/mysolver_submit_rest020.zip`(緩2閾値、REST_CLEARANCE=**0.020**)。**public 55.96**。rcl(57.334)の方がpublicは高いが、REST_CLEARANCEの崖から離れた独立の故障モードという設計上の保険価値を優先し維持(Phase77の判断を継続) |
+| **主枠(Phase83更新)** | `submissions/mysolver_submit_cc_rcl.zip`(緩2 + `MYSOLVER_CUTCORNER_CANDIDATES=1` + `MYSOLVER_RCL_SHUFFLE=1`)。**public 57.545**。cutcorner(+0.209)とrcl(+0.149)の加法性が実測で確認された(+0.358 ≈ 実測+0.360)独立な機序の組み合わせ |
+| **2枠目(Phase77選定、Phase83継続)** | `submissions/mysolver_submit_rest020.zip`(緩2閾値、REST_CLEARANCE=**0.020**)。**public 55.96**。REST_CLEARANCEの崖から離れた独立の故障モードという設計上の保険価値を優先し維持(Phase77の判断を継続) |
 | 幾何定数の探索(Phase75〜77) | `INCLUSION_MARGIN` は無効(触らない)。`REST_CLEARANCE` は 0.016 が最適点で両側とも低下、確定。`SAFETY_MARGIN_XY` は `safexy026`(0.026)の本番結果待ち。それが下がれば幾何定数の探索は終了 |
 | ビーム is_soft 修正(Phase78実装、Phase80で不採用確定) | `submissions/mysolver_submit_loose2_softlast.zip`(緩2 + `MYSOLVER_BEAM_SOFT_LAST=1`、SHA256 `04a6a1b88f7fcc7f57b32c164744f3abf59d910062f0bcaab2db8887811701b6`)。本番 public 57.18→55.68(**−1.51**)、num_placed_items −0.97pp・soft_item −9.90(崩壊の94%)。ローカル予測(num_placed_items +0.89pp)と逆方向。**不採用。既定 `MYSOLVER_BEAM_SOFT_LAST=0` のまま、枠には入れない**(zipは失敗の記録として保管、詳細はPhase80追記) |
-| Deep Research由来3項目(Phase81実装、本番判定済み) | `mysolver_submit_dftrc.zip`は**不採用**(public 54.567、−2.618)。`mysolver_submit_cutcorner.zip`(57.394、**主枠に採用**)・`mysolver_submit_rcl.zip`(57.334、枠には入れず保持)は前進。詳細はPhase81追記・`results/phase81_report.md` |
-| cutcorner×rcl組み合わせ・各軸深掘り(Phase82実装、判定待ち) | `submissions/mysolver_submit_{cc_rcl,cc_strong,rcl_k15,rcl_k50}.zip`(緩2閾値+幾何定数既定を土台に、cutcorner+rcl併用・cutcorner候補点2倍・rcl のk=15%/50%をそれぞれ検証)。ステップ0でRCLのphase2勝率がRCL=0/1で完全に同一(0/26)と確認、cc_strongはpolicy時間の安全マージンを実測済み(N_Y=5→10でmax1.69s→1.68s)。4zipとも決定的8シーンで無差分。**いずれも枠には入れない、判定は本番結果待ち**(詳細はPhase82追記・`results/phase82_report.md`) |
+| Deep Research由来3項目(Phase81実装、本番判定済み) | `mysolver_submit_dftrc.zip`は**不採用**(public 54.567、−2.618)。`mysolver_submit_cutcorner.zip`(57.394)・`mysolver_submit_rcl.zip`(57.334)は前進、Phase82でcc_rcl(57.545)に組み合わせて主枠採用。詳細はPhase81追記・`results/phase81_report.md` |
+| cutcorner×rcl組み合わせ・各軸深掘り(Phase82実装、本番判定済み) | `mysolver_submit_cc_rcl.zip`(57.545、**主枠に採用**)。`cc_strong`(候補点2倍)は57.407でcutcorner単体から+0.013の誤差範囲(候補点を増やす方向は飽和、N_Yは既定5のまま)。`rcl_k15`/`rcl_k50`は緩2と13桁完全一致(不具合、Phase83でも原因未特定のまま探索打ち切り)。詳細はPhase82追記・`results/phase82_report.md` |
+| REPAIR再挑戦(Phase83実装、判定待ち) | `submissions/mysolver_submit_cc_rcl_repair.zip`(cc_rcl + `MYSOLVER_REPAIR=1`)。ALNS(代理関数の精度不足)・WALL_MODE(統計的に有意な悪化)はcutcorner/rclという新しい土台と無関係な構造的欠陥のため再挑戦せず、REPAIR(Phase29、到達シーン数不足のみが理由で機構自体は機能)のみ再検証。6シーンサブセットで1/6・決定的8シーンで3/8がorder変化(cutcorner/rcl単体はいずれも0/8)。policy時間は安全マージンを確保(max1.97s)。**枠には入れない、判定は本番結果待ち**(詳細はPhase83追記・`results/phase83_report.md`) |
 | 旧・主枠(Phase55以前) | Phase55以前の構成(public 53.643289を記録した過去の提出をSIGNATE上で選択) |
 | 選択期限 | 2026-10-12(締切2026-10-19 23:55の1週間前) |
 | ρ-test診断ビルド | **断念(確定)**。公式セミナーで運営が評価関数パラメーター解析をNGと明言(§4 Phase61追記)、以後再開しない |
