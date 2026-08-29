@@ -312,6 +312,46 @@ c0225 は緩2 とほぼ同一構成で、**両方とも同じ崖の上。保険�
 +3.54ptはすべて `MAX_SUPPORT_CENTROID_OFFSET` 一軸(Phase74で分離実験により確定)
 に由来する。詳細は `results/phase80_report.md` §2「現状の総括」を参照。
 
+### Phase81追記: Deep Research由来3項目の本番結果 → cutcorner・rclが軽微に前進、dftrcは不採用
+
+| | public | vs緩2 | 配置率 | 主な変化 |
+|---|---:|---:|---:|---|
+| `cutcorner` | **57.394** | **+0.209** | 63.49%(−0.84pp) | cog +0.77 / soft +1.20 |
+| `rcl` | **57.334** | **+0.149** | **64.59%(+0.25pp)** | fill +0.19 / soft +1.00 |
+| 緩2(対照) | 57.185 | — | 64.34% | — |
+| `dftrc` | 54.567 | −2.618 | 61.75% | 全成分悪化 |
+
+**`dftrc`は不採用**(既存`risk_vol`選好・`back_term`と競合し配置率を2.6pp落とした、
+Phase81ステップ0で予見していたback_termとの軸競合が実際に負に効いた)。`cutcorner`と
+`rcl`は機序が独立(配置の質 vs 探索の多様性)と推定され、+0.2前後(centroidの+3.54とは
+桁が違う、下方リスクが小さいからこそ試す位置づけ)ながら両方前進。**主枠を
+`mysolver_submit_cutcorner.zip`(57.394)に変更、2枠目は`rest020`(55.96)を維持**
+(rclの方がpublicは高いが、REST_CLEARANCEの崖から離れた独立の故障モードという設計上の
+保険価値を優先、Phase77の判断を継続)。詳細は`results/phase81_report.md`。
+
+### Phase82追記: cutcorner×rcl組み合わせ・各軸深掘りの4zip、判定は本番結果待ち
+
+ステップ0(RCL=0/1のペア比較、26シーン): phase2由来best_orderの勝率は**RCL=0/1の
+いずれも0/26で完全に同一**(Phase72の0/28・Phase81のRCL=1のみ0/26に続く3回目の
+確認)。本番でrclが前進した機序は、「phase2がローカルで勝つようになる」という
+当初仮説では説明できず、centroid(Phase79)と同型の「狭い経路では捉えられない
+軌道変化」である可能性が高いと記録(未検証)。RCLの現在のk(`MYSOLVER_RCL_FRACTION`)は
+既定30%。
+
+ステップ1: 緩2閾値+幾何定数既定を土台に4zip作成——
+`mysolver_submit_cc_rcl.zip`(cutcorner+rcl両方有効、最優先)・
+`mysolver_submit_cc_strong.zip`(cutcornerの候補点2倍、`MYSOLVER_CUTCORNER_N_Y` 5→10)・
+`mysolver_submit_rcl_k15.zip`(k=15%、貪欲側)・`mysolver_submit_rcl_k50.zip`
+(k=50%、ランダム側)。`cc_strong`はzip化前に候補点2倍でのpolicy時間を実測
+(要求の厳しい4シーン、N_Y=5: max1.69s → N_Y=10: max1.68s、誤差範囲で安全マージン
+問題なし、ただし本番実測6.03sをローカルで再現できていない点は留保)。4zipとも
+決定的8シーンで無差分(Phase81のcutcorner/rcl単体も同じく無差分だったが本番は
+前進しており、ローカル無反応は不採用根拠にならない)。5本目(組み合わせの別
+パラメータ)はRCLのローカル効果を再確認できなかったため見送り。詳細は
+`results/phase82_report.md`。
+
+**判定は本番結果待ち**(対照: 緩2=57.185 / cutcorner=57.394(現主枠) / rcl=57.334)。
+
 ---
 
 ## 2. ステップ1: 最終評価の方式(確認結果)
@@ -497,11 +537,12 @@ Phase37/40で既に実施している手法)を直接禁止する文言ではな
 
 | 項目 | 内容 |
 |---|---|
-| **主枠(Phase71更新、Phase75で確定)** | `submissions/mysolver_submit_loose2.zip`(緩2、支持閾値0.35/0.4/0.25、REST_CLEARANCE=0.016)。**public 57.18**。centroidスイープでピーク確定、閾値軸は終了 |
-| **2枠目(Phase77更新)** | `submissions/mysolver_submit_rest020.zip`(緩2閾値、REST_CLEARANCE=**0.020**)。**public 55.96**。public 2位ではなく「主枠と失敗の仕方が異なる保険」として選定。緩2 が崖(REST_CLEARANCE の非対称は40倍)に落ちたときだけ拾う。c0225(57.06、緩2とほぼ同一構成)は枠から外した(§1 Phase77追記) |
+| **主枠(Phase82更新)** | `submissions/mysolver_submit_cutcorner.zip`(緩2 + `MYSOLVER_CUTCORNER_CANDIDATES=1`)。**public 57.394**。cog +0.77 / soft +1.20。moving extreme points(cut_x/cut_y斜面対応)が単独でPhase71以来はじめてcentroid以外の軸で前進 |
+| **2枠目(Phase77選定、Phase82継続)** | `submissions/mysolver_submit_rest020.zip`(緩2閾値、REST_CLEARANCE=**0.020**)。**public 55.96**。rcl(57.334)の方がpublicは高いが、REST_CLEARANCEの崖から離れた独立の故障モードという設計上の保険価値を優先し維持(Phase77の判断を継続) |
 | 幾何定数の探索(Phase75〜77) | `INCLUSION_MARGIN` は無効(触らない)。`REST_CLEARANCE` は 0.016 が最適点で両側とも低下、確定。`SAFETY_MARGIN_XY` は `safexy026`(0.026)の本番結果待ち。それが下がれば幾何定数の探索は終了 |
 | ビーム is_soft 修正(Phase78実装、Phase80で不採用確定) | `submissions/mysolver_submit_loose2_softlast.zip`(緩2 + `MYSOLVER_BEAM_SOFT_LAST=1`、SHA256 `04a6a1b88f7fcc7f57b32c164744f3abf59d910062f0bcaab2db8887811701b6`)。本番 public 57.18→55.68(**−1.51**)、num_placed_items −0.97pp・soft_item −9.90(崩壊の94%)。ローカル予測(num_placed_items +0.89pp)と逆方向。**不採用。既定 `MYSOLVER_BEAM_SOFT_LAST=0` のまま、枠には入れない**(zipは失敗の記録として保管、詳細はPhase80追記) |
-| Deep Research由来3項目(Phase81実装、判定待ち) | `submissions/mysolver_submit_{dftrc,cutcorner,rcl}.zip`(いずれも緩2閾値+幾何定数既定を土台に、`MYSOLVER_DFTRC_STRATEGY`/`MYSOLVER_CUTCORNER_CANDIDATES`/`MYSOLVER_RCL_SHUFFLE`をそれぞれ単独で有効化)。DFTRC(Gonçalves & Resende 2013)・moving extreme points(Heßler et al. 2024、cut_x/cut_y斜面対応)・RCL(Parreño et al. 2008)をそれぞれ既定無効の追加フラグとして実装。ローカルは「壊れていないこと」のみ確認(14+2シーンで完走・例外0・配置率低下は最大−0.96pp・policy_time maxは8s制限に対し余裕あり)、RCLはローカルでphase2勝率0/26のまま不変。**いずれも枠には入れない、判定は本番結果待ち**(詳細はPhase81追記・`results/phase81_report.md`) |
+| Deep Research由来3項目(Phase81実装、本番判定済み) | `mysolver_submit_dftrc.zip`は**不採用**(public 54.567、−2.618)。`mysolver_submit_cutcorner.zip`(57.394、**主枠に採用**)・`mysolver_submit_rcl.zip`(57.334、枠には入れず保持)は前進。詳細はPhase81追記・`results/phase81_report.md` |
+| cutcorner×rcl組み合わせ・各軸深掘り(Phase82実装、判定待ち) | `submissions/mysolver_submit_{cc_rcl,cc_strong,rcl_k15,rcl_k50}.zip`(緩2閾値+幾何定数既定を土台に、cutcorner+rcl併用・cutcorner候補点2倍・rcl のk=15%/50%をそれぞれ検証)。ステップ0でRCLのphase2勝率がRCL=0/1で完全に同一(0/26)と確認、cc_strongはpolicy時間の安全マージンを実測済み(N_Y=5→10でmax1.69s→1.68s)。4zipとも決定的8シーンで無差分。**いずれも枠には入れない、判定は本番結果待ち**(詳細はPhase82追記・`results/phase82_report.md`) |
 | 旧・主枠(Phase55以前) | Phase55以前の構成(public 53.643289を記録した過去の提出をSIGNATE上で選択) |
 | 選択期限 | 2026-10-12(締切2026-10-19 23:55の1週間前) |
 | ρ-test診断ビルド | **断念(確定)**。公式セミナーで運営が評価関数パラメーター解析をNGと明言(§4 Phase61追記)、以後再開しない |
