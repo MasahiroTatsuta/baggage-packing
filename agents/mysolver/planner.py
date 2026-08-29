@@ -199,6 +199,22 @@ PRIORITY_CLEARANCE_Z = 0.05
 # 台地の中央にあたる 6.0 を採用する(W=24 で崖があるため上端には寄せない)。
 CORRIDOR_WEIGHT = float(os.environ.get('MYSOLVER_CORRIDOR_W', '6.0'))
 
+# Phase81(a): Gonçalves & Resende(2013)のDFTRC(Distance to the Front-Top-Right Corner)規則。
+# 「コンテナの最大座標隅から最も遠くなる空きスペースに置く」。
+#
+# ステップ0の突合: 指示書はordering.pyの初期順序戦略(既存4戦略と並ぶ5番目)として実装するよう
+# 求めていたが、DFTRC はGonçalves & Resende(2013)・Parreño et al.(2008)いずれの原典でも
+# 「配置済み後のEMS(空きスペース)集合からどれを選ぶか」という配置規則(placement rule)であり、
+# 荷物の処理順序を決める sequencing rule ではない(同著者らの sequence→placement decoder という
+# 2段構成でも、DFTRCはdecoder=placement側)。ordering.pyの_strategy_*はitem_list単体をソートする
+# 関数で、荷物の座標(=配置位置)を一切持たないため、「隅からの距離」を計算する材料が無く、
+# 字義通りには実装不可能(このミスマッチはPhase61のX方向掃引・Phase78のhint_soft/resolved_priority
+# と同型の「指示書の想定とコード構造の不一致」)。そこでDFTRCの本来の置き場所である、
+# 候補位置(local_x, local_y, world_z)をすでに持つ_score()へ、既存項に対する追加のタイブレーク項
+# として実装する(既存項の重みは一切変更しない、加算のみ)。
+DFTRC_STRATEGY = os.environ.get('MYSOLVER_DFTRC_STRATEGY', '0') == '1'
+DFTRC_WEIGHT = float(os.environ.get('MYSOLVER_DFTRC_WEIGHT', '1.0'))
+
 # Phase20(ターゲット2): 影シミュレータの fill 計上期待値を、配置目標点ではなく
 # **沈降後の静止姿勢**の slack で評価するかどうか。
 #
@@ -549,6 +565,55 @@ def _extreme_points(container, half, obstacles):
     return points
 
 
+# Phase81(b、既定無効): moving extreme points(Heßler et al. 2024)。cut_x/cut_yの斜め切り欠き
+# (AKE/AKN形状)ぎりぎりに候補点を追加する。既存のgeometry.py実装は切り欠き面自体を候補生成に
+# 使わず(斜め面は check_inclusion_batch の内包判定でのみ効く境界で、_extreme_points/grid は
+# いずれも軸並行な障害物・壁からしか候補を作らない)、grid_density由来の粗い格子(≈30mm間隔)が
+# たまたま斜面に近い点を作らない限り、斜面直下の隙間は候補にすら上がらない
+# (geometry.py冒頭のコメントに「cut corner付近で候補が急減する崖がある」と既存の記録あり、
+# これは本フラグが狙う空間そのものと一致する)。床置き(landing_top=thicknessの標準ケース)を
+# 仮定した world_z で、荷物の高さに応じた到達可能な最大x(geo.cutcorner_boundary_x)を解析的に
+# 求め、コンテナ内の複数y位置と組にして候補点として追加するだけで、grid/extreme pointは
+# 一切変更しない(既存関数の戻り値に和を取るだけ)。
+CUTCORNER_CANDIDATES = os.environ.get('MYSOLVER_CUTCORNER_CANDIDATES', '0') == '1'
+CUTCORNER_N_Y_SAMPLES = int(os.environ.get('MYSOLVER_CUTCORNER_N_Y', '5'))
+CUTCORNER_MARGIN_EPS = float(os.environ.get('MYSOLVER_CUTCORNER_MARGIN_EPS', '0.003'))
+
+
+def _cutcorner_candidates(container, half) -> set:
+    """Phase81(b): 斜め切り欠き面ぎりぎりの候補点(床置き想定)を返す。斜め面が無い
+    コンテナ・y方向にも傾く特殊面(diagonal_face_indices/cutcorner_boundary_xの安全弁)
+    では空集合になる(既存挙動に対して純粋な追加のみ)。
+    """
+    face_idx = geo.diagonal_face_indices(container)
+    if not face_idx:
+        return set()
+    ox = container['center'][0]
+    thickness = container['thickness']
+    length = container['length']; width = container['width']
+    world_z = thickness + half[2] + geo.REST_CLEARANCE
+    y_lo = -width / 2.0 + thickness + GRID_MARGIN + half[1]
+    y_hi = width / 2.0 - thickness - GRID_MARGIN - half[1]
+    if y_lo > y_hi:
+        return set()
+    ys = np.linspace(y_lo, y_hi, max(1, CUTCORNER_N_Y_SAMPLES))
+    pts = set()
+    for f in face_idx:
+        world_x = geo.cutcorner_boundary_x(container, half, world_z, f,
+                                            margin=geo.INCLUSION_MARGIN - CUTCORNER_MARGIN_EPS)
+        if world_x is None:
+            continue
+        local_x = world_x - ox
+        # 荷物半寸法1個ぶん以上コンテナ範囲を外れる値は明らかに無効(数値的な安全弁、
+        # 通常の斜め面ならこの範囲に収まる)。合否そのものは下流のincl/legal1/legal2/
+        # 支持判定にすべて任せる(ここで新しい判定式は書かない)。
+        if abs(local_x) > length / 2.0 + half[0]:
+            continue
+        for y in ys:
+            pts.add((round(float(local_x), 5), round(float(y), 5)))
+    return pts
+
+
 # Phase26(フォールバック版): 候補生成の「走査順」だけを壁の外側(奥)から内側(手前)へ変え、
 # 選択ロジック(_evaluate_candidates の argmax)は現状維持する案の検証用フック。
 # 'back_first' で候補配列を y 降順(奥が先)に並べ替える。既定 'default' は従来どおり
@@ -561,6 +626,8 @@ CANDIDATE_ORDER = os.environ.get('MYSOLVER_CAND_ORDER', 'default')
 def _candidate_xy(container, half, obstacles, grid_density: int = 1):
     grid_pts = _grid_point_frozenset(container['length'], container['width'], grid_density)
     pts = grid_pts | _extreme_points(container, half, obstacles)
+    if CUTCORNER_CANDIDATES:
+        pts = pts | _cutcorner_candidates(container, half)
     if not pts:
         return np.zeros((0, 2), dtype=np.float64)
     if CANDIDATE_ORDER == 'back_first':
@@ -819,8 +886,19 @@ def _score(container, local_x, local_y, world_z, half, item, support_ratio, cont
     cog_term = (1.0 - height_ratio) * mass_norm * 1.2
     # Phase14: 階段状スカイライン(奥の搬入経路を塞がない)選好。詳細は CORRIDOR_WEIGHT 参照。
     corridor_penalty = 0.0 if corridor_excess is None else corridor_excess * CORRIDOR_WEIGHT
+    # Phase81(a、既定無効): DFTRC——コンテナのローカル座標系での最大隅(x=length/2, y=width/2,
+    # z=height)からの正規化ユークリッド距離を加える。既存項(especiallyback_termの「奥(y大)を
+    # 優先」)とy軸で競合しうるが、DFTRCが実際に軌道を変えるかどうかは本番A/Bで判定する対象
+    # であり、ここで既存項に合わせて弱めることはしない(字義通りの規則をそのまま追加する)。
+    if DFTRC_STRATEGY:
+        dftrc_dx = (length / 2.0 - local_x) / max(length, 1e-6)
+        dftrc_dy = (width / 2.0 - local_y) / max(width, 1e-6)
+        dftrc_dz = (height - world_z) / max(height, 1e-6)
+        dftrc_term = np.sqrt(dftrc_dx ** 2 + dftrc_dy ** 2 + dftrc_dz ** 2) * DFTRC_WEIGHT
+    else:
+        dftrc_term = 0.0
     return (z_term + back_term + edge_term + support_term + contact_term + prio_term
-            - stability_penalty + cog_term + boundary_term - corridor_penalty)
+            - stability_penalty + cog_term + boundary_term - corridor_penalty + dftrc_term)
 
 
 def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, budget, stats=None,

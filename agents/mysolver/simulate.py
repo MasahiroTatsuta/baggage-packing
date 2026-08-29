@@ -67,6 +67,34 @@ LAST_BEAM_TRACE: list = []
 # 受けた A/B 用のスイッチ。
 _BEAM_SOFT_LAST = os.environ.get('MYSOLVER_BEAM_SOFT_LAST', '0') == '1'
 
+# Phase81(c、既定無効): RCL(restricted candidate list)方式のリスタート初期順序。
+# `shuffle_ties=True` のとき、従来は remaining の鍵を rng.shuffle() で一様ランダムに
+# 完全シャッフルしていた(Phase71-72で「shuffle_tiesという名前に反して全体シャッフルである」
+# と確認済み、tie-breakではない)。GRASP/reactive GRASP(Parreño et al. 2008)のRCL構成に
+# 倣い、「体積降順でランクづけした残り荷物のうち、上位 MYSOLVER_RCL_FRACTION(既定30%、
+# 最低1件)からランダムに1件選んで確定させる」を残り0件まで繰り返す方式に置き換える。
+# 一様シャッフルより「大きい荷物ほど先に来やすい」バイアスがかかった、多様だが無秩序ではない
+# 初期順序になる。既定 '0' では _rcl_shuffle_keys を呼ばず、rng.shuffle による従来の
+# 一様シャッフルのまま(ビット単位で不変)。
+_RCL_SHUFFLE = os.environ.get('MYSOLVER_RCL_SHUFFLE', '0') == '1'
+_RCL_FRACTION = float(os.environ.get('MYSOLVER_RCL_FRACTION', '0.3'))
+
+
+def _rcl_shuffle_keys(remaining: dict, rng) -> list:
+    """Phase81(c): RCL方式で remaining の鍵の初期順序を決める(体積降順ランク×上位分位から
+    ランダム選択)。rng.shuffle と同じく rng の状態を消費するが、消費量(呼び出し回数)は
+    rng.shuffle 1回と異なる(len(remaining)回の rng.integers 呼び出し)。この関数は
+    _RCL_SHUFFLE 有効時のみ呼ばれるため、既定(無効)時の rng 消費列には一切影響しない。
+    """
+    ranked = sorted(remaining.keys(),
+                     key=lambda k: -(remaining[k]['length'] * remaining[k]['width'] * remaining[k]['height']))
+    order = []
+    while ranked:
+        rcl_size = max(1, int(len(ranked) * _RCL_FRACTION))
+        pick = int(rng.integers(0, rcl_size))
+        order.append(ranked.pop(pick))
+    return order
+
 
 def clone_containers(container_list: list[dict]) -> list[dict]:
     """container dict のリストを、packed_items も含めて浅くない複製にする。"""
@@ -475,8 +503,11 @@ def beam_construct_order(container_list: list[dict], item_list: list[dict], budg
     base = clone_containers(container_list)
     remaining = {item['index']: dict(item) for item in item_list}
     if shuffle_ties and rng is not None:
-        keys = list(remaining.keys())
-        rng.shuffle(keys)
+        if _RCL_SHUFFLE:
+            keys = _rcl_shuffle_keys(remaining, rng)
+        else:
+            keys = list(remaining.keys())
+            rng.shuffle(keys)
         remaining = {k: remaining[k] for k in keys}
 
     # state: containers / remaining(dict) / order(list) / score(float) / key(部分解の同一性)
@@ -612,8 +643,11 @@ def greedy_construct_order(container_list: list[dict], item_list: list[dict], bu
     order: list[int] = []
 
     if shuffle_ties and rng is not None:
-        keys = list(remaining.keys())
-        rng.shuffle(keys)
+        if _RCL_SHUFFLE:
+            keys = _rcl_shuffle_keys(remaining, rng)
+        else:
+            keys = list(remaining.keys())
+            rng.shuffle(keys)
         remaining = {k: remaining[k] for k in keys}
 
     while remaining:

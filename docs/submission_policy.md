@@ -501,6 +501,7 @@ Phase37/40で既に実施している手法)を直接禁止する文言ではな
 | **2枠目(Phase77更新)** | `submissions/mysolver_submit_rest020.zip`(緩2閾値、REST_CLEARANCE=**0.020**)。**public 55.96**。public 2位ではなく「主枠と失敗の仕方が異なる保険」として選定。緩2 が崖(REST_CLEARANCE の非対称は40倍)に落ちたときだけ拾う。c0225(57.06、緩2とほぼ同一構成)は枠から外した(§1 Phase77追記) |
 | 幾何定数の探索(Phase75〜77) | `INCLUSION_MARGIN` は無効(触らない)。`REST_CLEARANCE` は 0.016 が最適点で両側とも低下、確定。`SAFETY_MARGIN_XY` は `safexy026`(0.026)の本番結果待ち。それが下がれば幾何定数の探索は終了 |
 | ビーム is_soft 修正(Phase78実装、Phase80で不採用確定) | `submissions/mysolver_submit_loose2_softlast.zip`(緩2 + `MYSOLVER_BEAM_SOFT_LAST=1`、SHA256 `04a6a1b88f7fcc7f57b32c164744f3abf59d910062f0bcaab2db8887811701b6`)。本番 public 57.18→55.68(**−1.51**)、num_placed_items −0.97pp・soft_item −9.90(崩壊の94%)。ローカル予測(num_placed_items +0.89pp)と逆方向。**不採用。既定 `MYSOLVER_BEAM_SOFT_LAST=0` のまま、枠には入れない**(zipは失敗の記録として保管、詳細はPhase80追記) |
+| Deep Research由来3項目(Phase81実装、判定待ち) | `submissions/mysolver_submit_{dftrc,cutcorner,rcl}.zip`(いずれも緩2閾値+幾何定数既定を土台に、`MYSOLVER_DFTRC_STRATEGY`/`MYSOLVER_CUTCORNER_CANDIDATES`/`MYSOLVER_RCL_SHUFFLE`をそれぞれ単独で有効化)。DFTRC(Gonçalves & Resende 2013)・moving extreme points(Heßler et al. 2024、cut_x/cut_y斜面対応)・RCL(Parreño et al. 2008)をそれぞれ既定無効の追加フラグとして実装。ローカルは「壊れていないこと」のみ確認(14+2シーンで完走・例外0・配置率低下は最大−0.96pp・policy_time maxは8s制限に対し余裕あり)、RCLはローカルでphase2勝率0/26のまま不変。**いずれも枠には入れない、判定は本番結果待ち**(詳細はPhase81追記・`results/phase81_report.md`) |
 | 旧・主枠(Phase55以前) | Phase55以前の構成(public 53.643289を記録した過去の提出をSIGNATE上で選択) |
 | 選択期限 | 2026-10-12(締切2026-10-19 23:55の1週間前) |
 | ρ-test診断ビルド | **断念(確定)**。公式セミナーで運営が評価関数パラメーター解析をNGと明言(§4 Phase61追記)、以後再開しない |

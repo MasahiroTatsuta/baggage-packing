@@ -122,6 +122,50 @@ def check_inclusion_batch(container: dict, half: np.ndarray, world_pos: np.ndarr
     return inclusion_slack_batch(container, half, world_pos) <= margin
 
 
+def diagonal_face_indices(container: dict) -> list[int]:
+    """Phase81(b): cut_x/cut_y の斜め切り欠き面(AKE/AKN形状)のインデックスを返す。
+
+    container['n_vecs']は各面の外向き法線(validator/inclusion判定が直接使う一次情報、
+    CLAUDE_CODE_指示書.mdの観測仕様に明記済み)。斜め面は「y成分がほぼ0(cut_x/cut_yの
+    切り欠きはコンテナのwidth方向=y方向に一様に押し出された形状であり、実測でn_vecs[:,1]≈0
+    と確認済み)、かつx成分・z成分がどちらも軸に対して斜め(0でも±1でもない)」という
+    性質で機械的に識別する(特定のcut_x/cut_y値・厚みに依存しないため、どのコンテナ構成でも
+    同じ判定で拾える)。斜め面が無い(通常の直方体)コンテナでは空リストを返す。
+    """
+    n_vecs = np.array(container['n_vecs'])
+    idx = []
+    for i in range(n_vecs.shape[0]):
+        nx, ny, nz = n_vecs[i]
+        if abs(ny) < 1e-6 and 1e-3 < abs(nx) < 1.0 - 1e-3 and 1e-3 < abs(nz) < 1.0 - 1e-3:
+            idx.append(i)
+    return idx
+
+
+def cutcorner_boundary_x(container: dict, half: np.ndarray, world_z: float, face_idx: int,
+                          margin: float = INCLUSION_MARGIN):
+    """Phase81(b): moving extreme points。斜め面 face_idx に対して、高さ world_z・
+    半寸法 half の荷物がちょうど margin ぶんの余裕になる world_x(斜面ぎりぎりの到達点)を
+    解析的に求める(Heßler et al. 2024の「斜面用にEPを移動させる」を、この解法の
+    inclusion_slack_batchの式(n·(pos−p)+Σ|n_i|half_i、Crainic et al. 2008のEP投影と
+    同じ「最も近い衝突面まで滑らせる」操作の閉形式版)でそのまま解いたもの。
+
+    n_vecs[face_idx]のy成分が非ゼロ(=斜め面がy方向にも傾いている特殊な形状)の場合は
+    この1軸の閉形式では解けないため None を返す(本コンテスト形状では発生しない前提だが、
+    将来別形状が来ても誤った候補を出さないための安全弁)。
+    """
+    n_vecs = np.array(container['n_vecs'])
+    points = np.array(container['points'])
+    n = n_vecs[face_idx]
+    pt = points[face_idx]
+    nx, ny, nz = float(n[0]), float(n[1]), float(n[2])
+    if abs(ny) > 1e-9 or abs(nx) < 1e-9:
+        return None
+    bonus = abs(nx) * half[0] + abs(ny) * half[1] + abs(nz) * half[2]
+    # nx*(world_x - pt[0]) + nz*(world_z - pt[2]) + bonus = margin を world_x について解く
+    rhs = margin - bonus - nz * (world_z - pt[2])
+    return float(pt[0] + rhs / nx)
+
+
 def fill_risk_factor(slack):
     """
     inclusion_slack_batch の値(壁に最も近い面のdot値)を [0,1] のfill期待係数に変換する。
