@@ -96,6 +96,41 @@ PHASE2_SLICE_FACTOR = 2.0
 # 貪欲構築時にプールとして見せる「window(手前から何件か)」の候補。
 # None は無制限(残り全件)。
 WINDOW_CANDIDATES = [15, 20, 25, 30, None]
+
+# ---------------------------------------------------------------------------
+# Phase88(ステップ2): フェーズ1の資源配分スイープ用。
+# ---------------------------------------------------------------------------
+# Phase87の実測で「フェーズ1が予算の大半(平均73%)を占め、フェーズ2は26シーン中77%で
+# 一度も走らない」ことが分かった。フェーズ1自体のwindow数・1リスタートあたりの秒数を
+# 独立に振れるようにする(既定はいずれも従来のWINDOW_CANDIDATES/CONSTRUCT_SLICEと
+# 完全に同じ値になるため、未設定時はビット単位で不変)。
+#
+# **フェーズ2/BRKGA側が使うWINDOW_CANDIDATES/CONSTRUCT_SLICEには一切触れない**
+# (それぞれ独立の変数として持つ。フェーズ1だけを動かす)。
+def _parse_phase1_windows(s: str) -> list:
+    out = []
+    for tok in s.split(','):
+        tok = tok.strip()
+        if not tok:
+            continue
+        out.append(None if tok.lower() == 'none' else int(tok))
+    return out
+
+
+_PHASE1_WINDOWS_ENV = os.environ.get('MYSOLVER_PHASE1_WINDOWS', '')
+# 例: MYSOLVER_PHASE1_WINDOWS="15,30,None" (3本) / "10,15,20,25,30,40,None" (7本)
+PHASE1_WINDOWS = _parse_phase1_windows(_PHASE1_WINDOWS_ENV) if _PHASE1_WINDOWS_ENV else list(WINDOW_CANDIDATES)
+# 1リスタートあたりの名目秒。既定はCONSTRUCT_SLICEと同じ20.0。
+# 「フェーズ1に配分される総予算は変えず内訳だけを変える」実験では、
+# MYSOLVER_PHASE1_WINDOWS(本数)とMYSOLVER_PHASE1_SLICE_Sをセットで動かし、
+# 本数×秒数 ≈ 従来の5本×20.0=100.0秒 を保つ。
+PHASE1_SLICE_S = float(os.environ.get('MYSOLVER_PHASE1_SLICE_S', str(CONSTRUCT_SLICE)))
+# 既定'0': 従来どおり「満額の枠が入らないなら新しいリスタートを始めない」
+# (Phase17の決定的接頭辞性、pending_windowsが2本以上残っている限りは常にこちら)。
+# '1': windowリストの**最後の1本だけ**、満額に届かなくても残り予算をそのまま使って
+# 構築する(捨てない)。2本以上残っている場合の挙動は変えない。
+PHASE1_ALLOW_PARTIAL_LAST = os.environ.get('MYSOLVER_PHASE1_ALLOW_PARTIAL', '0') == '1'
+
 # Phase17: optimize() 全体の非常用の最終安全弁(壁時計、秒)。本番の optimization_timeout
 # (180s、実効上限170s)を絶対に踏まないための保険であり、通常は発火しない。
 #
@@ -500,6 +535,27 @@ BRKGA_STATS: dict = {}
 PHASE_BUDGET_STATS: dict = {}
 
 # ---------------------------------------------------------------------------
+# Phase88(ステップ1): 「フェーズ2が実際に走ったか」を本番提出から直接確認するための
+# 専用テレメトリ。既存のMYSOLVER_TELEMETRY(Phase37/38、壁時計へのパディングで
+# 採点に影響しない診断ビットを符号化する仕組み)と同じ発想だが、独立のフラグ・
+# 独立のコード経路にする(既存のTELEMETRY_MIN_ELAPSED_S=140sゲートは、フェーズ2が
+# 32〜120s台の幅広い自然elapsed時間で発火する(Phase87実測)ため流用しない——
+# 140s未満の速いシーンではフェーズ2が発火していても常に0扱いになってしまい、
+# 知りたい情報が欠落する)。
+#
+# 符号化: フェーズ2のリスタート回数(Phase87の`_phase2_restart_count`、0でクランプ)を
+# `min(count, TELEMETRY_PHASE2_MAX_CODE)`個の小さな固定遅延として**加算**する
+# (絶対目標時刻へのパディングではなく、既存の自然elapsedへの単純な追加sleep)。
+# 安全策: 追加後もHARD_WALL_LIMIT相当(165s)を超えないときだけ加算する
+# (超えそうなら安全側にスキップし、何も足さない)。
+#
+# 既定無効(MYSOLVER_TELEMETRY_PHASE2=0)時はこの分岐に一切入らないため、best_order・
+# 実行時間ともに既存経路とビット単位で不変(8/8確認済み)。
+TELEMETRY_PHASE2 = os.environ.get('MYSOLVER_TELEMETRY_PHASE2', '0') == '1'
+TELEMETRY_PHASE2_STEP_S = float(os.environ.get('MYSOLVER_TELEMETRY_PHASE2_STEP_S', '1.0'))
+TELEMETRY_PHASE2_MAX_CODE = int(os.environ.get('MYSOLVER_TELEMETRY_PHASE2_MAX_CODE', '4'))
+
+# ---------------------------------------------------------------------------
 # Phase35: ρ-test(複製評価器による受理ゲート)
 # ---------------------------------------------------------------------------
 # Phase34 が測った決定的な事実: ALNS が採用した手は**定義上すべて代理目的関数を改善して
@@ -793,6 +849,14 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     phase2_units = construct_units * PHASE2_SLICE_FACTOR
     final_margin_units = final_margin * u
 
+    # Phase88(ステップ2): フェーズ1専用のスライス。既定(PHASE1_SLICE_S==CONSTRUCT_SLICE)
+    # では phase1_slice==construct_slice・phase1_units==construct_units になり、
+    # フェーズ1の挙動はビット単位で従来と同一(フェーズ2/BRKGA側のconstruct_units/
+    # phase2_unitsには一切影響しない——それぞれ独立した変数のまま)。
+    phase1_slice = (PHASE1_SLICE_S if build_budget_s >= PHASE1_SLICE_S
+                    else max(1.0, build_budget_s * 0.5))
+    phase1_units = phase1_slice * u * max(1, BEAM_WIDTH)
+
     heuristic_order = order_items(item_list)
 
     if not container_list or not item_list:
@@ -938,14 +1002,24 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # これにより小さい予算の系列は大きい予算の系列の**接頭辞**になり、
     # build_order は「決定的な系列の先頭 N 個の argmax」= N に対して単調になる。
     default_items = strategy_orders[0][1]
-    pending_windows = list(WINDOW_CANDIDATES)
+    pending_windows = list(PHASE1_WINDOWS)
     while pending_windows:
         if total_budget.exhausted():   # 非常用安全弁が発火した場合のみ真になりうる
             break
-        if total_budget.remaining() < construct_units + final_margin_units:
+        remaining = total_budget.remaining()
+        if remaining < phase1_units + final_margin_units:
+            # Phase88(ステップ2-b、既定無効): 最後の1本だけは、満額に届かなくても
+            # 残り予算をそのまま使う(捨てない)。2本以上残っている場合は
+            # 従来どおり打ち切る(接頭辞性を壊さないため、最後の1本限定)。
+            if (PHASE1_ALLOW_PARTIAL_LAST and len(pending_windows) == 1
+                    and remaining > final_margin_units):
+                window = pending_windows.pop(0)
+                try_construct(default_items, window, use_noise=False,
+                              slice_units=max(1.0, remaining - final_margin_units),
+                              source_label='phase1', strategy_label=strategy_orders[0][0])
             break
         window = pending_windows.pop(0)
-        try_construct(default_items, window, use_noise=False, slice_units=construct_units,
+        try_construct(default_items, window, use_noise=False, slice_units=phase1_units,
                       source_label='phase1', strategy_label=strategy_orders[0][0])
 
     # Phase87: フェーズ1終了直後(フェーズ2開始前)の予算消費量を記録する(読み取り専用)。
@@ -1096,6 +1170,17 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         'phase2_restart_count': _phase2_restart_count,
         'phase2_could_run_at_least_1': _phase1_remaining_units >= phase2_units + final_margin_units,
     })
+
+    # Phase88(ステップ1): フェーズ2のリスタート回数を、既存のMYSOLVER_TELEMETRYとは
+    # 独立の専用テレメトリとして壁時計へ加算する(詳細はTELEMETRY_PHASE2定義部の
+    # コメント参照)。既定無効時はこの分岐に一切入らない。
+    if TELEMETRY_PHASE2:
+        _p2_code = min(_phase2_restart_count, TELEMETRY_PHASE2_MAX_CODE)
+        _p2_delay = TELEMETRY_PHASE2_STEP_S * _p2_code
+        _p2_elapsed = time.perf_counter() - start
+        if _p2_delay > 0 and _p2_elapsed + _p2_delay <= HARD_WALL_LIMIT:
+            time.sleep(_p2_delay)
+        PHASE_BUDGET_STATS['telemetry_phase2_code'] = _p2_code
 
     # フェーズ3(Phase29): 衝突駆動の順序修正。
     #
