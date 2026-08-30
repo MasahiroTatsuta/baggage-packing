@@ -377,6 +377,38 @@ cutcorner単体から+0.013で誤差範囲、**候補点を増やす方向は飽
 0/8だった)、REPAIRが新しい土台でも機能していることを確認。**主枠をcc_rcl
 (57.545)に更新、2枠目はrest020を維持。** 詳細は`results/phase83_report.md`。
 
+**本番結果(Phase84追記時点で判明)**: `mysolver_submit_cc_rcl_repair.zip`は
+public 57.548(cc_rcl比 **+0.003**、誤差範囲)で**不採用**。fill+0.085をstability
+−0.077が相殺し、placement/soft_itemは完全無反応。「土台を変えれば覆るかもしれない」
+という再挑戦の仮説は否定された——REPAIRはcutcorner/rclと機序が近すぎた
+(いずれも配置順序側の生成・後処理ロジックであり、独立性が事前の見立てより低かった)。
+主枠はcc_rcl(57.545)を維持。
+
+### Phase84追記: online policy()側の候補生成を調査 → 共通関数経由で既にcutcorner適用済みと判明、実装なしで終了
+
+`agent.py::policy()`は`planner.plan()`を呼び、`_search_best()`→`_candidate_xy()`という
+offline(`beam_construct_order`)と**完全に同一の候補生成コードパス**を経由することを
+コード精読で確認した。`_candidate_xy`はリポジトリ全体で定義・呼び出しともに1箇所のみで、
+`CUTCORNER_CANDIDATES`はモジュールレベルの単一フラグ(online/offlineを区別しない)。
+現在の主枠(`mysolver_submit_cc_rcl.zip`)は`MYSOLVER_CUTCORNER_CANDIDATES`の既定を
+`'1'`に固定しているため、**cutcornerの斜面下候補点は既にonline policy()にも
+自動的に反映されている。** 「online側は一度も触っていない独立領域」という指示文の
+前提はコード構造上誤りで(Phase61のX方向掃引・Phase78のhint_soft/resolved_priorityと
+同型の的中パターン)、指示(0-2)の終了条件に該当したため実装(ステップ1〜3)は
+行わなかった。
+
+副産物: 本番policy時間が6.02〜6.07sに集中する理由を特定した。`POLICY_HARD_WALL`
+(既定6.0s)が壁時計の非常用安全弁として`planner.plan()`に渡されており、決定的な
+主予算(5.5s相当)が本番の実マシン速度では使い切れず、**探索がこの安全弁で
+毎回打ち切られている**(自然完了ではない)ことが観測値の集中パターンと整合する。
+
+Phase73〜84で試した全軸の総括(支持閾値/幾何定数/順序制御/候補生成/リスタート/
+後処理/online-offline分離)と、既知のレバーを一通り触り尽くしたという判定に基づき、
+**攻めを終了し防御フェーズへの移行を推奨する。** 未実装のprecedence/blocking graph
+(Deep Research第2優先)は、軽量版(REPAIR)がPhase29・Phase83の2回とも弱い結果
+だったこと、原論文自身がonline適用の限界を明言していることから、フルスケール実装への
+投資は正当化しにくいと評価した。詳細は`results/phase84_report.md`。
+
 ---
 
 ## 2. ステップ1: 最終評価の方式(確認結果)
@@ -568,7 +600,8 @@ Phase37/40で既に実施している手法)を直接禁止する文言ではな
 | ビーム is_soft 修正(Phase78実装、Phase80で不採用確定) | `submissions/mysolver_submit_loose2_softlast.zip`(緩2 + `MYSOLVER_BEAM_SOFT_LAST=1`、SHA256 `04a6a1b88f7fcc7f57b32c164744f3abf59d910062f0bcaab2db8887811701b6`)。本番 public 57.18→55.68(**−1.51**)、num_placed_items −0.97pp・soft_item −9.90(崩壊の94%)。ローカル予測(num_placed_items +0.89pp)と逆方向。**不採用。既定 `MYSOLVER_BEAM_SOFT_LAST=0` のまま、枠には入れない**(zipは失敗の記録として保管、詳細はPhase80追記) |
 | Deep Research由来3項目(Phase81実装、本番判定済み) | `mysolver_submit_dftrc.zip`は**不採用**(public 54.567、−2.618)。`mysolver_submit_cutcorner.zip`(57.394)・`mysolver_submit_rcl.zip`(57.334)は前進、Phase82でcc_rcl(57.545)に組み合わせて主枠採用。詳細はPhase81追記・`results/phase81_report.md` |
 | cutcorner×rcl組み合わせ・各軸深掘り(Phase82実装、本番判定済み) | `mysolver_submit_cc_rcl.zip`(57.545、**主枠に採用**)。`cc_strong`(候補点2倍)は57.407でcutcorner単体から+0.013の誤差範囲(候補点を増やす方向は飽和、N_Yは既定5のまま)。`rcl_k15`/`rcl_k50`は緩2と13桁完全一致(不具合、Phase83でも原因未特定のまま探索打ち切り)。詳細はPhase82追記・`results/phase82_report.md` |
-| REPAIR再挑戦(Phase83実装、判定待ち) | `submissions/mysolver_submit_cc_rcl_repair.zip`(cc_rcl + `MYSOLVER_REPAIR=1`)。ALNS(代理関数の精度不足)・WALL_MODE(統計的に有意な悪化)はcutcorner/rclという新しい土台と無関係な構造的欠陥のため再挑戦せず、REPAIR(Phase29、到達シーン数不足のみが理由で機構自体は機能)のみ再検証。6シーンサブセットで1/6・決定的8シーンで3/8がorder変化(cutcorner/rcl単体はいずれも0/8)。policy時間は安全マージンを確保(max1.97s)。**枠には入れない、判定は本番結果待ち**(詳細はPhase83追記・`results/phase83_report.md`) |
+| REPAIR再挑戦(Phase83実装、本番判定済み) | `mysolver_submit_cc_rcl_repair.zip`は**不採用**(public 57.548、cc_rcl比+0.003で誤差範囲。fill+0.085をstability−0.077が相殺)。cutcorner/rclと機序が近すぎたと結論。詳細はPhase83追記・`results/phase83_report.md` |
+| online policy()側の候補生成(Phase84調査、実装なしで終了) | `agent.py::policy()`はoffline側と完全に同一の`planner.plan()`→`_candidate_xy()`を呼んでおり、cutcornerは既にonline側にも自動反映済みと判明。独立軸として存在しなかったため実装せず終了。**Phase73〜84の全軸を試し尽くしたと判定し、攻めを終了して防御フェーズへの移行を推奨。** 詳細はPhase84追記・`results/phase84_report.md` |
 | 旧・主枠(Phase55以前) | Phase55以前の構成(public 53.643289を記録した過去の提出をSIGNATE上で選択) |
 | 選択期限 | 2026-10-12(締切2026-10-19 23:55の1週間前) |
 | ρ-test診断ビルド | **断念(確定)**。公式セミナーで運営が評価関数パラメーター解析をNGと明言(§4 Phase61追記)、以後再開しない |
