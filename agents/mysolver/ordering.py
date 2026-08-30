@@ -447,6 +447,50 @@ ALNS_WORST_Q = int(os.environ.get('MYSOLVER_ALNS_WORST_Q', '3'))
 ALNS_STATS: dict = {}
 
 # ---------------------------------------------------------------------------
+# Phase86 Tier3: BRKGA(Biased Random-Key Genetic Algorithm)
+# ---------------------------------------------------------------------------
+# Deep Research(docs/「Beyond Constructive Heuristics」)が指摘する ALNS 不採用の原因
+# (代理評価の精度不足、Phase34 の ρ=−0.321)は、母集団を持つ進化計算がノイズ平均化効果で
+# 構造的に回避しやすいとされる。BRKGA は「荷物の並び順を random-key(実数ベクトル)で
+# 符号化し、decoder で実配置に変換」する設計で、decoder には**既存の構築ヒューリスティック
+# (simulate.beam_construct_order)をそのまま使う**——新しい評価関数は作らない。
+# fitness は代理評価ではなく validate()(既存の risk調整済み体積、実 decoder 出力)そのもの。
+#
+# 既定は無効(0)。無効時はフェーズ2が従来どおりのランダムリスタートのままであり、
+# 本ブロックの定数・後述の population ループは一切参照されない
+# (build_order 側の分岐は if/else で完全に切り分ける)。
+#
+# 予算の公平性: 1世代の総予算 ≈ phase2_units(=フェーズ2の1リスタート分の予算)になるよう
+# 個体1体あたりの decode 予算を population size で割って配る。つまり
+# 「同じ総予算を、独立リスタートの束ではなく交叉のある母集団に配り直したら伸びるか」を
+# フェーズ2と揃えた土俵で比較できる設計にしてある(総ユニット予算は増やさない)。
+BRKGA = os.environ.get('MYSOLVER_BRKGA', '0') == '1'
+# 母集団サイズ。Deep Research の目安(30〜50)の下限寄り(小予算シーンでも複数世代回る余地)。
+BRKGA_POP = int(os.environ.get('MYSOLVER_BRKGA_POP', '30'))
+# エリート(無条件で次世代へ複製、fitness再評価もしない)の割合。
+BRKGA_ELITE_FRAC = float(os.environ.get('MYSOLVER_BRKGA_ELITE_FRAC', '0.2'))
+# ミュータント(前世代を無視した完全ランダム個体)で置き換える割合。
+BRKGA_MUTANT_FRAC = float(os.environ.get('MYSOLVER_BRKGA_MUTANT_FRAC', '0.2'))
+# 交叉時、各遺伝子(荷物ごとのkey)をエリート親から継承する確率(標準BRKGAのbiased crossover。
+# 0.5だと普通の一様交叉、1.0に近いほどエリート親に強く倣う)。
+BRKGA_BIAS = float(os.environ.get('MYSOLVER_BRKGA_BIAS', '0.7'))
+# 世代数の上限(暴走止め。通常は予算が先に尽きる)。
+BRKGA_MAX_GEN = int(os.environ.get('MYSOLVER_BRKGA_MAX_GEN', '200'))
+# 個体1体のdecode予算を「フェーズ1終了時点の残り予算 ÷ (母集団 × この値)」で逆算する
+# 目標世代数。残り予算はシーンごとに大きくばらつく(実測 0〜45s超)ため、固定コストの
+# 世代を要求すると残りが少ないシーンで0世代に終わる(下のind_units算出コメント参照)。
+BRKGA_TARGET_GENS = int(os.environ.get('MYSOLVER_BRKGA_TARGET_GENS', '15'))
+# 母集団のdecode評価に使うスコアノイズ(フェーズ2のuse_noise=Trueと同じ0.35を既定にし、
+# 世代間の多様性を確保する)。
+BRKGA_NOISE = float(os.environ.get('MYSOLVER_BRKGA_NOISE', '0.35'))
+# noisy-fitness対策(Qian et al. 2018): 母集団内で暫定最良を更新した個体は、
+# ノイズ無し(score_noise=0)で**もう一度decodeし直して**(=再評価)、その再確認decodeでも
+# 現在のグローバル最良を上回った場合にのみ採用する(しきい値選択。マージンは既定0=
+# 「再確認しても厳密改善」を要求するだけで、量的なマージンは入れない)。
+BRKGA_ACCEPT_MARGIN = float(os.environ.get('MYSOLVER_BRKGA_ACCEPT_MARGIN', '0.0'))
+BRKGA_STATS: dict = {}
+
+# ---------------------------------------------------------------------------
 # Phase35: ρ-test(複製評価器による受理ゲート)
 # ---------------------------------------------------------------------------
 # Phase34 が測った決定的な事実: ALNS が採用した手は**定義上すべて代理目的関数を改善して
@@ -897,15 +941,135 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
 
     # フェーズ2: 残り予算でランダム化(shuffle+noise)リスタートを繰り返し、
     # window と戦略の両方をランダムに振って多様性を確保する(単一戦略への依存を避ける)。
-    while True:
-        if total_budget.exhausted():   # 非常用安全弁が発火した場合のみ真になりうる
-            break
-        if total_budget.remaining() < phase2_units + final_margin_units:
-            break
-        window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
-        strat_name, seed_items = strategy_orders[int(rng.integers(0, len(strategy_orders)))]
-        try_construct(seed_items, window, use_noise=True, slice_units=phase2_units,
-                      source_label='phase2', strategy_label=strat_name)
+    #
+    # Phase86 Tier3: BRKGA有効時は、この独立リスタートの束を「交叉のある母集団」に
+    # 丸ごと置き換える(if/elseで完全に分岐するため、BRKGA=0時は従来どおり)。
+    if BRKGA:
+        n = len(item_list)
+        pop_size = max(2, BRKGA_POP)
+        elite_n = max(1, min(int(pop_size * BRKGA_ELITE_FRAC), pop_size - 1))
+        mutant_n = max(0, min(int(pop_size * BRKGA_MUTANT_FRAC), pop_size - elite_n))
+        # 個体1体のdecode予算。
+        #
+        # 実測(A01、既定budget=120s)で判明した設計ミスの修正: 当初は「1世代の総decode予算
+        # ≈ phase2_units(フェーズ2の1リスタート分、pop_size=30なら計40s相当)」で固定していたが、
+        # フェーズ1(window 5本、最大100s相当)がほぼ毎回そのシーンの残り予算を使い切ってしまい
+        # (実測: 120s中74.7s消費、残45.3s)、**1世代分(46s相当)にすら届かず世代数0のまま
+        # 一度もdecodeが走らなかった**(=フェーズ2も実は同じ理由で0-1リスタートしか回っていない
+        # ことが副次的に判明: Phase83のrcl_k15/k50「差が出ない」現象と整合する)。
+        # 固定コストの世代を要求すると、シーンごとに変動するフェーズ1後の残り予算に対して
+        # 「世代を1つも回せない」確率が高すぎる。**残り予算を実測してから、目標世代数
+        # (既定15)に収まるよう個体1体の予算を逆算する**ことで、残りが少ないシーンでも
+        # 複数世代を確保できるようにする(個体の予算そのものは小さくなるが、
+        # 「母集団×世代で数百回」という規模感(Deep Research)を残り予算の多寡によらず狙う)。
+        brkga_budget_at_start = total_budget.remaining()
+        ind_units = max(1.0, brkga_budget_at_start / max(1, pop_size * BRKGA_TARGET_GENS))
+        idx_pos = {it['index']: pos for pos, it in enumerate(item_list)}
+
+        def _decode(keys, use_noise, slice_units, window):
+            order_pos = np.argsort(keys)
+            seed_items = [item_list[p] for p in order_pos]
+            try:
+                order = simulate.beam_construct_order(
+                    container_list, seed_items, total_budget.child(slice_units),
+                    per_step_time_budget=PER_STEP_TIME_BUDGET,
+                    rng=rng if use_noise else None,
+                    score_noise=BRKGA_NOISE if use_noise else 0.0,
+                    shuffle_ties=use_noise,
+                    window=window,
+                    prepacked_ids=prepacked_ids,
+                    beam_width=BEAM_WIDTH,
+                )
+            except Exception:
+                return None
+            return order if set(order) == all_indices else None
+
+        population = [rng.random(n) for _ in range(pop_size)]
+        # フェーズ1と同じ「既知の良い並び」を母集団の一部の初期個体に埋め込む
+        # (残りは純ランダムで多様性を確保する、標準的なBRKGAのbiased初期化)。
+        for i, (_, seed_items) in enumerate(strategy_orders[:min(len(strategy_orders), pop_size)]):
+            keys = np.empty(n)
+            for rank_pos, it in enumerate(seed_items):
+                keys[idx_pos[it['index']]] = rank_pos / max(1, n - 1)
+            population[i] = keys
+
+        fitness: list = [None] * pop_size
+
+        def _rank_key(fit):
+            return (float('-inf'), 0) if fit is None else fit
+
+        gen = 0
+        n_eval = 0
+        while True:
+            if total_budget.exhausted():   # 非常用安全弁が発火した場合のみ真になりうる
+                break
+            # 上のind_units算出コメントのとおり、「1世代丸ごと」を要求すると残り予算が
+            # 少ないシーンで0世代に終わる。個体1体分+最終マージンさえあれば世代を開始する
+            # (世代の途中で尽きた個体はfitness=Noneのまま最下位扱いになるだけで、安全側)。
+            if total_budget.remaining() < ind_units + final_margin_units:
+                break
+            if gen >= BRKGA_MAX_GEN:
+                break
+            for i in range(pop_size):
+                if fitness[i] is not None:
+                    # エリート複製個体は前世代のfitnessを引き継ぐ(再decodeしない=無駄がない)。
+                    continue
+                window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
+                order = _decode(population[i], use_noise=True, slice_units=ind_units, window=window)
+                if order is None:
+                    continue
+                n_eval += 1
+                stall, snaps, contribs = _extras()
+                score = validate(order, stall, snapshots_out=snaps, contrib_out=contribs)
+                fitness[i] = score
+                if score is not None and use_replica:
+                    cand_pool.append((score, list(order)))
+                if score is not None and (best_score is None or _better(score, best_score)):
+                    # noisy-fitness対策(Qian et al. 2018): ノイズ無しで再decode・再検証して
+                    # から採否を決める(再評価+しきい値選択。マージン既定0=厳密改善のみ要求)。
+                    confirm_order = _decode(population[i], use_noise=False,
+                                             slice_units=ind_units, window=window)
+                    if confirm_order is not None:
+                        cstall, csnaps, ccontribs = _extras()
+                        confirm_score = validate(confirm_order, cstall,
+                                                  snapshots_out=csnaps, contrib_out=ccontribs)
+                        accept = (confirm_score is not None and
+                                  (best_score is None or
+                                   (_better(confirm_score, best_score) and
+                                    confirm_score[0] >= best_score[0] + BRKGA_ACCEPT_MARGIN)))
+                        if accept:
+                            best_order, best_score, best_stall = confirm_order, confirm_score, cstall
+                            best_snaps, best_contribs = (csnaps or {}), (ccontribs or [])
+                            _winner = {'source': 'brkga', 'strategy': f'gen{gen}'}
+            ranked = sorted(range(pop_size), key=lambda i: _rank_key(fitness[i]), reverse=True)
+            elites_idx = ranked[:elite_n]
+            new_population = [population[i] for i in elites_idx]
+            new_fitness = [fitness[i] for i in elites_idx]
+            for _ in range(mutant_n):
+                new_population.append(rng.random(n))
+                new_fitness.append(None)
+            while len(new_population) < pop_size:
+                pe = population[elites_idx[int(rng.integers(0, len(elites_idx)))]]
+                po = population[int(rng.integers(0, pop_size))]
+                mask = rng.random(n) < BRKGA_BIAS
+                new_population.append(np.where(mask, pe, po))
+                new_fitness.append(None)
+            population, fitness = new_population, new_fitness
+            gen += 1
+        BRKGA_STATS.clear()
+        BRKGA_STATS.update({'enabled': True, 'pop_size': pop_size, 'generations': gen,
+                             'n_eval': n_eval, 'elite_n': elite_n, 'mutant_n': mutant_n,
+                             'ind_units_s': ind_units / u})
+    else:
+        while True:
+            if total_budget.exhausted():   # 非常用安全弁が発火した場合のみ真になりうる
+                break
+            if total_budget.remaining() < phase2_units + final_margin_units:
+                break
+            window = WINDOW_CANDIDATES[int(rng.integers(0, len(WINDOW_CANDIDATES)))]
+            strat_name, seed_items = strategy_orders[int(rng.integers(0, len(strategy_orders)))]
+            try_construct(seed_items, window, use_noise=True, slice_units=phase2_units,
+                          source_label='phase2', strategy_label=strat_name)
 
     # フェーズ3(Phase29): 衝突駆動の順序修正。
     #
