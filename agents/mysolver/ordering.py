@@ -491,6 +491,15 @@ BRKGA_ACCEPT_MARGIN = float(os.environ.get('MYSOLVER_BRKGA_ACCEPT_MARGIN', '0.0'
 BRKGA_STATS: dict = {}
 
 # ---------------------------------------------------------------------------
+# Phase87: フェーズ1/フェーズ2の予算配分を実測するための読み取り専用の診断記録。
+# ---------------------------------------------------------------------------
+# Phase86でBRKGAの世代数を実測した際に「フェーズ1がほぼ全予算を使い切り、フェーズ2
+# 相当の予算がほとんど残らない」ことがA01の1シーンだけで判明した。この記録は
+# **探索の挙動には一切影響しない**(値を読むだけで、build_orderの分岐・打ち切り判定
+# には使わない)。他の *_STATS(ALNS_STATS, BRKGA_STATS)と同じ既存パターンを踏襲する。
+PHASE_BUDGET_STATS: dict = {}
+
+# ---------------------------------------------------------------------------
 # Phase35: ρ-test(複製評価器による受理ゲート)
 # ---------------------------------------------------------------------------
 # Phase34 が測った決定的な事実: ALNS が採用した手は**定義上すべて代理目的関数を改善して
@@ -939,6 +948,11 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         try_construct(default_items, window, use_noise=False, slice_units=construct_units,
                       source_label='phase1', strategy_label=strategy_orders[0][0])
 
+    # Phase87: フェーズ1終了直後(フェーズ2開始前)の予算消費量を記録する(読み取り専用)。
+    _phase1_used_units = total_budget.used
+    _phase1_remaining_units = total_budget.remaining()
+    _phase2_restart_count = 0
+
     # フェーズ2: 残り予算でランダム化(shuffle+noise)リスタートを繰り返し、
     # window と戦略の両方をランダムに振って多様性を確保する(単一戦略への依存を避ける)。
     #
@@ -1070,6 +1084,18 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             strat_name, seed_items = strategy_orders[int(rng.integers(0, len(strategy_orders)))]
             try_construct(seed_items, window, use_noise=True, slice_units=phase2_units,
                           source_label='phase2', strategy_label=strat_name)
+            _phase2_restart_count += 1
+
+    # Phase87: フェーズ1/フェーズ2の予算配分の実測記録(読み取り専用、探索結果には無関係)。
+    PHASE_BUDGET_STATS.clear()
+    PHASE_BUDGET_STATS.update({
+        'time_budget_s': build_budget_s, 'total_limit_units': total_budget.limit,
+        'phase1_used_units': _phase1_used_units, 'phase1_remaining_units': _phase1_remaining_units,
+        'phase1_used_s': _phase1_used_units / u, 'phase1_remaining_s': _phase1_remaining_units / u,
+        'phase2_units': phase2_units, 'phase2_units_s': phase2_units / u,
+        'phase2_restart_count': _phase2_restart_count,
+        'phase2_could_run_at_least_1': _phase1_remaining_units >= phase2_units + final_margin_units,
+    })
 
     # フェーズ3(Phase29): 衝突駆動の順序修正。
     #
