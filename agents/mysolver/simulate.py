@@ -96,6 +96,75 @@ def _rcl_shuffle_keys(remaining: dict, rng) -> list:
     return order
 
 
+# Phase86 Tier1(既定無効): look-ahead付きビームサーチ。
+#
+# 現行のbeam_construct_orderは、各ステップでplanner.plan_topkが返す上位top_k候補を
+# 「その1手だけを置いた直後のrisk調整済みobjective」でランク付けし、上位beam_width個を
+# 残す近視眼的な枝刈りをしている(1手先までしか見ない)。LOOKAHEAD_DEPTHが正のとき、
+# 枝刈りに使うスコアを「その1手を置いた後、さらにLOOKAHEAD_DEPTH手をグリーディに
+# (top_k=1で)転がした終端でのobjective」に置き換える。**コミットする実際の状態は
+# 常に最初の1手のみ**——追加で転がした分は評価用の使い捨てロールアウトであり、
+# 次の実ステップで(ビームが更新された前提で)あらためて展開し直す。
+#
+# 新しい評価関数は作らない(既存のobjective_fn・geo.fill_risk_factor・_placeをそのまま
+# 使う、Deep Researchが指摘する「rolloutは幾何評価のみ、最終候補だけ本物の安定性判定」を
+# 踏襲——本ソルバでは元々rolloutも最終候補もplanner.plan()の同じ幾何評価を使っており、
+# 二段構え自体は既存のbeam_construct_order自体が持つ設計と同一)。
+#
+# 既定 '0' でこの分岐に一切入らないため、beam_construct_orderの出力はビット単位で不変。
+LOOKAHEAD_DEPTH = int(os.environ.get('MYSOLVER_LOOKAHEAD_DEPTH', '0'))
+# lookahead有効時にのみ使う、1手あたりの比較候補数。既定のtop_k/BEAM_WIDTHとは独立
+# ——本番既定のBEAM_WIDTH=1ではtop_k=1になり、比較する枝がそもそも無いため、lookahead
+# 有効時だけ最低限これだけの候補を作る(既定無効時はこの定数自体が参照されない)。
+LOOKAHEAD_BREADTH = int(os.environ.get('MYSOLVER_LOOKAHEAD_BREADTH', '3'))
+
+
+def _lookahead_rollout_score(containers, remaining, budget, extra_depth, per_step_time_budget,
+                              window, prepacked_ids, rng, score_noise,
+                              risk_vol, n_prio, n_mis, has_prio_container,
+                              objective_fn) -> float:
+    """Phase86 Tier1: 候補1手をコミットした後の状態から、さらにextra_depth手を
+    グリーディ(top_k=1、実質planner.plan())に転がし、その終端でのobjective値を返す
+    (評価専用。ここで進めた配置はcontainers/remainingのコピーにのみ反映し、
+    呼び出し元の実状態には一切影響しない)。budget.exhausted()または合法手が
+    尽きた時点で早期終了し、その時点のobjectiveを返す(anytime設計、Phase17と同じ)。
+    """
+    if extra_depth <= 0 or not remaining:
+        return objective_fn(risk_vol, n_prio, n_mis)
+    conts = clone_containers(containers)
+    rem = dict(remaining)
+    for _ in range(extra_depth):
+        if budget.exhausted() or not rem:
+            break
+        pool = list(rem.values())
+        if window is not None:
+            pool = pool[:window]
+        if _BEAM_SOFT_LAST:
+            hard_pool = [it for it in pool if not it.get('is_soft', False)]
+            if hard_pool:
+                pool = hard_pool
+        info: dict = {}
+        action = planner.plan(conts, pool, max_pool_items=None, rng=rng, score_noise=score_noise,
+                               prepacked_ids=prepacked_ids, info=info,
+                               budget=budget.child_seconds(per_step_time_budget))
+        if action is None:
+            break
+        item = pool[action['item_idx']]
+        cont = conts[action['container_idx']]
+        vol = item['length'] * item['width'] * item['height']
+        risk_slack = info.get('settled_slack') if planner.USE_SETTLED_SLACK else None
+        if risk_slack is None:
+            risk_slack = info.get('slack', geo.REAL_INCLUSION_MARGIN)
+        risk_vol = risk_vol + vol * float(geo.fill_risk_factor(risk_slack))
+        if item.get('is_prioritized', False):
+            n_prio += 1
+            if has_prio_container and not cont.get('is_prioritized', False):
+                n_mis += 1
+        cont['packed_items'].append(_place(cont, item, action))
+        del rem[item['index']]
+    return objective_fn(risk_vol, n_prio, n_mis)
+
+
 def clone_containers(container_list: list[dict]) -> list[dict]:
     """container dict のリストを、packed_items も含めて浅くない複製にする。"""
     cloned = []
@@ -543,7 +612,10 @@ def beam_construct_order(container_list: list[dict], item_list: list[dict], budg
                 _hard_pool = [it for it in pool if not it.get('is_soft', False)]
                 if _hard_pool:
                     pool = _hard_pool
-            acts = planner.plan_topk(st['containers'], pool, top_k,
+            # Phase86 Tier1: lookahead有効時のみ、比較する枝の数をLOOKAHEAD_BREADTH以上に
+            # 引き上げる(既定ではtop_kのまま、既存の呼び出しと完全に同じ)。
+            effective_top_k = max(top_k, LOOKAHEAD_BREADTH) if LOOKAHEAD_DEPTH > 0 else top_k
+            acts = planner.plan_topk(st['containers'], pool, effective_top_k,
                                      budget.child_seconds(per_step_time_budget),
                                      max_pool_items=None, rng=rng, score_noise=score_noise,
                                      prepacked_ids=prepacked_ids)
@@ -584,15 +656,32 @@ def beam_construct_order(container_list: list[dict], item_list: list[dict], budg
                     if has_prio_container and not cont.get('is_prioritized', False):
                         n_mis += 1
                 score = _objective(risk_vol, n_prio, n_mis)
+                # Phase86 Tier1: 枝刈りに使うランクだけをlookaheadスコアに差し替える。
+                # コミットする risk_vol/n_prio/n_mis(=score)は常に「この1手だけを置いた」
+                # 浅い値のまま(次ステップ以降の実際の状態として使われるため)。
+                if LOOKAHEAD_DEPTH > 0:
+                    # ロールアウトは「この候補を置いた後」の状態から続ける必要があるため、
+                    # 複製してこの1手だけを反映してから渡す(既存の「b*top_k回複製すると
+                    # 予算未計上のまま壁時計が伸びる」という設計上の注意はここでも当てはまる
+                    # ため、LOOKAHEAD_DEPTH>0のときだけに限定し、既定無効時は一切発生しない)。
+                    child_containers = clone_containers(st['containers'])
+                    child_cont = child_containers[a['container_idx']]
+                    child_cont['packed_items'].append(_place(child_cont, item, a))
+                    rank_score = _lookahead_rollout_score(
+                        child_containers, {k: v for k, v in st['remaining'].items() if k != item['index']},
+                        budget, LOOKAHEAD_DEPTH, per_step_time_budget, window, prepacked_ids,
+                        rng, score_noise, risk_vol, n_prio, n_mis, has_prio_container, _objective)
+                else:
+                    rank_score = score
                 key = tuple(sorted(st['key'] + ((int(item['index']), round(pos[0], 4),
                                                   round(pos[1], 4), round(pos[2], 4)),)))
-                cands.append((score, key, st, a, item, risk_vol, n_prio, n_mis))
+                cands.append((rank_score, key, st, a, item, risk_vol, n_prio, n_mis, score))
         if not any_open or not cands:
             break
         cands.sort(key=lambda t: t[0], reverse=True)
         beam = []
         seen = set()
-        for score, key, st, a, item, risk_vol, n_prio, n_mis in cands:
+        for rank_score, key, st, a, item, risk_vol, n_prio, n_mis, score in cands:
             if key in seen:
                 continue
             seen.add(key)

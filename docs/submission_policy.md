@@ -646,6 +646,23 @@ statusは全シーンとも既知のsudden deathパターン(`is_valid`/`is_plac
 
 ---
 
+## 8. 探索レイヤーの高度化(Phase86、Tier1: Look-ahead Beam)
+
+`docs/3D Bin Packing for NEDO Contest_ Beyond Constructive Heuristics —
+Evaluating MCTS, BRKGA, and DRL Approaches.pdf`(Deep Research、Phase86で全文
+読了)を踏まえ、offline構築のlook-ahead化(Tier1)に着手した。
+
+`MYSOLVER_LOOKAHEAD_DEPTH`(既定'0')・`MYSOLVER_LOOKAHEAD_BREADTH`(既定'3')を
+`agents/mysolver/simulate.py`に実装(既定無効時8/8ビット単位不変確認済み)。
+cc_rcl土台+6シーン代表サブセットで検証した結果、**depth=1で配置数−23%、
+depth=2で−32%という、深さを増やすほど悪化する明確な負の効果を確認**
+(6シーン中改善0件、悪化4件、不変2件)。指示書の撤退基準を大きく超える悪化のため
+**Tier1は撤退確定、指示書の設計によりTier2(MCTS)も見送り**。zip化は行わず、
+主枠(cc_rcl)・2枠目(rest020)は変更なし。**Tier3(BRKGA)への着手可否は指示を
+仰いだ上で判断する。** 詳細は`results/phase86_report.md`。
+
+---
+
 ## 変更ファイル
 
 - `docs/submission_policy.md`(本ファイル、新規)
