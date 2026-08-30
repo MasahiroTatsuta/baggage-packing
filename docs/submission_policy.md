@@ -624,6 +624,12 @@ zipファイル現物に対してゼロから再実行した。
 | 差分ファイル(意図しない変更の有無) | planner.py/simulate.pyのみ、意図どおり | geometry.py/planner.py/simulate.py、差分は全てPhase81以降の機能追加でREST_CLEARANCE以外は無関係(異常なし) |
 | SIGNATE上の実選択との突合 | **未確認(このセッションではSIGNATEへのアクセス手段が無い)。ユーザーによる目視確認が必要** | 同左 |
 
+**ステップ3(極端シーン構成での回帰確認、追記)**: Phase46の構成比ストレス8シーン
+(ソフト比率実測80%等)をcc_rcl構成で再実行した結果、`is_included`違反は0件、
+statusは全シーンとも既知のsudden deathパターン(`is_valid`/`is_placed_safe`のみ)で
+新しい種類の違反は確認されなかった。policy時間もローカルでは異常なし
+(max 0.118s)。**壊れていないことを確認。**
+
 詳細は`results/phase85_report.md`を参照。
 
 ## 7. 最終選択期限(2026-10-12)に向けたチェックリスト
