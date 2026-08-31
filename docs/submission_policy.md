@@ -594,7 +594,7 @@ Phase37/40で既に実施している手法)を直接禁止する文言ではな
 
 | 項目 | 内容 |
 |---|---|
-| **主枠(Phase83更新)** | `submissions/mysolver_submit_cc_rcl.zip`(緩2 + `MYSOLVER_CUTCORNER_CANDIDATES=1` + `MYSOLVER_RCL_SHUFFLE=1`)。**public 57.545**。cutcorner(+0.209)とrcl(+0.149)の加法性が実測で確認された(+0.358 ≈ 実測+0.360)独立な機序の組み合わせ |
+| **主枠(Phase89更新)** | `submissions/mysolver_submit_cc_rcl_w3.zip`(cc_rcl土台 + `MYSOLVER_PHASE1_WINDOWS=15,25,None` + `MYSOLVER_PHASE1_SLICE_S=33.333333333333336`、SHA256 `a7bdef7ee08fa4386d54b4be9938cabf31354407608888640f788e18533cd48a`)。**public 57.894**(cc_rcl比+0.349)。内訳: num_placed +0.7pt・placement +1.95・soft_item +2.15・stability −0.82。配置数増加が足切りを越えるシーンを増やし複数指標を押し上げた、Phase70以来の構造の再現(Phase87「フェーズ1優先」の洞察が得点に転換)。旧主枠 `mysolver_submit_cc_rcl.zip`(緩2 + `MYSOLVER_CUTCORNER_CANDIDATES=1` + `MYSOLVER_RCL_SHUFFLE=1`、public 57.545)は2枠目の候補として保持 |
 | **2枠目(Phase77選定、Phase83継続)** | `submissions/mysolver_submit_rest020.zip`(緩2閾値、REST_CLEARANCE=**0.020**)。**public 55.96**。REST_CLEARANCEの崖から離れた独立の故障モードという設計上の保険価値を優先し維持(Phase77の判断を継続) |
 | 幾何定数の探索(Phase75〜77) | `INCLUSION_MARGIN` は無効(触らない)。`REST_CLEARANCE` は 0.016 が最適点で両側とも低下、確定。`SAFETY_MARGIN_XY` は `safexy026`(0.026)の本番結果待ち。それが下がれば幾何定数の探索は終了 |
 | ビーム is_soft 修正(Phase78実装、Phase80で不採用確定) | `submissions/mysolver_submit_loose2_softlast.zip`(緩2 + `MYSOLVER_BEAM_SOFT_LAST=1`、SHA256 `04a6a1b88f7fcc7f57b32c164744f3abf59d910062f0bcaab2db8887811701b6`)。本番 public 57.18→55.68(**−1.51**)、num_placed_items −0.97pp・soft_item −9.90(崩壊の94%)。ローカル予測(num_placed_items +0.89pp)と逆方向。**不採用。既定 `MYSOLVER_BEAM_SOFT_LAST=0` のまま、枠には入れない**(zipは失敗の記録として保管、詳細はPhase80追記) |
@@ -743,6 +743,28 @@ Phase87の申し送り(フェーズ1のwindow数・1リスタートあたりの�
 直接確認できる(既定無効時は分岐にすら入らず、8/8ビット単位不変確認済み)。
 
 詳細は`results/phase88_report.md`。
+
+---
+
+## 11. 主枠更新とwindow数周辺の一段詰め(Phase89)
+
+w3が本番でpublic 57.894(cc_rcl比+0.349)を記録し、**主枠を`mysolver_submit_cc_rcl_w3.zip`
+に更新した**(§5に反映済み)。2枠目は「系統の違う保険」方針(rest020、Phase77継続)と
+「public上位2つ」方針(cc_rcl)を整理して報告し、判断はユーザーに委ねている
+(この時点では変更していない)。
+
+window数の周辺(2本/4本)と内訳(`20,30,None`/`10,20,None`)を28シーンでスイープした
+結果、**window数4本(w4)がローカルでw3を+1(752 vs 751)上回ったが、内訳は2シーン
+大幅悪化・2シーン大幅改善の相殺であり、w3が持つ「28シーン中1シーンしか悪化しない」
+低リスク性は無い。** window内訳は本数より影響が大きく、`10,20,None`はbaselineより
+悪化する(707、何もしないより悪い)ことを確認した。全ての大きな変化について
+決定性の再確認(bit単位一致)を実施済み。
+
+**w4のみ、局所的な正の信号(ただし高リスク)を持つ候補として`mysolver_submit_cc_rcl_w4.zip`
+(SHA256 `5f3c09902726b01e92bb8d6c88d918af3cbaf1648d3130bc2ca337bd7256eef8`)を作成した。
+本番投入はユーザーの判断待ち。** comp_203・comp_102・w2はw3より明確に劣るためzip化
+しなかった。**「フェーズ1のwindow配分はw3(3本/33.3s/`15,25,None`)が最も低リスクな
+最適点」という結論を確定させる。** 詳細は`results/phase89_report.md`。
 
 ---
 
