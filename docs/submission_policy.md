@@ -594,8 +594,9 @@ Phase37/40で既に実施している手法)を直接禁止する文言ではな
 
 | 項目 | 内容 |
 |---|---|
-| **主枠(Phase89更新)** | `submissions/mysolver_submit_cc_rcl_w3.zip`(cc_rcl土台 + `MYSOLVER_PHASE1_WINDOWS=15,25,None` + `MYSOLVER_PHASE1_SLICE_S=33.333333333333336`、SHA256 `a7bdef7ee08fa4386d54b4be9938cabf31354407608888640f788e18533cd48a`)。**public 57.894**(cc_rcl比+0.349)。内訳: num_placed +0.7pt・placement +1.95・soft_item +2.15・stability −0.82。配置数増加が足切りを越えるシーンを増やし複数指標を押し上げた、Phase70以来の構造の再現(Phase87「フェーズ1優先」の洞察が得点に転換)。旧主枠 `mysolver_submit_cc_rcl.zip`(緩2 + `MYSOLVER_CUTCORNER_CANDIDATES=1` + `MYSOLVER_RCL_SHUFFLE=1`、public 57.545)は2枠目の候補として保持 |
-| **2枠目(Phase77選定、Phase83継続)** | `submissions/mysolver_submit_rest020.zip`(緩2閾値、REST_CLEARANCE=**0.020**)。**public 55.96**。REST_CLEARANCEの崖から離れた独立の故障モードという設計上の保険価値を優先し維持(Phase77の判断を継続) |
+| **主枠(Phase89確定、Phase90承認)** | `submissions/mysolver_submit_cc_rcl_w3.zip`(cc_rcl土台 + `MYSOLVER_PHASE1_WINDOWS=15,25,None` + `MYSOLVER_PHASE1_SLICE_S=33.333333333333336`、SHA256 `a7bdef7ee08fa4386d54b4be9938cabf31354407608888640f788e18533cd48a`)。**public 57.894**(cc_rcl比+0.349)。内訳: num_placed +0.7pt・placement +1.95・soft_item +2.15・stability −0.82。配置数増加が足切りを越えるシーンを増やし複数指標を押し上げた、Phase70以来の構造の再現(Phase87「フェーズ1優先」の洞察が得点に転換) |
+| **2枠目(Phase90確定)** | `submissions/mysolver_submit_rest020.zip`(緩2閾値、REST_CLEARANCE=**0.020**)。**public 55.96**。Phase89の整理どおり、cc_rcl(57.545)はw3とcutcorner/rcl/閾値を完全に共有しリスクを分散しないため不採用、REST_CLEARANCE軸という独立の故障モードを持つrest020を維持(Phase77以来の「系統の違う保険を1枠持つ」方針を継続) |
+| w4(Phase89実装、Phase90本番判定・不採用) | `mysolver_submit_cc_rcl_w4.zip`(cc_rcl土台 + window4本/25s)。**public 57.511**(w3比−0.383)。**不採用。** ローカル28シーンでnet+1(752 vs 751)だったが2シーンの大幅悪化・2シーンの大幅改善の相殺であり、w3が持つ低リスク性(28シーン中1シーンのみ悪化)が無いとPhase89報告が事前に警告していたとおりの結果。**ローカルの弱い信号(net+1)は本番で符号が反転し、強い信号(w3のnet+34、悪化1シーンのみ)は本番に転移した——信号の強弱と本番転移の確実性が対応するという経験則をPhase90で確認(§9も参照)** |
 | 幾何定数の探索(Phase75〜77) | `INCLUSION_MARGIN` は無効(触らない)。`REST_CLEARANCE` は 0.016 が最適点で両側とも低下、確定。`SAFETY_MARGIN_XY` は `safexy026`(0.026)の本番結果待ち。それが下がれば幾何定数の探索は終了 |
 | ビーム is_soft 修正(Phase78実装、Phase80で不採用確定) | `submissions/mysolver_submit_loose2_softlast.zip`(緩2 + `MYSOLVER_BEAM_SOFT_LAST=1`、SHA256 `04a6a1b88f7fcc7f57b32c164744f3abf59d910062f0bcaab2db8887811701b6`)。本番 public 57.18→55.68(**−1.51**)、num_placed_items −0.97pp・soft_item −9.90(崩壊の94%)。ローカル予測(num_placed_items +0.89pp)と逆方向。**不採用。既定 `MYSOLVER_BEAM_SOFT_LAST=0` のまま、枠には入れない**(zipは失敗の記録として保管、詳細はPhase80追記) |
 | Deep Research由来3項目(Phase81実装、本番判定済み) | `mysolver_submit_dftrc.zip`は**不採用**(public 54.567、−2.618)。`mysolver_submit_cutcorner.zip`(57.394)・`mysolver_submit_rcl.zip`(57.334)は前進、Phase82でcc_rcl(57.545)に組み合わせて主枠採用。詳細はPhase81追記・`results/phase81_report.md` |
@@ -765,6 +766,33 @@ window数の周辺(2本/4本)と内訳(`20,30,None`/`10,20,None`)を28シーン�
 本番投入はユーザーの判断待ち。** comp_203・comp_102・w2はw3より明確に劣るためzip化
 しなかった。**「フェーズ1のwindow配分はw3(3本/33.3s/`15,25,None`)が最も低リスクな
 最適点」という結論を確定させる。** 詳細は`results/phase89_report.md`。
+
+---
+
+## 12. window内訳の設計原理と探索フェーズの総括(Phase90)
+
+w4は本番でpublic 57.511(w3比**−0.383**)で**不採用確定**。主枠はw3(57.894)・
+2枠目はrest020(55.96)で確定し、上表(§5)に反映済み。
+
+**教訓の確定**: w3(ローカル28シーン中1シーンのみ悪化)は本番に転移し、
+w4(net+1だが2シーン大幅悪化を伴う)は本番で符号が反転した。**「ローカル信号の
+強弱(特に悪化シーン数の少なさ=頑健性)と本番転移の確実性が対応する」**という
+経験則を確認した(§5の教訓群に追記)。
+
+windowが構築アルゴリズムで何を制御しているか(体積優先ソート順の先頭N件だけを
+候補プールにする、というトンネルビジョン回避の視野幅)をコードから確認し、
+Phase88-89の既存データを分析した。**「window=15を残すと重量級・優先荷物系の
+シーンに有利」という部分的な仮説は立てられたが、「なぜ15,25,None全体が最良か」
+を説明する統一原理は見出せなかった。** この部分的な仮説に基づき`15,20,None`/
+`15,30,None`の2水準を28シーンで実測した結果、**両方ともw3より悪化シーン数が
+多く(3 > w3の1)、事前に明示した判定基準(悪化シーン数がw3以下かつnet改善)を
+満たさなかった。** comp_1520(15,20,None)はnet最大(+9)を記録したが、w4と同じ
+「弱く高リスクな信号」パターンと判断し、**zip化しなかった。**
+
+**「フェーズ1のwindow配分はw3で確定、この軸(数・内訳とも)も出し切った」と
+結論する。** Phase73以降の18軸の総括表・現在の主枠/2枠目・教訓・残り期間の
+推奨方針(未解決の`safexy026`確認 → 防御フェーズへの移行)は
+`results/phase90_report.md`に記録した。
 
 ---
 
