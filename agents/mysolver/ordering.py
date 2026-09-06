@@ -1833,6 +1833,11 @@ def _lns_improve_plan(base_plan, order, item_list, container_list, items_by_inde
     rng = np.random.default_rng(0)
     n_iter = 0
     _iter_cap = int(os.environ.get('MYSOLVER_PACK_LNS_ITERS', '18'))
+    # Phase93+/2026-09-07 診断: 搬入経路を塞いで sudden-death を招く荷物は**中盤**で
+    # 置かれている(死亡 step 24 でも犯人は step 15-20)ため、末尾K除去では通路が空かない。
+    # MID 有効時は偶数反復で「中盤の連続ウィンドウK個」を外し、外した分を優先的に再充填する。
+    # 既定 '0' では従来どおり末尾K除去のみで、消費 rng 列・戻り値ともビット単位で不変。
+    _mid = os.environ.get('MYSOLVER_PACK_LNS_MID', '0') == '1'
     while (not total_budget.exhausted() and n_iter < _iter_cap
            and time.perf_counter() < wall_deadline):
         n_iter += 1
@@ -1840,11 +1845,24 @@ def _lns_improve_plan(base_plan, order, item_list, container_list, items_by_inde
             break
         K = int(rng.integers(2, max(3, len(best) // 4 + 1)))
         K = min(K, len(best) - 1)
-        keep = best[:len(best) - K]
+        if _mid and n_iter % 2 == 0 and len(best) > K + 2:
+            s = int(rng.integers(1, len(best) - K))
+            keep = best[:s] + best[s + K:]
+            removed_ids = [p['index'] for p in best[s:s + K]]
+        else:
+            keep = best[:len(best) - K]
+            removed_ids = [p['index'] for p in best[len(best) - K:]]
         kept = {p['index'] for p in keep}
         conts = _replay_plan(container_list, items_by_index, keep)
-        rest = [items_by_index[i] for i in all_ids if i not in kept]
-        rng.shuffle(rest)
+        if _mid:
+            # 外した荷物を先に(元位置付近へ戻す機会を与える)、次に元々未配置だった荷物。
+            never = [i for i in all_ids if i not in kept and i not in set(removed_ids)]
+            rng.shuffle(removed_ids)
+            rng.shuffle(never)
+            rest = [items_by_index[i] for i in list(removed_ids) + never]
+        else:
+            rest = [items_by_index[i] for i in all_ids if i not in kept]
+            rng.shuffle(rest)
         slice_b = total_budget.child_seconds(max(3.0, budget_s / 6.0))
         added = _greedy_fill_pool(conts, rest, slice_b, rng=rng, noise=PACK_LNS_NOISE)
         cand = keep + added
