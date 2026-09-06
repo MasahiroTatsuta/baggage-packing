@@ -159,6 +159,7 @@ zip -r mysolver_submit.zip ./mysolver
 # 生成した mysolver_submit.zip を SIGNATE に投稿（1日5回まで）
 ```
 - 提出前チェック: ネット接続処理を含めない／`requirements.txt` は Dockerfile 未導入ライブラリのみ記載（基本は numpy/pybullet/gymnasium で完結させる）／メモリ12GB・policy8s以内。
+- **保全ルール（2026-09-06 追加）**: 提出用など zip を作ったら、その都度 `cp <作った>.zip ~/Desktop/` で **Desktop 直下にもコピー**する（作業ツリー消失で phase93+ を一度喪失したため。zip は `.gitignore` 対象で git に載らない）。併せて**コード変更は phase 単位で必ず commit + push**する。
 
 ---
 
