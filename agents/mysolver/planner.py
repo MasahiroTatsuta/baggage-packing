@@ -151,10 +151,10 @@ MIN_SUPPORT_RATIO = 0.9     # 荷物の底面がこれだけ支持面に乗っ�
 # の3条件で判定する((2)(3)が「角にちょこんと乗る」不安定配置を排除する)。
 # Phase67(ステップ1-1): 支持閾値スイープ用にenv化(既定値は変更しない、8/8ビット単位不変を
 # scripts/bp_check.shで確認済み)。Phase66で一度実装して差分から除去したものの復活。
-MIN_UNION_SUPPORT_RATIO = float(os.environ.get('MYSOLVER_MIN_UNION_SUPPORT_RATIO', '0.55'))
+MIN_UNION_SUPPORT_RATIO = float(os.environ.get('MYSOLVER_MIN_UNION_SUPPORT_RATIO', '0.35'))
 SUPPORT_LEVEL_TOL = 0.02        # 「同じ高さ帯の支持面」とみなす上面zの許容差
-MIN_SUPPORT_SPAN_RATIO = float(os.environ.get('MYSOLVER_MIN_SUPPORT_SPAN_RATIO', '0.6'))    # 接触領域の外接矩形が底面の各軸方向をまたぐ最小割合
-MAX_SUPPORT_CENTROID_OFFSET = float(os.environ.get('MYSOLVER_MAX_SUPPORT_CENTROID_OFFSET', '0.15'))  # 接触面積重心の底面中心からのずれ(半寸法に対する比)
+MIN_SUPPORT_SPAN_RATIO = float(os.environ.get('MYSOLVER_MIN_SUPPORT_SPAN_RATIO', '0.4'))    # 接触領域の外接矩形が底面の各軸方向をまたぐ最小割合
+MAX_SUPPORT_CENTROID_OFFSET = float(os.environ.get('MYSOLVER_MAX_SUPPORT_CENTROID_OFFSET', '0.25'))  # 接触面積重心の底面中心からのずれ(半寸法に対する比)
 # Phase13(ターゲット2): B01_1c_40_plain の stability(94.20 < 97制約)回収。
 #
 # phase11 §5.2 で「union のしきい値を全シーン一律に締めるのは割に合わない」(B01 fill -10.51,
@@ -214,6 +214,32 @@ CORRIDOR_WEIGHT = float(os.environ.get('MYSOLVER_CORRIDOR_W', '6.0'))
 # として実装する(既存項の重みは一切変更しない、加算のみ)。
 DFTRC_STRATEGY = os.environ.get('MYSOLVER_DFTRC_STRATEGY', '0') == '1'
 DFTRC_WEIGHT = float(os.environ.get('MYSOLVER_DFTRC_WEIGHT', '1.0'))
+
+# Phase92(実験、既定無効): 「前面開放」——搬入経路(front=-Y面から入って奥へ、次に横へ)の
+# 死亡(is_valid=False)が本ソルバの唯一かつ主要な敗因(26シーン中25でこれで停止、
+# 配置率~50%で頭打ち。results/phase92_report.md)。back_term(5.85)や corridor_penalty は
+# ソフト項で貪欲の局所選択を覆いきれず、パックが「奥にまだ空きがあるのに手前に置いて
+# 自ら経路を塞ぐ」状態に何度も陥る。FRONT_WALL=1 のとき、合法候補のうち
+# 「奥面が奥壁 or 直後の障害物に密着している(隙間<FRONT_WALL_GAP)」ものだけに絞る
+# (=奥から手前へ厳密に壁積みさせ、前面を最後まで開けておく)。密着候補が1つも無い
+# 場合は絞らない(行き詰まりを強制しない)。fill は多少落ちても配置数が伸びれば
+# 足切り突破でトータル+(Phase70)という賭け。
+# FRONT_WALL='1': ハードフィルタ(合法候補を奥密着のものだけに絞る)。probe で A01 +6 / A02 -3。
+# FRONT_WALL='2': ソフト(_score に「奥の隙間 gap_behind * FRONT_WALL_W」の減点。貪欲が
+#   奥密着スポットを強く選好するが、全部悪ければ非密着も選べる=A02 のような密シーンで
+#   ハードフィルタの弊害を避ける)。
+FRONT_WALL = os.environ.get('MYSOLVER_FRONT_WALL', '0')
+FRONT_WALL_GAP = float(os.environ.get('MYSOLVER_FRONT_WALL_GAP', '0.04'))
+FRONT_WALL_W = float(os.environ.get('MYSOLVER_FRONT_WALL_W', '8.0'))
+FRONT_WALL_CAP = float(os.environ.get('MYSOLVER_FRONT_WALL_CAP', '0.5'))  # gap_behind の減点上限[m]
+
+# Phase92: 搬入経路の掃引衝突判定だけに足す追加マージン[m](既定0.0=不変)。
+# 狙い: look_ahead=1 のシーン(18/28)ではオンラインに荷物選択の自由が無く、順序が全て。
+# geo シミュ(planned位置)と実機(沈降後、最大0.3mドリフト)の乖離で、「ギリギリ通れる」
+# 搬入経路がドリフトで塞がり途中死する(A02: geo 28個 vs 実機 19個)。掃引判定に余裕を
+# 足すと、勝ち残る順序/位置は搬入経路に相応の隙間を持つ=数cmのドリフトで壊れない。
+# collide_final(最終着地の内包/支持)には足さない——fill/support の較正は動かさない。
+TRANSPORT_MARGIN = float(os.environ.get('MYSOLVER_TRANSPORT_MARGIN', '0.0'))
 
 # Phase20(ターゲット2): 影シミュレータの fill 計上期待値を、配置目標点ではなく
 # **沈降後の静止姿勢**の slack で評価するかどうか。
@@ -575,7 +601,7 @@ def _extreme_points(container, half, obstacles):
 # 仮定した world_z で、荷物の高さに応じた到達可能な最大x(geo.cutcorner_boundary_x)を解析的に
 # 求め、コンテナ内の複数y位置と組にして候補点として追加するだけで、grid/extreme pointは
 # 一切変更しない(既存関数の戻り値に和を取るだけ)。
-CUTCORNER_CANDIDATES = os.environ.get('MYSOLVER_CUTCORNER_CANDIDATES', '0') == '1'
+CUTCORNER_CANDIDATES = os.environ.get('MYSOLVER_CUTCORNER_CANDIDATES', '1') == '1'
 CUTCORNER_N_Y_SAMPLES = int(os.environ.get('MYSOLVER_CUTCORNER_N_Y', '5'))
 CUTCORNER_MARGIN_EPS = float(os.environ.get('MYSOLVER_CUTCORNER_MARGIN_EPS', '0.003'))
 
@@ -765,10 +791,53 @@ def _apply_obstacle_filters(world_pos, half, obstacles, x_lo_arr, x_hi_arr, y_lo
         # 掃引(搬入経路の移動中)は「別の荷物のすぐ上をかすめる」際の実余裕を確保するため、
         # z方向により大きい margin(SWEEP_Z_MARGIN)を要求する。
         collide_final = geo.box_overlap_batch(min_final, max_final, center, ohalf, margin_z=margin_z_final)
-        collide_sweep = geo.box_overlap_batch(min_sweep, max_sweep, center, ohalf, margin_z=geo.SWEEP_Z_MARGIN)
+        collide_sweep = geo.box_overlap_batch(min_sweep, max_sweep, center, ohalf,
+                                              margin_xy=geo.SAFETY_MARGIN_XY + TRANSPORT_MARGIN,
+                                              margin_z=geo.SWEEP_Z_MARGIN + TRANSPORT_MARGIN)
         ok &= ~collide_final
         ok &= ~collide_sweep
     return ok
+
+
+def transport_legal_batch(container, half, world_pos, obstacles=None):
+    """Phase93: (N,3) world_pos の各点について、搬入 L 経路(Y掃引→X掃引)が
+    obstacles に対して合法か。obstacles 省略時は container の全既配置荷物+静的物。
+    式は agent._fallback_transport_legal / _evaluate_candidates(= validator.check_transport_path)
+    と同一。plan-executor / 前後関係DAG が使う。"""
+    world_pos = np.asarray(world_pos, dtype=np.float64)
+    if world_pos.ndim == 1:
+        world_pos = world_pos[None, :]
+    thickness = container['thickness']; height = container['height']
+    buffer = container.get('buffer', 0.0); ox = container['center'][0]
+    n = world_pos.shape[0]
+    wx = world_pos[:, 0]; wy = world_pos[:, 1]; wz = world_pos[:, 2]
+    local_x = wx - ox
+    bottom_z = wz - half[2]
+    is_resting = np.zeros(n, dtype=bool)
+    for rv in (thickness, height / 2.0 + thickness + buffer):
+        d = bottom_z - rv
+        is_resting |= (d >= 0.0) & (d <= 0.05)
+    top_z = wz + half[2]
+    effective_start = np.where(is_resting, 0.0, geo.START_Z)
+    handled = is_resting.copy()
+    for c_z in (height / 2.0 + buffer, height + buffer - thickness):
+        clearance = c_z - top_z
+        trigger = (~handled) & (clearance >= 0.0) & (clearance < (effective_start + geo.CEILING_MARGIN))
+        effective_start = np.where(trigger, np.maximum(0.0, clearance - geo.CEILING_MARGIN - 0.0005), effective_start)
+        handled = handled | trigger
+    ceiling_sweep = height + buffer - thickness - half[2] - geo.START_MARGIN
+    sweep_z = np.minimum(ceiling_sweep, wz + effective_start)
+    x_min_local, x_max_local = geo.transport_x_bounds(container, half[0])
+    x_min_local -= ox; x_max_local -= ox
+    start_x_world = np.clip(local_x, x_min_local, x_max_local) + ox
+    y_entry = -container['width'] / 2.0
+    y1_lo = np.minimum(y_entry, wy); y1_hi = np.maximum(y_entry, wy)
+    x2_lo = np.minimum(start_x_world, wx); x2_hi = np.maximum(start_x_world, wx)
+    if obstacles is None:
+        obstacles = _collect_obstacles(container)
+    legal1 = _apply_obstacle_filters(world_pos, half, obstacles, start_x_world, start_x_world, y1_lo, y1_hi, sweep_z)
+    legal2 = _apply_obstacle_filters(world_pos, half, obstacles, x2_lo, x2_hi, wy, wy, sweep_z)
+    return legal1 & legal2
 
 
 def _contact_bonus(container, half, world_x, world_y, world_z, obstacles):
@@ -799,6 +868,31 @@ def _contact_bonus(container, half, world_x, world_y, world_z, obstacles):
         touch += (z_overlap & (x_touch | y_touch)).astype(float)
 
     return touch
+
+
+def _gap_behind(container, half, world_x, world_y, world_z, obstacles):
+    """Phase92: 各候補について「奥面から、x/zで重なる直後の障害物の手前面(無ければ奥壁)まで
+    の隙間[m]」を返す。0 = 奥壁 or 障害物に密着。大きいほど「奥に空きを残して自ら搬入経路を
+    塞ぐ」配置。world_y は _evaluate_candidates では local_y と同一。
+    """
+    width = container['width']; thickness = container['thickness']
+    back_wall_y = width / 2.0 - thickness
+    cand_back = world_y + half[1]
+    gap = np.full(world_x.shape[0], back_wall_y) - cand_back   # まず奥壁までの隙間
+    for center, oh in obstacles:
+        front_face = center[1] - oh[1]
+        g = front_face - cand_back
+        behind = g >= -1e-6                                    # 障害物が候補より奥
+        x_ov = np.abs(world_x - center[0]) < (half[0] + oh[0] - 1e-6)
+        z_ov = (world_z - half[2] < center[2] + oh[2] - 1e-6) & (world_z + half[2] > center[2] - oh[2] + 1e-6)
+        m = behind & x_ov & z_ov
+        gap = np.where(m, np.minimum(gap, g), gap)
+    return np.maximum(0.0, gap)
+
+
+def _back_abutting_mask(container, half, world_x, world_y, world_z, obstacles):
+    """FRONT_WALL='1'(ハード)用: 隙間 <= FRONT_WALL_GAP を True。"""
+    return _gap_behind(container, half, world_x, world_y, world_z, obstacles) <= FRONT_WALL_GAP
 
 
 def _corridor_excess(container, half, world_x, world_y, world_z, obstacles):
@@ -855,7 +949,7 @@ def _corridor_excess(container, half, world_x, world_y, world_z, obstacles):
 
 
 def _score(container, local_x, local_y, world_z, half, item, support_ratio, contact_bonus, slack,
-           corridor_excess=None):
+           corridor_excess=None, front_gap=None):
     length = container['length']; width = container['width']; height = container['height']
     z_term = -world_z * 12.0
     # 壁ギリギリ(real evaluatorのinclusion_margin付近)の配置は、後続荷物の投入や自身の
@@ -886,6 +980,8 @@ def _score(container, local_x, local_y, world_z, half, item, support_ratio, cont
     cog_term = (1.0 - height_ratio) * mass_norm * 1.2
     # Phase14: 階段状スカイライン(奥の搬入経路を塞がない)選好。詳細は CORRIDOR_WEIGHT 参照。
     corridor_penalty = 0.0 if corridor_excess is None else corridor_excess * CORRIDOR_WEIGHT
+    # Phase92: 前面開放ソフト減点。奥に残す隙間[m](CAPで頭打ち)× FRONT_WALL_W。
+    front_open_penalty = 0.0 if front_gap is None else np.minimum(front_gap, FRONT_WALL_CAP) * FRONT_WALL_W
     # Phase81(a、既定無効): DFTRC——コンテナのローカル座標系での最大隅(x=length/2, y=width/2,
     # z=height)からの正規化ユークリッド距離を加える。既存項(especiallyback_termの「奥(y大)を
     # 優先」)とy軸で競合しうるが、DFTRCが実際に軌道を変えるかどうかは本番A/Bで判定する対象
@@ -898,7 +994,8 @@ def _score(container, local_x, local_y, world_z, half, item, support_ratio, cont
     else:
         dftrc_term = 0.0
     return (z_term + back_term + edge_term + support_term + contact_term + prio_term
-            - stability_penalty + cog_term + boundary_term - corridor_penalty + dftrc_term)
+            - stability_penalty + cog_term + boundary_term - corridor_penalty + dftrc_term
+            - front_open_penalty)
 
 
 def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, budget, stats=None,
@@ -1156,12 +1253,21 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     if stats is not None:
         stats['success'] = stats.get('success', 0) + 1
 
+    # Phase92(既定無効): 前面開放。'1'=ハードフィルタ、'2'=ソフト減点。
+    front_gap = None
+    if FRONT_WALL == '1':
+        abut = _back_abutting_mask(container, half, world_x, world_y, world_z, obstacles)
+        if np.any(legal & abut):
+            legal = legal & abut
+    elif FRONT_WALL == '2':
+        front_gap = _gap_behind(container, half, world_x, world_y, world_z, obstacles)
+
     contact = _contact_bonus(container, half, world_x, world_y, world_z, obstacles)
     corridor = (_corridor_excess(container, half, world_x, world_y, world_z,
                                   corridor_obstacles if corridor_obstacles is not None else obstacles)
                 if CORRIDOR_WEIGHT > 0.0 else None)
     scores = _score(container, local_x, local_y, world_z, half, item, landing_ratio, contact, slack,
-                    corridor_excess=corridor)
+                    corridor_excess=corridor, front_gap=front_gap)
     scores = np.where(legal, scores, -np.inf)
     best_i = int(np.argmax(scores))
     if not legal[best_i]:
@@ -1237,6 +1343,28 @@ def _apply_y_slice_filter(candidate_xy, half_y, y_active_lo):
         return candidate_xy
     keep = (candidate_xy[:, 1] - half_y) >= (y_active_lo - Y_SLICE_EPS)
     return candidate_xy[keep]
+
+
+def validate_planned_xy(container, item, local_xy, orientation, prepacked_ids=None,
+                        strict_support=False):
+    """Phase93: plan-executor 用。計画済みの (local_x, local_y, orientation) が、現在の
+    container 状態に対して合法(内包・搬入経路・支持すべて OK)かを `_evaluate_candidates`
+    でそのまま判定する。合法なら結果 dict(適正な着地 z / slack 込み)、駄目なら None。
+    棚の縁など「幾何的には近いが物理的に支持不足」の計画位置をここで弾き、agent 側は
+    planner.plan の答えへ縮退する。"""
+    try:
+        lwh = (item['length'], item['width'], item['height'])
+        half = geo.half_extent(lwh, orientation)
+        obstacles = _collect_obstacles(container)
+        supports = _landing_supports(container)
+        corridor_obstacles = _collect_corridor_obstacles(container, prepacked_ids)
+        cxy = np.array([[float(local_xy[0]), float(local_xy[1])]], dtype=np.float64)
+        b = SearchBudget.from_seconds(0.5)   # 単一候補の検証。policy_timeout(8s)への余裕を保つ
+        return _evaluate_candidates(container, item, half, obstacles, supports, cxy, b,
+                                    strict_support=strict_support,
+                                    corridor_obstacles=corridor_obstacles)
+    except Exception:
+        return None
 
 
 def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container,

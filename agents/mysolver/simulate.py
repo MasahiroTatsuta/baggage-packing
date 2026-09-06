@@ -67,6 +67,19 @@ LAST_BEAM_TRACE: list = []
 # 受けた A/B 用のスイッチ。
 _BEAM_SOFT_LAST = os.environ.get('MYSOLVER_BEAM_SOFT_LAST', '0') == '1'
 
+# Phase92: 沈降ドリフトの簡易モデル。既定 '0'(無効=従来とビット単位同一)。
+# 背景: look_ahead=1 が 18/28 シーンでオンラインに荷物選択の自由が無く offline の順序が全て。
+# だが geo シミュ(_place は純幾何、real の place_item=300ステップ物理を無視)は実機を
+# 30〜50% 過大評価する(A01: geo 28 / 実機 19)。原因は沈降ドリフト——real は荷物が
+# 支持面まで落ち(REST_CLEARANCE の隙間が詰まる)、部分支持では傾いて footprint が広がる。
+# planned 位置で「ギリギリ通れる」と判定した搬入経路が、実機のドリフト後に塞がって死ぬ。
+# 有効時、_place が保存する既配置荷物の下流用 AABB を「z を REST_CLEARANCE 分落とす +
+# x/y を DRIFT_XY 膨張」させる。**offline の simulate_order / beam_construct_order だけに効く**
+# (online の agent.policy は observation の実状態を読むので無影響=攻めの積極性は維持)。
+DRIFT_MODEL = os.environ.get('MYSOLVER_DRIFT_MODEL', '0') == '1'
+DRIFT_XY = float(os.environ.get('MYSOLVER_DRIFT_XY', '0.02'))
+DRIFT_Z_DROP = float(os.environ.get('MYSOLVER_DRIFT_Z_DROP', str(geo.REST_CLEARANCE)))
+
 # Phase81(c、既定無効): RCL(restricted candidate list)方式のリスタート初期順序。
 # `shuffle_ties=True` のとき、従来は remaining の鍵を rng.shuffle() で一様ランダムに
 # 完全シャッフルしていた(Phase71-72で「shuffle_tiesという名前に反して全体シャッフルである」
@@ -76,7 +89,7 @@ _BEAM_SOFT_LAST = os.environ.get('MYSOLVER_BEAM_SOFT_LAST', '0') == '1'
 # 一様シャッフルより「大きい荷物ほど先に来やすい」バイアスがかかった、多様だが無秩序ではない
 # 初期順序になる。既定 '0' では _rcl_shuffle_keys を呼ばず、rng.shuffle による従来の
 # 一様シャッフルのまま(ビット単位で不変)。
-_RCL_SHUFFLE = os.environ.get('MYSOLVER_RCL_SHUFFLE', '0') == '1'
+_RCL_SHUFFLE = os.environ.get('MYSOLVER_RCL_SHUFFLE', '1') == '1'
 _RCL_FRACTION = float(os.environ.get('MYSOLVER_RCL_FRACTION', '0.3'))
 
 
@@ -183,6 +196,15 @@ def _place(container: dict, item: dict, action: dict) -> dict:
     placed = dict(item)
     placed['pos'] = (float(lp[0]) + ox, float(lp[1]), float(lp[2]))
     placed['orn'] = _ORN_QUATS[action['orientation']]
+    if DRIFT_MODEL:
+        # 沈降ドリフトの簡易モデル: z を落とし、下流の障害物 AABB を x/y に膨らませる。
+        # placed['pos'] 自体も落とす(cog/corridor などが pos を直接読むため)。
+        drifted = (placed['pos'][0], placed['pos'][1], placed['pos'][2] - DRIFT_Z_DROP)
+        placed['pos'] = drifted
+        absR = geo.quat_abs_rotmat(placed['orn'])
+        half_world = absR @ np.array([item['length'] / 2.0, item['width'] / 2.0, item['height'] / 2.0])
+        half_world = half_world + np.array([DRIFT_XY, DRIFT_XY, 0.0])
+        placed['_aabb_cache'] = (np.array(drifted, dtype=np.float64), half_world)
     return placed
 
 
@@ -257,7 +279,8 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
                     snapshot_out: dict | None = None,
                     snapshots_out: dict | None = None,
                     contrib_out: list | None = None,
-                    compute_cog_proxy: bool = False) -> tuple:
+                    compute_cog_proxy: bool = False,
+                    plan_out: list | None = None) -> tuple:
     """
     online の ItemStreamManager(lookahead_k個のプールを毎ステップ最大まで補充)と同じ
     プール管理則で、順序 order 通りに荷物を流し込みながら planner.plan を毎ステップ呼ぶ。
@@ -433,6 +456,12 @@ def simulate_order(container_list: list[dict], items_by_index: dict[int, dict], 
             n_stacked += 1
             stacking_risk_sum += stacking_risk
         placed_ids.append(item['index'])
+        if plan_out is not None:
+            pp = action['place_pos']
+            plan_out.append({'index': int(item['index']),
+                             'container_idx': int(action['container_idx']),
+                             'place_pos': (float(pp[0]), float(pp[1]), float(pp[2])),
+                             'orientation': int(action['orientation'])})
         if item.get('is_prioritized', False):
             n_prio_placed += 1
             if has_prio_container and not container.get('is_prioritized', False):

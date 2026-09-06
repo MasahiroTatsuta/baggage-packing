@@ -17,6 +17,17 @@ POLICY_TIME_BUDGET = 5.5
 # Phase38(ステップA): 環境変数化(既定値は6.0のまま不変)。
 POLICY_HARD_WALL = float(os.environ.get('MYSOLVER_POLICY_HARD_WALL', '6.0'))
 
+# Phase93(既定無効): plan-executor。optimize() が完全プラン(順序 + 各荷物の配置)を作り、
+# policy() は毎ステップ、可視荷物の計画済み配置が今も搬入合法なら「そのまま実行」、
+# 崩れていたら従来どおり planner.plan で引き直す。look_ahead=1 が 18/28シーンで
+# オンラインに荷物選択の自由が無い(=offlineの順序と位置が全て)ことへの対処。
+PLAN_EXECUTOR = os.environ.get('MYSOLVER_PLAN_EXECUTOR', '1') == '1'
+# plan-executor / PACK_LNS を無効化するシーンの判定モード:
+#   'shelf_prepacked'(既定): 棚あり or 既積みありのシーンで無効(Phase93 v3)
+#   'lookahead'             : look_ahead>1 のシーンでのみ無効(棚/既積みでも lk=1 なら有効化)
+#   'none'                  : どのシーンでも有効
+PLAN_EXECUTOR_GATE = os.environ.get('MYSOLVER_PLAN_EXECUTOR_GATE', 'lookahead')
+
 # 開発中の反復を速くするための環境変数。未設定なら本番想定の ordering.DEFAULT_TIME_BUDGET
 # (165s、180sタイムアウトに対する安全マージン込み)を使う。最終計測時は未設定のまま
 # (=170s相当のフル予算)で回すこと。
@@ -218,6 +229,7 @@ class Agent:
         self._optimize = True
         self._prepacked_ids = None
         self._policy_telemetry_done = False  # Phase38(ステップ1-B): 最初の1回だけ埋める
+        self._plan_by_index = None           # Phase93: PLAN_EXECUTOR 用の完全プラン
 
     def get_init_states(self, init_states: dict) -> None:
         self._lookahead_k = init_states.get('lookahead_k')
@@ -234,9 +246,28 @@ class Agent:
         try:
             budget_str = os.environ.get(OPTIMIZE_BUDGET_ENV)
             budget = float(budget_str) if budget_str else ordering.DEFAULT_TIME_BUDGET
+            if PLAN_EXECUTOR:
+                # Phase93: 完全プラン(順序 + 各荷物の配置)を作り、policy() で実機再現する。
+                order, plan = ordering.build_plan(item_list, self._container_list,
+                                                  self._lookahead_k, time_budget=budget)
+                # 棚あり / 既積みありのシーンでは offline プランの位置が実機の物理
+                # (棚の縁での傾き・既積みの沈降)と乖離しやすく、実測で w3 を下回った
+                # (C01 -7 / C02 -6 / prepacked 各 -3〜-4)。これらのシーンは plan-executor を
+                # 無効化して従来の per-step planner.plan に委ねる。
+                cl = self._container_list or []
+                if PLAN_EXECUTOR_GATE == 'none':
+                    risky = False
+                elif PLAN_EXECUTOR_GATE == 'lookahead':
+                    risky = (self._lookahead_k or 1) > 1
+                else:
+                    risky = any(str(c.get('shelf')).lower() == 'true' or c.get('packed_items')
+                                for c in cl)
+                self._plan_by_index = None if (risky or not plan) else {p['index']: p for p in plan}
+                return order
             return ordering.build_order(item_list, self._container_list, self._lookahead_k, time_budget=budget)
         except Exception:
             # 探索中に何らかの例外が起きても、必ず有効な完全順列を返す最終フォールバック。
+            self._plan_by_index = None
             return ordering.order_items(item_list)
 
     def policy(self, observation: dict) -> dict:
@@ -245,7 +276,33 @@ class Agent:
         pool_list = observation.get('pool_list', [])
 
         action = None
-        if pool_list and container_list:
+
+        # Phase93: plan-executor —— 計画済みの XY/向きが、現在状態で完全合法(内包・搬入・
+        # 支持すべて)なら、planner が算出した適正 z でそのまま実行。棚の縁など支持不足の
+        # 計画位置はここで弾いて planner.plan の答えへ縮退する。
+        if PLAN_EXECUTOR and self._plan_by_index and pool_list and container_list:
+            try:
+                cont_by_idx = {c.get('index', i): c for i, c in enumerate(container_list)}
+                for pi, pit in enumerate(pool_list):
+                    p = self._plan_by_index.get(pit.get('index'))
+                    if p is None:
+                        continue
+                    cont = cont_by_idx.get(p['container_idx'])
+                    if cont is None:
+                        continue
+                    lp = p['place_pos']
+                    r = planner.validate_planned_xy(cont, pit, (lp[0], lp[1]), p['orientation'],
+                                                    prepacked_ids=self._prepacked_ids,
+                                                    strict_support=not self._optimize)
+                    if r is not None:
+                        action = {'item_idx': pi, 'container_idx': p['container_idx'],
+                                  'place_pos': np.asarray(r['local_pos'], dtype=np.float32),
+                                  'orientation': p['orientation']}
+                        break
+            except Exception:
+                action = None
+
+        if action is None and pool_list and container_list:
             try:
                 action = planner.plan(container_list, pool_list, time_budget=POLICY_TIME_BUDGET,
                                        hard_deadline=time.perf_counter() + POLICY_HARD_WALL,

@@ -117,19 +117,27 @@ def _parse_phase1_windows(s: str) -> list:
     return out
 
 
-_PHASE1_WINDOWS_ENV = os.environ.get('MYSOLVER_PHASE1_WINDOWS', '')
+_PHASE1_WINDOWS_ENV = os.environ.get('MYSOLVER_PHASE1_WINDOWS', '15,25,None')
 # 例: MYSOLVER_PHASE1_WINDOWS="15,30,None" (3本) / "10,15,20,25,30,40,None" (7本)
 PHASE1_WINDOWS = _parse_phase1_windows(_PHASE1_WINDOWS_ENV) if _PHASE1_WINDOWS_ENV else list(WINDOW_CANDIDATES)
 # 1リスタートあたりの名目秒。既定はCONSTRUCT_SLICEと同じ20.0。
 # 「フェーズ1に配分される総予算は変えず内訳だけを変える」実験では、
 # MYSOLVER_PHASE1_WINDOWS(本数)とMYSOLVER_PHASE1_SLICE_Sをセットで動かし、
 # 本数×秒数 ≈ 従来の5本×20.0=100.0秒 を保つ。
-PHASE1_SLICE_S = float(os.environ.get('MYSOLVER_PHASE1_SLICE_S', str(CONSTRUCT_SLICE)))
+PHASE1_SLICE_S = float(os.environ.get('MYSOLVER_PHASE1_SLICE_S', '33.333333333333336'))
 # 既定'0': 従来どおり「満額の枠が入らないなら新しいリスタートを始めない」
 # (Phase17の決定的接頭辞性、pending_windowsが2本以上残っている限りは常にこちら)。
 # '1': windowリストの**最後の1本だけ**、満額に届かなくても残り予算をそのまま使って
 # 構築する(捨てない)。2本以上残っている場合の挙動は変えない。
 PHASE1_ALLOW_PARTIAL_LAST = os.environ.get('MYSOLVER_PHASE1_ALLOW_PARTIAL', '0') == '1'
+
+# Phase91: フェーズ1は従来、体積優先(strategy_orders[0])の並び順だけを厚く探索する
+# (windowを変えるリスタートの種は常に同じ)。本フラグは**windowリストの最後の1本だけ**、
+# 種を体積優先から他戦略(count_first/big_first/layer_first)に差し替える最小の実験用。
+# 既定'': 従来どおり全リスタートが体積優先(ビット単位不変)。
+# 空でない値かつSTRATEGIESの名前(接頭辞_strategy_を外したもの)と一致する場合のみ有効。
+# 総予算・window本数・各リスタートの秒数は一切変えない(体積優先の取り分が1本減るだけ)。
+PHASE1_EXTRA_STRATEGY = os.environ.get('MYSOLVER_PHASE1_EXTRA_STRATEGY', '').strip()
 
 # Phase17: optimize() 全体の非常用の最終安全弁(壁時計、秒)。本番の optimization_timeout
 # (180s、実効上限170s)を絶対に踏まないための保険であり、通常は発火しない。
@@ -862,7 +870,7 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     if not container_list or not item_list:
         LAST_BUILD_DIAGNOSTICS.clear()
         LAST_BUILD_DIAGNOSTICS.update({'winner_source': 'heuristic', 'winner_strategy': 'order_items(volume_desc)',
-                                        'n_items': len(item_list)})
+                                        'n_items': len(item_list), 'best_count': None})
         return heuristic_order
     k = max(1, int(lookahead_k or 1))
 
@@ -1002,10 +1010,21 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # これにより小さい予算の系列は大きい予算の系列の**接頭辞**になり、
     # build_order は「決定的な系列の先頭 N 個の argmax」= N に対して単調になる。
     default_items = strategy_orders[0][1]
+    # Phase91: 既定''なら以下は常にNoneのまま=全リスタートが体積優先(従来どおり)。
+    _strategy_by_short_name = {name.replace('_strategy_', '', 1): items
+                                for name, items in strategy_orders}
+    _extra_seed_items = (_strategy_by_short_name.get(PHASE1_EXTRA_STRATEGY)
+                          if PHASE1_EXTRA_STRATEGY else None)
     pending_windows = list(PHASE1_WINDOWS)
     while pending_windows:
         if total_budget.exhausted():   # 非常用安全弁が発火した場合のみ真になりうる
             break
+        # Phase91: 最後の1本(=pending_windowsを消費し終える1本)だけ、
+        # PHASE1_EXTRA_STRATEGYが有効な名前を指していれば種を差し替える。
+        # 既定(_extra_seed_items is None)では常にdefault_items=体積優先のまま。
+        use_extra = _extra_seed_items is not None and len(pending_windows) == 1
+        seed_items = _extra_seed_items if use_extra else default_items
+        seed_label = PHASE1_EXTRA_STRATEGY if use_extra else strategy_orders[0][0]
         remaining = total_budget.remaining()
         if remaining < phase1_units + final_margin_units:
             # Phase88(ステップ2-b、既定無効): 最後の1本だけは、満額に届かなくても
@@ -1014,13 +1033,13 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
             if (PHASE1_ALLOW_PARTIAL_LAST and len(pending_windows) == 1
                     and remaining > final_margin_units):
                 window = pending_windows.pop(0)
-                try_construct(default_items, window, use_noise=False,
+                try_construct(seed_items, window, use_noise=False,
                               slice_units=max(1.0, remaining - final_margin_units),
-                              source_label='phase1', strategy_label=strategy_orders[0][0])
+                              source_label='phase1', strategy_label=seed_label)
             break
         window = pending_windows.pop(0)
-        try_construct(default_items, window, use_noise=False, slice_units=phase1_units,
-                      source_label='phase1', strategy_label=strategy_orders[0][0])
+        try_construct(seed_items, window, use_noise=False, slice_units=phase1_units,
+                      source_label='phase1', strategy_label=seed_label)
 
     # Phase87: フェーズ1終了直後(フェーズ2開始前)の予算消費量を記録する(読み取り専用)。
     _phase1_used_units = total_budget.used
@@ -1600,9 +1619,235 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
         REPLICA_STATS['telemetry_padded'] = padded
 
     # Phase72: 診断記録の書き出し(読み取り専用、best_order自体には一切影響しない)。
+    # Phase91: best_countも追加(validate()が返す(score, count)のcount側、読み取り専用)。
     LAST_BUILD_DIAGNOSTICS.clear()
     LAST_BUILD_DIAGNOSTICS.update({
         'winner_source': _winner['source'], 'winner_strategy': _winner['strategy'],
         'n_items': len(item_list),
+        'best_count': (best_score[1] if best_score is not None else None),
     })
     return best_order
+
+
+# ---------------------------------------------------------------------------
+# Phase93: 完全プラン(順序 + 各荷物の配置)を返す build_plan と、搬入前後関係 DAG に
+# よる順序の並べ替え。plan-executor(agent.policy)がプランを実機で再現する。
+# 既定では build_order の挙動に一切影響しない(agent 側が PLAN_EXECUTOR のときだけ呼ぶ)。
+# ---------------------------------------------------------------------------
+PLAN_TOPO_REORDER = os.environ.get('MYSOLVER_TOPO_REORDER', '0') == '1'
+
+
+def _topo_reorder_plan(plan: list[dict], container_list: list, items_by_index: dict) -> list[dict]:
+    """A が B の搬入 L 経路を塞ぐなら「B を A より先に」。Kahn で topo-sort。
+    巡回はその都度 in-degree 最小のノードを強制確定して打開(=元の相対順を優先)。"""
+    by_ci: dict[int, list[dict]] = {}
+    for p in plan:
+        by_ci.setdefault(p['container_idx'], []).append(p)
+    new_plan: list[dict] = []
+    for ci, entries in by_ci.items():
+        if ci >= len(container_list):
+            new_plan.extend(entries); continue
+        cont = container_list[ci]
+        ox = cont['center'][0]
+        # 各エントリの world_pos / half
+        info = {}
+        for p in entries:
+            it = items_by_index.get(p['index'])
+            if it is None:
+                continue
+            half = geo.half_extent((it['length'], it['width'], it['height']), p['orientation'])
+            wp = np.array([p['place_pos'][0] + ox, p['place_pos'][1], p['place_pos'][2]], dtype=np.float64)
+            info[p['index']] = (half, wp, it)
+        ids = [p['index'] for p in entries if p['index'] in info]
+        # 障害物 AABB: それぞれの最終配置(world)。simulate._place 相当。
+        aabb = {}
+        for i in ids:
+            half, wp, _ = info[i]
+            aabb[i] = (wp, np.asarray(half, dtype=np.float64))
+        succ = {i: set() for i in ids}    # i -> {j}: i を j より先に
+        for b in ids:
+            hb, wpb, _ = info[b]
+            others = [aabb[a] for a in ids if a != b]
+            if not others:
+                continue
+            legal = planner.transport_legal_batch(cont, np.asarray(hb, float), wpb[None, :], obstacles=others)
+            if bool(legal[0]):
+                continue
+            # どの a が塞ぐか: a 単体で判定
+            for a in ids:
+                if a == b:
+                    continue
+                l1 = planner.transport_legal_batch(cont, np.asarray(hb, float), wpb[None, :], obstacles=[aabb[a]])
+                if not bool(l1[0]):
+                    succ[b].add(a)          # a が b を塞ぐ → b 先 → 辺 b->a
+        indeg = {i: 0 for i in ids}
+        for b in ids:
+            for a in succ[b]:
+                indeg[a] += 1
+        orig_rank = {p['index']: k for k, p in enumerate(entries)}
+        done = set()
+        out = []
+        while len(out) < len(ids):
+            ready = [i for i in ids if i not in done and indeg[i] == 0]
+            if not ready:
+                # 巡回: 残りのうち in-degree 最小 → 同点は元順で。強制確定。
+                rem = [i for i in ids if i not in done]
+                pick = min(rem, key=lambda i: (indeg[i], orig_rank[i]))
+                ready = [pick]
+            ready.sort(key=lambda i: orig_rank[i])
+            for i in ready:
+                if i in done:
+                    continue
+                done.add(i); out.append(i)
+                for a in succ[i]:
+                    indeg[a] -= 1
+        ent_by_id = {p['index']: p for p in entries}
+        new_plan.extend(ent_by_id[i] for i in out)
+        # info に無かったエントリも末尾に残す
+        new_plan.extend(p for p in entries if p['index'] not in info)
+    return new_plan
+
+
+def build_plan(item_list: list[dict], container_list: list[dict] | None, lookahead_k: int | None,
+               time_budget: float = DEFAULT_TIME_BUDGET) -> tuple[list[int], list[dict]]:
+    """Phase93: build_order の順序 + 各荷物の配置(container_idx / local place_pos / orientation)。
+    戻り値 (order, plan)。plan の各要素: {index, container_idx, place_pos, orientation}。"""
+    # 本番の optimization_timeout(180s)を踏まないため build_order の予算を削り、プラン導出
+    # パスの余地を確保する。w3_planexec 本番の opt 実測は 112s(180s に 68s 余地)だったため
+    # 削り幅は env で調整可能にした(既定 25s)。
+    _bp_start = time.perf_counter()
+    # build_plan 全体の壁時計を time_budget の 1.25倍で頭打ちにする(本番 optimization_timeout
+    # 180s に対する絶対保険。time_budget=120 なら 150s)。
+    _bp_hard = _bp_start + time_budget * float(os.environ.get('MYSOLVER_PLAN_WALL_FACTOR', '1.0'))
+    # gate 対象(LNS を掛けない)シーンの判定。
+    _gate = os.environ.get('MYSOLVER_PLAN_EXECUTOR_GATE', 'lookahead')
+    _shelf_or_pre = any(str((c or {}).get('shelf')).lower() == 'true' or (c or {}).get('packed_items')
+                        for c in (container_list or []))
+    if _gate == 'none':
+        _lns_risky = False
+    elif _gate == 'lookahead':
+        _lns_risky = (lookahead_k or 1) > 1
+    else:
+        _lns_risky = _shelf_or_pre
+    # build_order 予算: 純粋に lk>1 で(棚/既積みでなく)予算だけ不足していたシーン
+    # (C03, B01-B04)には満額を渡す。棚/既積みは cut ありでも w3 パリティ済みで、
+    # かつ build_order が遅く満額だと本番 timeout の恐れ(P05 で 137s→187s)。
+    _full_bo = _lns_risky and not _shelf_or_pre
+    _cut = 0.0 if _full_bo else float(os.environ.get('MYSOLVER_PLAN_BUDGET_CUT', '40.0'))
+    bo_budget = max(30.0, time_budget - _cut)
+    order = build_order(item_list, container_list, lookahead_k, time_budget=bo_budget)
+    if not container_list or not item_list:
+        return order, []
+    # gate 対象シーン(plan-executor/LNS を掛けない)ではプラン導出(simulate_order ~最大30s)
+    # は完全に捨てられる。C03 等で opt が build_order+30s に膨らみ本番 timeout に触れるため、
+    # ここで order だけ返して打ち切る。
+    if _lns_risky:
+        return order, []
+    items_by_index = {it['index']: it for it in item_list}
+    plan: list[dict] = []
+    try:
+        budget = planner.SearchBudget.from_seconds(min(30.0, time_budget))
+        simulate.simulate_order(container_list, items_by_index, order,
+                                max(1, int(lookahead_k or 1)), budget, plan_out=plan)
+    except Exception:
+        plan = []
+    if PLAN_TOPO_REORDER and plan:
+        try:
+            reordered = _topo_reorder_plan(plan, container_list, items_by_index)
+            if len(reordered) == len(plan):
+                plan = reordered
+                planned_ids = [p['index'] for p in plan]
+                seen = set(planned_ids)
+                order = planned_ids + [i for i in order if i not in seen]
+        except Exception:
+            pass
+    # Phase93: LNS(remove-tail-K → 雑音付き repack、配置数で受理)でプランを後改善。
+    # plan-executor は plan を実機で忠実再現するので「配置数」がそのまま本番に乗る
+    # (代理スコアを介さない = ALNS/REPAIR の敗因を回避)。既定無効。
+    # _lns_risky は上で算出済み(bo_budget の決定に使用)。
+    _lns_wall_left = _bp_hard - time.perf_counter()
+    if PACK_LNS and plan and not _lns_risky and _lns_wall_left > 12.0:
+        try:
+            lns_plan = _lns_improve_plan(plan, order, item_list, container_list, items_by_index,
+                                         budget_s=max(8.0, time_budget - bo_budget - 5.0),
+                                         wall_deadline=_bp_hard)
+            if lns_plan is not None and len(lns_plan) > len(plan):
+                plan = lns_plan
+                seen = {p['index'] for p in plan}
+                order = [p['index'] for p in plan] + [i for i in order if i not in seen]
+        except Exception:
+            pass
+    return order, plan
+
+
+PACK_LNS = os.environ.get('MYSOLVER_PACK_LNS', '1') == '1'
+PACK_LNS_PER_STEP = float(os.environ.get('MYSOLVER_PACK_LNS_PER_STEP', '1.5'))
+PACK_LNS_NOISE = float(os.environ.get('MYSOLVER_PACK_LNS_NOISE', '0.3'))
+
+
+def _replay_plan(container_list, items_by_index, plan_entries):
+    """plan_entries(位置確定)を空コンテナに置き直した clone を返す。"""
+    conts = simulate.clone_containers(container_list)
+    for p in plan_entries:
+        ci = p['container_idx']
+        if ci >= len(conts):
+            continue
+        it = dict(items_by_index[p['index']])
+        act = {'place_pos': np.asarray(p['place_pos'], dtype=float),
+               'orientation': p['orientation'], 'container_idx': ci}
+        conts[ci]['packed_items'].append(simulate._place(conts[ci], it, act))
+    return conts
+
+
+def _greedy_fill_pool(containers, pool_items, budget, rng=None, noise=0.0):
+    """containers(既配置あり)に pool_items を貪欲充填。planner.plan で毎ステップ
+    最良の item+位置を選び、行き詰まりか予算切れで停止。(追加された plan_entries)を返す。"""
+    added = []
+    pool = [dict(it) for it in pool_items]
+    while pool and not budget.exhausted():
+        act = planner.plan(containers, pool, max_pool_items=None, rng=rng, score_noise=noise,
+                           budget=budget.child_seconds(PACK_LNS_PER_STEP))
+        if act is None:
+            break
+        it = pool.pop(act['item_idx'])
+        ci = act['container_idx']
+        containers[ci]['packed_items'].append(simulate._place(containers[ci], it, act))
+        added.append({'index': int(it['index']), 'container_idx': int(ci),
+                      'place_pos': (float(act['place_pos'][0]), float(act['place_pos'][1]), float(act['place_pos'][2])),
+                      'orientation': int(act['orientation'])})
+    return added
+
+
+def _lns_improve_plan(base_plan, order, item_list, container_list, items_by_index, budget_s,
+                      wall_deadline=None):
+    """base_plan の末尾 K 個を外し、外した分+未配置を雑音付きで repack。配置数が増えたら受理。
+    anytime。戻り値: 改善後の plan_entries(改善無しなら None)。"""
+    if len(base_plan) >= len(item_list):
+        return None                          # 既に全数配置 = 改善余地なし(A06 等の無駄churn防止)
+    total_budget = planner.SearchBudget.from_seconds(budget_s)
+    _local_wall = time.perf_counter() + budget_s * 1.6
+    wall_deadline = _local_wall if wall_deadline is None else min(_local_wall, wall_deadline)
+    all_ids = [it['index'] for it in item_list]
+    best = list(base_plan)
+    best_n = len(best)
+    rng = np.random.default_rng(0)
+    n_iter = 0
+    _iter_cap = int(os.environ.get('MYSOLVER_PACK_LNS_ITERS', '18'))
+    while (not total_budget.exhausted() and n_iter < _iter_cap
+           and time.perf_counter() < wall_deadline):
+        n_iter += 1
+        if len(best) < 3:
+            break
+        K = int(rng.integers(2, max(3, len(best) // 4 + 1)))
+        K = min(K, len(best) - 1)
+        keep = best[:len(best) - K]
+        kept = {p['index'] for p in keep}
+        conts = _replay_plan(container_list, items_by_index, keep)
+        rest = [items_by_index[i] for i in all_ids if i not in kept]
+        rng.shuffle(rest)
+        slice_b = total_budget.child_seconds(max(3.0, budget_s / 6.0))
+        added = _greedy_fill_pool(conts, rest, slice_b, rng=rng, noise=PACK_LNS_NOISE)
+        cand = keep + added
+        if len(cand) > best_n:
+            best, best_n = cand, len(cand)
+    return best if best_n > len(base_plan) else None
