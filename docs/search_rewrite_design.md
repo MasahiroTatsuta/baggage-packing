@@ -96,8 +96,32 @@ Phase86 の Look-ahead Beam は **depth=1 で −23%、depth=2 で −32%** と�
 
 ## 5. 進捗
 
-- [x] 2026-09-07: 設計(本ドキュメント)+ `agents/mysolver/search.py` スケルトン
+- [x] 2026-09-07: 設計(本ドキュメント)+ `agents/mysolver/search.py` v0 実装
       (LDBC 制御フロー、既定OFF、compile OK)。
-- [ ] v0 forbidden(確率的ナッジ)で 10シーン A/B。
-- [ ] 効果があれば v1 forbidden(planner に厳密除外)。
-- [ ] 全26シーン → 本番。
+- [x] 2026-09-07: 3シーン sanity(A08/A01/D05、budget45)。**例外なく完走・
+      opt 時間は +7〜11s 増(=バックトラッキングは発火している)が、配置数は
+      baseline と完全同一(A08 19 / A01 23 / D05 14)。**
+      → **v0 の確率的ナッジ forbidden は弱すぎてプランを変えられない。**
+      `planner.plan` は score_noise を上げても実質同じ位置を返す。想定内(設計 §2.4)。
+- [ ] **次段(v1): `planner.plan` に厳密除外 `forbidden=set[(item_index, xy_q, orn)]` を追加。**
+      `_search_best` の候補ループで `candidate_xy` を `_evaluate_candidates` に渡す前に
+      マッチ XY(量子化)を除外。既定 None でビット単位不変。これで「その手を封じて
+      次善手」が確実に効く。
+- [ ] v1 で 3シーン sanity → 10シーン A/B(判定: 悪化シーン少+net正)。
+- [ ] デッドロック検出の見直し: 現在は `_has_legal_spot`(単一アイテム小予算 planner.plan)。
+      過剰発火/見逃しの可能性。`transport_legal_batch` を候補 XY 集合に対して直接使う方が
+      速く正確かもしれない。
+- [ ] 全26シーン → 本番1枠。
+
+## 6. 次セッションへの申し送り
+
+- 環境: `~/dev/baggage-packing`、Docker `gh_env` は build 済み(`docker compose up -d`)。
+  この Mac は build_order を較正値の ~0.7倍でしか回せない → ローカルは相対A/B専用、
+  予算は削って使う(sanity は `--optimize-budget 45 MYSOLVER_PLAN_WALL_FACTOR=2.6`)。
+- ブランチ `exp/lns-mid-destroy`(`07e73fc`)に LDBC v0 + 診断 + MID/UNBURY 実験が全て
+  既定OFF で載っている。main(`f31608e`)は本番 tb135 のまま無変更。
+- A/B ハーネス: `tools/local_eval.py --config-path <10 scenes> --optimize-budget 45`、
+  env `MYSOLVER_HARD_WALL_LIMIT=3000 MYSOLVER_PLAN_WALL_FACTOR=2.6 MYSOLVER_PLAN_BUDGET_CUT=15`、
+  LDBC は `MYSOLVER_LDBC=1` を足す。1シーン ~50s、10シーン×2条件で ~20-30分。
+- 撤退基準(Phase86 準拠): v1 でも「改善シーンゼロ or net が悪化シーン数基準で負」なら
+  貪欲構築系統は完全に打ち止め、A3(凍結・防御)へ。
