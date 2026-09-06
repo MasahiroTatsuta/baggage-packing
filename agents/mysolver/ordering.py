@@ -1818,6 +1818,52 @@ def _greedy_fill_pool(containers, pool_items, budget, rng=None, noise=0.0):
     return added
 
 
+def _unbury_repair(base_plan, order, item_list, container_list, items_by_index,
+                   total_budget, wall_deadline, rng):
+    """置けなかった先頭荷物 u を確実にプランへ入れる構造的 repair。
+    u の搬入L経路を塞いでいる「手前側(world-y 最小)」の K 個を外し、u をまず確定配置して
+    から手前を貪欲に組み直す。K は 2,4,6,9,13 とエスカレートし、u が置けた最初の K で採る。
+    戻り値: 配置数が増えた plan_entries or None。"""
+    placed_ids = {p['index'] for p in base_plan}
+    unplaced = [i for i in order if i not in placed_ids]
+    if not unplaced or len(base_plan) < 4:
+        return None
+    all_ids = [it['index'] for it in item_list]
+    best = None
+    best_n = len(base_plan)
+    front_order = sorted(range(len(base_plan)), key=lambda k: base_plan[k]['place_pos'][1])
+    for u in unplaced[:2]:
+        u_item = items_by_index.get(u)
+        if u_item is None:
+            continue
+        for K in (2, 4, 6, 9, 13):
+            if K >= len(base_plan) or total_budget.exhausted() or time.perf_counter() >= wall_deadline:
+                break
+            drop = set(front_order[:K])
+            keep = [p for k, p in enumerate(base_plan) if k not in drop]
+            conts = _replay_plan(container_list, items_by_index, keep)
+            act = planner.plan(conts, [dict(u_item)], max_pool_items=None,
+                               budget=total_budget.child_seconds(2.0))
+            if act is None:
+                continue
+            ci = int(act['container_idx'])
+            conts[ci]['packed_items'].append(simulate._place(conts[ci], dict(u_item), act))
+            pp = act['place_pos']
+            new_plan = keep + [{'index': int(u), 'container_idx': ci,
+                                'place_pos': (float(pp[0]), float(pp[1]), float(pp[2])),
+                                'orientation': int(act['orientation'])}]
+            done = {p['index'] for p in new_plan}
+            refill = [items_by_index[i] for i in all_ids if i not in done]
+            rng.shuffle(refill)
+            added = _greedy_fill_pool(conts, refill, total_budget.child_seconds(8.0),
+                                      rng=rng, noise=PACK_LNS_NOISE)
+            cand = new_plan + added
+            if len(cand) > best_n:
+                best, best_n = cand, len(cand)
+            break
+    return best
+
+
 def _lns_improve_plan(base_plan, order, item_list, container_list, items_by_index, budget_s,
                       wall_deadline=None):
     """base_plan の末尾 K 個を外し、外した分+未配置を雑音付きで repack。配置数が増えたら受理。
@@ -1838,6 +1884,15 @@ def _lns_improve_plan(base_plan, order, item_list, container_list, items_by_inde
     # MID 有効時は偶数反復で「中盤の連続ウィンドウK個」を外し、外した分を優先的に再充填する。
     # 既定 '0' では従来どおり末尾K除去のみで、消費 rng 列・戻り値ともビット単位で不変。
     _mid = os.environ.get('MYSOLVER_PACK_LNS_MID', '0') == '1'
+    # UNBURY(2026-09-07): sudden-death を招く「置けない大型荷物 u」を確実にプランへ入れる
+    # 構造的 repair。u の搬入L経路を物理的に塞いでいる「手前側(world-y 最小)」の K 個を
+    # 外し、u をまず確定配置してから手前を組み直す。既定 '0' で完全に不変。
+    _unbury = os.environ.get('MYSOLVER_PACK_LNS_UNBURY', '0') == '1'
+    if _unbury:
+        _ub = _unbury_repair(base_plan, order, item_list, container_list, items_by_index,
+                             total_budget, wall_deadline, rng)
+        if _ub is not None and len(_ub) > best_n:
+            best, best_n = _ub, len(_ub)
     while (not total_budget.exhausted() and n_iter < _iter_cap
            and time.perf_counter() < wall_deadline):
         n_iter += 1
