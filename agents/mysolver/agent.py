@@ -302,6 +302,33 @@ class Agent:
             except Exception:
                 action = None
 
+        # WBC(2026-09-07): plan-executor の厳密再現が実機ドリフトで弾かれたとき、いきなり
+        # 全域貪欲へ落ちると WBC の壁が壊れる(前面に置いて搬入経路を塞ぐ)。まず「計画位置の
+        # 近傍(region 箱)に限定した貪欲」で壁帯内へ縮退を試みる。既定 '0' で無効=従来どおり。
+        if (action is None and pool_list and container_list
+                and self._plan_by_index and os.environ.get('MYSOLVER_WBC', '0') == '1'):
+            try:
+                _D = float(os.environ.get('MYSOLVER_WBC_REPLAY_R', '0.20'))
+                cont_by_idx = {c.get('index', i): c for i, c in enumerate(container_list)}
+                for pi, pit in enumerate(pool_list):
+                    p = self._plan_by_index.get(pit.get('index'))
+                    if p is None or cont_by_idx.get(p['container_idx']) is None:
+                        continue
+                    px, py, pz = p['place_pos']
+                    reg = (px - _D, py - _D, pz - _D, px + _D, py + _D, pz + _D)
+                    a = planner.plan([cont_by_idx[p['container_idx']]], [pit],
+                                     time_budget=POLICY_TIME_BUDGET,
+                                     hard_deadline=time.perf_counter() + POLICY_HARD_WALL,
+                                     strict_support=not self._optimize,
+                                     prepacked_ids=self._prepacked_ids, region=reg)
+                    if a is not None:
+                        action = {'item_idx': pi, 'container_idx': p['container_idx'],
+                                  'place_pos': np.asarray(a['place_pos'], dtype=np.float32),
+                                  'orientation': int(a['orientation'])}
+                        break
+            except Exception:
+                action = None
+
         if action is None and pool_list and container_list:
             try:
                 action = planner.plan(container_list, pool_list, time_budget=POLICY_TIME_BUDGET,
