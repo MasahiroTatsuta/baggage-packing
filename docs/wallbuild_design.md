@@ -242,15 +242,38 @@ v5(14手プラン)の方が良かった。knobs は -0.008 / 0.0 に戻した。
 `planner.plan` + region で1荷物ずつ充填する方式が、壁内 X-Z を密に埋めきれていない。
 D05(tall、縦壁が有利)以外は baseline に勝てない。
 
-### 次の作業(優先順)
-1. **なぜ ~14個で止まるか**を1シーンで `[WBC] #N` 全手ダンプ(現在 16手上限を外す)+
-   stall 時の usable/cand/region を出す。「壁が埋まっていないのに ref が無くなる」のか
-   「planner.plan が region で候補を失う」のかを特定。
-2. **壁内 X-Z 充填を planner.plan 依存から自前の 2D 詰めに**(Parreño の層内 shelf 法 or
-   CP-SAT noOverlap2D、設計 §「第4手」)。1荷物ずつ region 貪欲では密度が出ない可能性。
-3. D05 が効くなら「WBC を tall/背高シーンだけに gate」して本番1枠、も選択肢
-   (ただし Phase90 の gate 不採用の前例)。
-4. baseline 匹敵まで来たら決定的8シーン不変 → 10シーン A/B → 2週間ストップロス判定。
+### v11(2026-09-07 深夜、続き): stall 原因を全手トレースで特定
+- A01 全手ダンプ + stall カウンタ: **stall=13 全て `no_best_z`**(planner が返した候補を
+  z-band チェックで全 reject)。`_pick_ref` が `(-y_hi, z0, x0)` = 「最も奥」優先で、数手後に
+  **高 z のスリット slab(z[1.38,1.61] 等)を ref に選び**、planner が床に着地する候補を
+  全て弾いていた。`|S|` は 154 あるのに使えず。
+- v11: `_pick_ref` を `(z0, -y_hi, x0)` = **床優先**に。→ z-reject は減った(13→1〜9)が、
+  **今度は `no_best_planNone` が支配的**(A01: 21、D04: 31)。planner.plan が region 内で
+  合法候補ゼロを返す。プランサイズは 9〜16 で不変、episode も baseline 以下
+  (A01 15/D01 13/D04 18/D05 12)。
+
+### ★ 現状の構造的結論(v1→v11、11ラウンド)
+`_overlap` 修正で maximal-space は正常化。`_pick_ref` も床優先に。だが **WBC が ~13-16/40 で
+止まるのは、maximal-space(幾何・planned pos)が「空き」と言う ref に対し、
+`planner.plan`(実 packed_items の障害物 + 支持 + 搬入経路 + 内包)が「置けない」を返す
+divergence**。特に配置済み荷物の間の細いギャップ空間を `_space_fits_any`(3辺比較のみ)が
+「入る」と誤判定し、`_pick_ref` がそこを ref に選び続ける。
+**= `planner.plan` を1荷物ずつの充填器に使う方式では密に詰まらない。**
+
+### 次の作業(優先順、更新)
+1. **壁内充填を `planner.plan` 依存から外す**(設計 §「第4手」の前倒し・本命):
+   確定した1つの壁帯(y 固定)の中で、その帯に入る荷物集合を **2D(X-Z)shelf/skyline packing**
+   で自前に詰める(Parreño の層内アルゴリズム、または CP-SAT `AddNoOverlap2D` を層あたり
+   180s のごく一部で)。着地 z は skyline、支持は「下の shelf に載る」で保証、搬入は
+   帯より手前が空なので自動。planner.plan は「最終検証」だけに使う。
+2. これで密度が出て baseline を超えたら決定的8シーン不変 → 10シーン A/B → ストップロス判定。
+3. 出なければ WBC(この定式化)も打ち止め → A3(58.5 凍結・防御)。
+
+### WBC 反復まとめ(v1→v11)
+バグ修正: 座標系(v2)/ 薄い壁・contiguous(v4)/ usable 判定(v5)/ **`_overlap` index(v9、最重要)**/
+region y 緩和(v10)/ `_pick_ref` 床優先(v11)。
+**構造(back-to-front 薄壁)は正しくなったが、`planner.plan` 充填の密度不足が最後の壁。
+壁内 2D packing を自前で持つのが次の本命。**
 2. **シーン別**: D04(flat)/A05(prio)で回帰。flat は薄い壁に不利 → band 下限を上げる。
    prio は優先コンテナ割当(2c)の WBC 対応が未実装。まず 1c・非優先で baseline 超えを狙う。
 3. 壁内 X-Z 密度(`_layer_score` の footprint 重み↑、スリット併合)。

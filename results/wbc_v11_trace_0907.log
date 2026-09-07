@@ -1,0 +1,341 @@
+pybullet build time: Sep  7 2026 00:15:11
+[local_eval] MYSOLVER_OPTIMIZE_BUDGET=45.0s (開発用の短縮予算)
+
+--- running suite_A01_1c_40_plain.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[WBC] cont0 interior=(-0.96, -0.685, 0.04, 0.96, 0.685, 1.61) shelf=False cut=(0.44,0.4) prepacked=0
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.04,0.81]
+[WBC]   init space ci0 x[-0.52,0.96] y[-0.68,0.68] z[0.04,1.61]
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.85,1.21]
+[WBC] #0 ref ci0 y[-0.68,0.68] z[0.04,0.81] band=0.23 wb=0.72 wd=0.66 -> item13 orn4 pos=(0.53,0.37,0.40) slk=-0.016 |S|=3
+[WBC] #1 ref ci0 y[-0.68,0.68] z[0.04,0.81] band=0.66 wb=0.72 wd=0.66 -> item35 orn5 pos=(-0.27,0.20,0.43) slk=-0.016 |S|=10
+[WBC] stall@plan=2 ref y[-0.68,0.68] z[0.04,0.81] band=0.66 wb=0.72 #cand=12 planNone=1 z=11 slack=0 |S|=16
+[WBC] #2 ref ci0 y[-0.68,0.68] z[0.04,1.61] band=0.66 wb=0.72 wd=0.66 -> item6 orn2 pos=(0.03,0.07,0.30) slk=-0.016 |S|=15
+[WBC] #3 ref ci0 y[-0.68,0.07] z[0.04,1.61] band=0.66 wb=0.72 wd=0.66 -> item3 orn5 pos=(0.63,-0.33,0.47) slk=-0.016 |S|=23
+[WBC] #4 ref ci0 y[-0.68,0.07] z[0.04,1.61] band=0.66 wb=0.72 wd=0.66 -> item32 orn1 pos=(0.11,-0.58,0.48) slk=-0.016 |S|=35
+[WBC] #5 ref ci0 y[-0.48,0.07] z[0.04,1.61] band=0.66 wb=0.72 wd=0.66 -> item9 orn3 pos=(0.31,-0.45,1.02) slk=-0.066 |S|=42
+[WBC] stall@plan=6 ref y[-0.25,0.07] z[0.04,1.61] band=0.66 wb=0.72 #cand=3 planNone=3 z=0 slack=0 |S|=61
+[WBC] stall@plan=6 ref y[-0.48,0.07] z[0.04,0.91] band=0.66 wb=0.72 #cand=5 planNone=0 z=5 slack=0 |S|=60
+[WBC] stall@plan=6 ref y[-0.25,0.68] z[0.55,1.61] band=0.66 wb=0.72 #cand=2 planNone=2 z=0 slack=0 |S|=59
+[WBC] stall@plan=6 ref y[-0.25,0.07] z[0.55,1.61] band=0.66 wb=0.72 #cand=8 planNone=8 z=0 slack=0 |S|=58
+[WBC] stall@plan=6 ref y[-0.48,0.07] z[0.55,0.91] band=0.66 wb=0.72 #cand=4 planNone=0 z=4 slack=0 |S|=57
+[WBC] #6 ref ci0 y[-0.68,0.68] z[0.81,1.61] band=0.66 wb=0.72 wd=0.66 -> item25 orn5 pos=(-0.34,0.33,1.06) slk=-0.022 |S|=54
+[WBC] #7 ref ci0 y[-0.68,0.68] z[0.85,1.21] band=0.66 wb=0.72 wd=0.66 -> item37 orn4 pos=(-0.69,-0.39,1.09) slk=-0.049 |S|=67
+[WBC] #8 ref ci0 y[-0.68,0.68] z[0.88,1.61] band=0.66 wb=0.72 wd=0.66 -> item10 orn2 pos=(0.83,-0.28,1.18) slk=-0.020 |S|=69
+[WBC] #9 ref ci0 y[-0.68,0.68] z[1.13,1.61] band=0.66 wb=0.72 wd=0.66 -> item30 orn3 pos=(0.14,-0.39,1.34) slk=-0.030 |S|=82
+[WBC] #10 ref ci0 y[-0.68,0.68] z[1.13,1.61] band=0.66 wb=0.72 wd=0.66 -> item22 orn2 pos=(0.59,-0.39,1.27) slk=-0.037 |S|=93
+[WBC] #11 ref ci0 y[-0.48,-0.24] z[0.04,0.81] band=0.23 wb=-0.16 wd=0.49 -> item39 orn4 pos=(-0.39,-0.47,0.36) slk=-0.016 |S|=92
+[WBC] #12 ref ci0 y[-0.68,-0.24] z[0.66,1.61] band=0.49 wb=-0.16 wd=0.49 -> item28 orn2 pos=(-0.36,-0.49,1.03) slk=-0.061 |S|=104
+[WBC] FINAL offline plan=13 / total=40 (remaining=27, |S|=120) stall={'no_usable': 1, 'no_ref': 0, 'no_best_planNone': 21, 'no_best_slack': 0, 'no_best_z': 9, 'no_best_other': 0, 'iters': 44}
+transport item 13
+place item 13
+transport item 35
+place item 35
+transport item 6
+place item 6
+transport item 3
+place item 3
+transport item 32
+place item 32
+transport item 9
+place item 9
+transport item 25
+place item 25
+transport item 37
+place item 37
+transport item 10
+place item 10
+transport item 30
+place item 30
+transport item 33
+place item 33
+transport item 20
+place item 20
+transport item 34
+place item 34
+transport item 22
+place item 22
+transport item 4
+place item 4
+transport item 39
+collision: 39 and 32 at (np.float32(-0.207), np.float32(-0.725), np.float32(0.2236)), distance -0.06798072025436581
+collision: 39 and 33 at (np.float32(-0.207), np.float32(-0.725), np.float32(0.2236)), distance -0.053229293123417315
+collision: 39 and 20 at (np.float32(-0.207), np.float32(-0.725), np.float32(0.2236)), distance -0.07367100601502782
+item 39 not packable. removed.
+item 13 not inside (hit boundary plane), [ 1.06723380e-05 -8.38678885e-01 -1.53001067e+00 -1.08132111e+00
+ -4.47895884e-01 -1.38925522e+00 -2.07447770e-02]
+item 35 not inside (hit boundary plane), [ 1.00290987e-05 -1.01740836e+00 -1.53001003e+00 -9.02591642e-01
+ -3.27669906e-01 -1.37211668e+00 -3.78833218e-02]
+item 6 not inside (hit boundary plane), [ 1.49750696e-05 -8.68000134e-01 -1.53001498e+00 -1.05199987e+00
+ -4.28169094e-01 -1.17600013e+00 -2.33999874e-01]
+item 3 not inside (hit boundary plane), [ 3.38637754e-07 -2.36223923e-02 -1.53000034e+00 -1.89637761e+00
+ -9.96169859e-01 -7.23220555e-01 -6.86779445e-01]
+item 32 not inside (hit boundary plane), [-2.78923664e-05 -6.82246270e-01 -1.52997211e+00 -1.23775373e+00
+ -5.53152384e-01 -4.76655984e-02 -1.36233440e+00]
+item 33 not inside (hit boundary plane), [ 4.24392786e-05 -1.20026768e+00 -1.53004244e+00 -7.19732318e-01
+ -2.04641432e-01 -4.17770377e-01 -9.92229623e-01]
+close env.
+closed runner.
+  done in 61.1s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_D01_A_1c_40_softheavy.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[WBC] cont0 interior=(-0.96, -0.685, 0.04, 0.96, 0.685, 1.61) shelf=False cut=(0.44,0.4) prepacked=0
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.04,0.81]
+[WBC]   init space ci0 x[-0.52,0.96] y[-0.68,0.68] z[0.04,1.61]
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.85,1.21]
+[WBC] #0 ref ci0 y[-0.68,0.68] z[0.04,0.81] band=0.28 wb=0.72 wd=0.64 -> item28 orn4 pos=(0.52,0.38,0.44) slk=-0.016 |S|=3
+[WBC] #1 ref ci0 y[-0.68,0.68] z[0.04,0.81] band=0.64 wb=0.72 wd=0.64 -> item35 orn5 pos=(-0.24,0.39,0.47) slk=-0.016 |S|=9
+[WBC] stall@plan=2 ref y[-0.68,0.68] z[0.04,0.81] band=0.64 wb=0.72 #cand=12 planNone=4 z=8 slack=0 |S|=20
+[WBC] #2 ref ci0 y[-0.68,0.13] z[0.04,0.81] band=0.64 wb=0.72 wd=0.64 -> item27 orn3 pos=(-0.14,-0.39,0.34) slk=-0.016 |S|=19
+[WBC] stall@plan=3 ref y[-0.68,0.13] z[0.04,0.81] band=0.64 wb=0.72 #cand=12 planNone=1 z=11 slack=0 |S|=27
+[WBC] stall@plan=3 ref y[-0.10,0.13] z[0.04,0.81] band=0.64 wb=0.72 #cand=8 planNone=0 z=8 slack=0 |S|=26
+[WBC] stall@plan=3 ref y[-0.10,0.13] z[0.04,1.61] band=0.64 wb=0.72 #cand=8 planNone=8 z=0 slack=0 |S|=25
+[WBC] #3 ref ci0 y[-0.10,0.09] z[0.04,0.81] band=0.64 wb=0.72 wd=0.64 -> item8 orn4 pos=(0.66,-0.08,0.24) slk=-0.016 |S|=24
+[WBC] stall@plan=4 ref y[-0.10,0.09] z[0.04,0.81] band=0.64 wb=0.72 #cand=1 planNone=0 z=1 slack=0 |S|=31
+[WBC] stall@plan=4 ref y[-0.10,0.09] z[0.04,1.61] band=0.64 wb=0.72 #cand=1 planNone=1 z=0 slack=0 |S|=30
+[WBC] #4 ref ci0 y[-0.68,0.09] z[0.04,1.61] band=0.64 wb=0.72 wd=0.64 -> item9 orn5 pos=(0.34,-0.45,0.22) slk=-0.016 |S|=29
+[WBC] #5 ref ci0 y[-0.68,0.09] z[0.42,1.61] band=0.64 wb=0.72 wd=0.64 -> item11 orn5 pos=(0.69,-0.45,0.46) slk=-0.012 |S|=34
+[WBC] #6 ref ci0 y[-0.68,0.13] z[0.62,1.61] band=0.64 wb=0.72 wd=0.64 -> item31 orn0 pos=(-0.11,-0.36,0.86) slk=-0.039 |S|=44
+[WBC] #7 ref ci0 y[-0.68,0.68] z[0.86,1.61] band=0.64 wb=0.72 wd=0.64 -> item7 orn3 pos=(0.65,-0.37,1.12) slk=-0.020 |S|=50
+[WBC] #8 ref ci0 y[-0.68,0.68] z[1.09,1.61] band=0.64 wb=0.72 wd=0.64 -> item17 orn3 pos=(-0.11,-0.27,1.25) slk=-0.038 |S|=61
+[WBC] FINAL offline plan=9 / total=40 (remaining=31, |S|=70) stall={'no_usable': 1, 'no_ref': 0, 'no_best_planNone': 17, 'no_best_slack': 0, 'no_best_z': 4, 'no_best_other': 0, 'iters': 31}
+transport item 28
+place item 28
+transport item 35
+place item 35
+transport item 27
+place item 27
+transport item 8
+place item 8
+transport item 9
+place item 9
+transport item 11
+place item 11
+transport item 31
+place item 31
+transport item 5
+place item 5
+transport item 38
+place item 38
+transport item 17
+place item 17
+transport item 39
+place item 39
+transport item 29
+place item 29
+transport item 10
+place item 10
+transport item 7
+collision: 7 and 27 at (np.float32(-0.212), np.float32(-0.725), np.float32(0.2851)), distance -0.24978210470865025
+item 7 not packable. removed.
+item 28 not inside (hit boundary plane), [ 0.02395179 -0.86700001 -1.55395179 -1.05299999 -0.41113004 -1.38995959
+ -0.02004041]
+item 35 not inside (hit boundary plane), [ 0.00606904 -0.94647835 -1.53606904 -0.97352165 -0.37089929 -1.38016579
+ -0.02983421]
+item 27 not inside (hit boundary plane), [ 0.01896852 -1.47255055 -1.54896852 -0.44744945 -0.00747999 -0.62393379
+ -0.78606621]
+item 8 not inside (hit boundary plane), [ 0.00170495 -0.56738003 -1.53170495 -1.35261997 -0.62913758 -0.73464062
+ -0.67535938]
+item 9 not inside (hit boundary plane), [ 9.55850541e-04 -5.44026382e-01 -1.53095585e+00 -1.37597362e+00
+ -6.45401231e-01 -4.73455224e-01 -9.36544776e-01]
+item 11 not inside (hit boundary plane), [ 8.86374369e-06 -2.55984848e-02 -1.53000886e+00 -1.89440152e+00
+ -9.94834287e-01 -5.28373290e-01 -8.81626710e-01]
+item 5 not inside (hit boundary plane), [-1.04639761e+00 -1.86689468e-02 -4.83602392e-01 -1.90133105e+00
+ -1.77377368e+00 -1.41019941e+00  1.99413573e-04]
+close env.
+closed runner.
+  done in 70.2s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_D04_A_1c_40_flat.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[WBC] cont0 interior=(-0.96, -0.685, 0.04, 0.96, 0.685, 1.61) shelf=False cut=(0.44,0.4) prepacked=0
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.04,0.81]
+[WBC]   init space ci0 x[-0.52,0.96] y[-0.68,0.68] z[0.04,1.61]
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.85,1.21]
+[WBC] #0 ref ci0 y[-0.68,0.68] z[0.04,0.81] band=0.15 wb=0.72 wd=0.37 -> item38 orn4 pos=(0.53,0.51,0.44) slk=-0.016 |S|=3
+[WBC] #1 ref ci0 y[-0.68,0.68] z[0.04,0.81] band=0.37 wb=0.72 wd=0.37 -> item1 orn1 pos=(0.11,0.17,0.47) slk=-0.016 |S|=7
+[WBC] #2 ref ci0 y[-0.68,0.68] z[0.04,0.81] band=0.37 wb=0.72 wd=0.37 -> item30 orn4 pos=(-0.33,-0.14,0.42) slk=-0.016 |S|=17
+[WBC] stall@plan=3 ref y[-0.68,0.68] z[0.04,0.81] band=0.37 wb=0.72 #cand=12 planNone=10 z=2 slack=0 |S|=25
+[WBC] stall@plan=3 ref y[0.02,0.68] z[0.04,0.81] band=0.37 wb=0.72 #cand=12 planNone=12 z=0 slack=0 |S|=24
+[WBC] stall@plan=3 ref y[0.30,0.68] z[0.04,0.81] band=0.37 wb=0.72 #cand=12 planNone=12 z=0 slack=0 |S|=23
+[WBC] stall@plan=3 ref y[0.02,0.68] z[0.04,1.61] band=0.37 wb=0.72 #cand=12 planNone=12 z=0 slack=0 |S|=22
+[WBC] stall@plan=3 ref y[0.30,0.68] z[0.04,1.61] band=0.37 wb=0.72 #cand=12 planNone=12 z=0 slack=0 |S|=21
+[WBC] #3 ref ci0 y[-0.68,0.35] z[0.04,1.61] band=0.37 wb=0.72 wd=0.37 -> item6 orn5 pos=(0.82,-0.11,0.53) slk=-0.016 |S|=20
+[WBC] #4 ref ci0 y[-0.68,0.35] z[0.04,1.61] band=0.37 wb=0.72 wd=0.37 -> item24 orn2 pos=(0.63,-0.08,0.35) slk=-0.016 |S|=31
+[WBC] #5 ref ci0 y[-0.68,0.35] z[0.65,1.61] band=0.37 wb=0.72 wd=0.37 -> item33 orn5 pos=(0.63,-0.05,0.82) slk=-0.280 |S|=41
+[WBC] #6 ref ci0 y[-0.68,0.68] z[0.78,1.61] band=0.37 wb=0.72 wd=0.37 -> item32 orn5 pos=(-0.42,-0.05,1.13) slk=-0.105 |S|=55
+[WBC] stall@plan=7 ref y[0.34,0.68] z[0.78,1.61] band=0.37 wb=0.72 #cand=1 planNone=1 z=0 slack=0 |S|=65
+[WBC] #7 ref ci0 y[-0.68,0.68] z[0.88,1.61] band=0.37 wb=0.72 wd=0.37 -> item17 orn4 pos=(0.21,0.20,1.22) slk=-0.025 |S|=59
+[WBC] #8 ref ci0 y[-0.68,0.68] z[0.88,1.61] band=0.37 wb=0.72 wd=0.37 -> item8 orn2 pos=(-0.22,-0.16,1.16) slk=-0.040 |S|=71
+[WBC] #9 ref ci0 y[-0.68,0.68] z[0.97,1.61] band=0.37 wb=0.72 wd=0.37 -> item35 orn2 pos=(0.63,0.05,1.14) slk=-0.193 |S|=82
+[WBC] #10 ref ci0 y[-0.68,0.68] z[1.00,1.61] band=0.37 wb=0.72 wd=0.37 -> item29 orn2 pos=(0.79,0.08,1.27) slk=-0.044 |S|=98
+[WBC] #11 ref ci0 y[-0.68,0.05] z[0.04,0.80] band=0.15 wb=0.20 wd=0.44 -> item26 orn4 pos=(0.31,-0.11,0.40) slk=-0.016 |S|=114
+[WBC] #12 ref ci0 y[-0.68,0.05] z[0.04,0.80] band=0.44 wb=0.20 wd=0.44 -> item19 orn1 pos=(-0.11,-0.58,0.34) slk=-0.016 |S|=123
+[WBC] #13 ref ci0 y[-0.49,-0.24] z[0.04,0.80] band=0.44 wb=0.20 wd=0.44 -> item28 orn2 pos=(0.40,-0.49,0.42) slk=-0.016 |S|=149
+[WBC] #14 ref ci0 y[-0.68,0.05] z[0.63,1.61] band=0.44 wb=0.20 wd=0.44 -> item12 orn1 pos=(-0.08,-0.58,1.09) slk=-0.032 |S|=146
+[WBC] #15 ref ci0 y[-0.28,0.05] z[0.74,1.61] band=0.44 wb=0.20 wd=0.44 -> item31 orn1 pos=(0.39,-0.13,1.05) slk=-0.230 |S|=160
+[WBC] FINAL offline plan=16 / total=40 (remaining=24, |S|=173) stall={'no_usable': 0, 'no_ref': 0, 'no_best_planNone': 31, 'no_best_slack': 0, 'no_best_z': 1, 'no_best_other': 1, 'iters': 49}
+transport item 38
+place item 38
+transport item 1
+place item 1
+transport item 30
+place item 30
+transport item 6
+place item 6
+transport item 24
+place item 24
+transport item 33
+place item 33
+transport item 32
+place item 32
+transport item 17
+place item 17
+transport item 8
+place item 8
+transport item 35
+place item 35
+transport item 29
+place item 29
+transport item 26
+place item 26
+transport item 21
+place item 21
+transport item 25
+place item 25
+transport item 20
+place item 20
+transport item 7
+place item 7
+transport item 0
+place item 0
+transport item 15
+place item 15
+transport item 19
+collision: 19 and 21 at (np.float32(-0.1465), np.float32(-0.725), np.float32(0.1351)), distance -0.037006327685454664
+collision: 19 and 25 at (np.float32(-0.1465), np.float32(-0.725), np.float32(0.1351)), distance -0.18513532809567823
+item 19 not packable. removed.
+item 38 not inside (hit boundary plane), [ 0.00982343 -0.83405569 -1.53982343 -1.08594431 -0.44374493 -1.38988913
+ -0.02011087]
+item 1 not inside (hit boundary plane), [ 1.40864614e-05 -4.09513195e-01 -1.53001409e+00 -1.51048681e+00
+ -7.36581442e-01 -7.72323270e-01 -6.37676730e-01]
+item 30 not inside (hit boundary plane), [ 2.17646972e-05 -1.47215808e+00 -1.53002176e+00 -4.47841916e-01
+ -2.17634536e-02 -7.42931020e-01 -6.67068980e-01]
+item 6 not inside (hit boundary plane), [ 8.17798915e-06 -2.94449838e-02 -1.53000818e+00 -1.89055502e+00
+ -9.92247359e-01 -1.02326700e+00 -3.86732998e-01]
+item 24 not inside (hit boundary plane), [ 2.93890140e-05 -2.91679849e-01 -1.53002939e+00 -1.62832015e+00
+ -8.15833405e-01 -1.01811234e+00 -3.91887664e-01]
+item 26 not inside (hit boundary plane), [ 8.72586579e-06 -8.85247761e-01 -1.53000873e+00 -1.03475224e+00
+ -4.16571709e-01 -7.43325705e-01 -6.66674295e-01]
+item 21 not inside (hit boundary plane), [ 8.94733011e-06 -4.02007203e-01 -1.53000895e+00 -1.51799280e+00
+ -7.41634321e-01 -4.18640154e-01 -9.91359846e-01]
+item 25 not inside (hit boundary plane), [-1.24838189e-05 -8.09084936e-01 -1.52998752e+00 -1.11091506e+00
+ -4.67820062e-01 -3.22869201e-02 -1.37771308e+00]
+close env.
+closed runner.
+  done in 76.8s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_D05_A_1c_40_tall.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[WBC] cont0 interior=(-0.96, -0.685, 0.04, 0.96, 0.685, 1.61) shelf=False cut=(0.44,0.4) prepacked=0
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.04,0.81]
+[WBC]   init space ci0 x[-0.52,0.96] y[-0.68,0.68] z[0.04,1.61]
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.85,1.21]
+[WBC] #0 ref ci0 y[-0.68,0.68] z[0.04,0.81] band=0.36 wb=0.72 wd=0.66 -> item10 orn2 pos=(0.57,0.37,0.31) slk=-0.016 |S|=3
+[WBC] #1 ref ci0 y[-0.68,0.68] z[0.04,0.81] band=0.66 wb=0.72 wd=0.66 -> item27 orn5 pos=(-0.11,0.36,0.34) slk=-0.016 |S|=8
+[WBC] stall@plan=2 ref y[-0.68,0.68] z[0.04,0.81] band=0.66 wb=0.72 #cand=12 planNone=0 z=12 slack=0 |S|=15
+[WBC] #2 ref ci0 y[-0.68,0.07] z[0.04,1.61] band=0.66 wb=0.72 wd=0.66 -> item26 orn4 pos=(0.69,-0.33,0.28) slk=-0.013 |S|=14
+[WBC] #3 ref ci0 y[-0.68,0.07] z[0.04,1.61] band=0.66 wb=0.72 wd=0.66 -> item3 orn4 pos=(0.19,-0.24,0.33) slk=-0.016 |S|=19
+[WBC] #4 ref ci0 y[-0.68,0.07] z[0.51,1.61] band=0.66 wb=0.72 wd=0.66 -> item2 orn4 pos=(0.64,-0.35,0.72) slk=-0.020 |S|=31
+[WBC] stall@plan=5 ref y[0.04,0.68] z[0.56,1.61] band=0.66 wb=0.72 #cand=12 planNone=12 z=0 slack=0 |S|=48
+[WBC] stall@plan=5 ref y[-0.04,0.68] z[0.56,1.61] band=0.66 wb=0.72 #cand=12 planNone=12 z=0 slack=0 |S|=47
+[WBC] stall@plan=5 ref y[-0.04,0.68] z[0.60,1.61] band=0.66 wb=0.72 #cand=12 planNone=12 z=0 slack=0 |S|=46
+[WBC] #5 ref ci0 y[-0.68,0.68] z[0.63,1.61] band=0.66 wb=0.72 wd=0.66 -> item29 orn5 pos=(-0.11,0.36,0.84) slk=-0.035 |S|=45
+[WBC] stall@plan=6 ref y[-0.04,0.68] z[0.63,1.61] band=0.66 wb=0.72 #cand=12 planNone=12 z=0 slack=0 |S|=62
+[WBC] stall@plan=6 ref y[-0.68,0.07] z[0.63,1.61] band=0.66 wb=0.72 #cand=12 planNone=0 z=12 slack=0 |S|=61
+[WBC] #6 ref ci0 y[-0.68,0.68] z[0.85,1.21] band=0.66 wb=0.72 wd=0.66 -> item15 orn1 pos=(-0.72,-0.33,1.03) slk=-0.026 |S|=60
+[WBC] #7 ref ci0 y[-0.68,0.68] z[0.92,1.61] band=0.66 wb=0.72 wd=0.66 -> item36 orn4 pos=(0.66,-0.23,1.08) slk=-0.023 |S|=73
+[WBC] #8 ref ci0 y[0.03,0.68] z[1.03,1.61] band=0.66 wb=0.72 wd=0.66 -> item7 orn5 pos=(-0.08,0.36,1.22) slk=-0.026 |S|=89
+[WBC] #9 ref ci0 y[-0.68,0.06] z[0.04,0.81] band=0.36 wb=0.07 wd=0.64 -> item18 orn1 pos=(-0.31,-0.27,0.35) slk=-0.016 |S|=112
+[WBC] #10 ref ci0 y[-0.68,0.06] z[0.60,1.04] band=0.64 wb=0.07 wd=0.64 -> item35 orn4 pos=(0.17,-0.35,0.81) slk=-0.058 |S|=127
+[WBC] #11 ref ci0 y[-0.68,0.06] z[0.65,0.86] band=0.64 wb=0.07 wd=0.64 -> item1 orn1 pos=(-0.24,-0.23,0.76) slk=-0.211 |S|=149
+[WBC] #12 ref ci0 y[-0.68,0.06] z[0.87,1.61] band=0.64 wb=0.07 wd=0.64 -> item34 orn4 pos=(-0.31,-0.33,1.17) slk=-0.043 |S|=158
+[WBC] #13 ref ci0 y[-0.68,0.06] z[1.21,1.61] band=0.64 wb=0.07 wd=0.64 -> item21 orn1 pos=(0.11,-0.17,1.20) slk=-0.196 |S|=166
+[WBC] FINAL offline plan=14 / total=40 (remaining=26, |S|=181) stall={'no_usable': 1, 'no_ref': 0, 'no_best_planNone': 13, 'no_best_slack': 0, 'no_best_z': 6, 'no_best_other': 0, 'iters': 34}
+transport item 10
+place item 10
+transport item 27
+place item 27
+transport item 26
+place item 26
+transport item 3
+place item 3
+transport item 2
+place item 2
+transport item 29
+place item 29
+transport item 15
+place item 15
+transport item 36
+place item 36
+transport item 7
+place item 7
+transport item 18
+place item 18
+transport item 35
+place item 35
+transport item 1
+place item 1
+transport item 9
+collision: 9 and 18 at (np.float32(-0.4085), np.float32(-0.725), np.float32(0.2491)), distance -0.07356000736590985
+item 9 not packable. removed.
+item 10 not inside (hit boundary plane), [ 1.67898423e-05 -2.02924817e-02 -1.53001679e+00 -1.89970752e+00
+ -9.98397626e-01 -1.39215274e+00 -1.78472629e-02]
+item 27 not inside (hit boundary plane), [-1.56753585e-05 -7.89602405e-01 -1.52998432e+00 -1.13039759e+00
+ -4.80927793e-01 -1.38437106e+00 -2.56289380e-02]
+item 26 not inside (hit boundary plane), [ 0.01398099 -0.52568466 -1.54398099 -1.39431534 -0.64810139 -0.76838467
+ -0.64161533]
+item 3 not inside (hit boundary plane), [ 0.00199281 -0.87950493 -1.53199281 -1.04049507 -0.41896665 -0.76599016
+ -0.64400984]
+item 18 not inside (hit boundary plane), [ 1.58546836e-05 -1.07291537e+00 -1.53001585e+00 -8.47084630e-01
+ -2.90327538e-01 -1.56257265e-01 -1.25374274e+00]
+close env.
+closed runner.
+  done in 67.9s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+=== シーン別結果 ===
+scene                      | fill    | cog     | stability | placement | soft    | placed      | placed%  | fill_cnt% | opt[s]  | policy[s] | status                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+suite_A01_1c_40_plain.json | 16.20   | 60.51   | 97.75     | 100.00    | 100.00  | 15/40       | 37.5     | 60.0      | 58.09   | 0.12      | Stopped in the middle. Did not satisfy ['i
+suite_D01_A_1c_40_softheav | 13.45   | 54.47   | 97.37     | 100.00    | 100.00  | 13/40       | 32.5     | 46.2      | 68.05   | 0.10      | Stopped in the middle. Did not satisfy ['i
+suite_D04_A_1c_40_flat.jso | 12.77   | 66.27   | 97.64     | 100.00    | 100.00  | 18/40       | 45.0     | 55.6      | 72.72   | 0.12      | Stopped in the middle. Did not satisfy ['i
+suite_D05_A_1c_40_tall.jso | 20.39   | 57.89   | 98.43     | 100.00    | 100.00  | 12/40       | 30.0     | 58.3      | 65.30   | 0.25      | Stopped in the middle. Did not satisfy ['i
+
+=== 足切り閾値 感度分析(仮説ごとの突破可否・合成スコア) ===
+scene                      | count>=10       | count>=15       | count>=20       | count>=30%total | count>=50%total | volume>=30%container | volume>=50%container
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+suite_A01_1c_40_plain.json | O  74.9         | O  74.9         | X   3.2         | O  74.9         | X   3.2         | O  74.9         | X   3.2        
+suite_D01_A_1c_40_softheav | O  73.1         | X   2.7         | X   2.7         | O  73.1         | X   2.7         | O  73.1         | X   2.7        
+suite_D04_A_1c_40_flat.jso | O  75.3         | O  75.3         | X   2.6         | O  75.3         | X   2.6         | O  75.3         | X   2.6        
+suite_D05_A_1c_40_tall.jso | O  75.3         | X   4.1         | X   4.1         | O  75.3         | X   4.1         | O  75.3         | X   4.1        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+突破シーン数                     | 4/4             | 2/4             | 0/4             | 4/4             | 0/4             | 4/4             | 0/4            
+合成スコア平均                    |  74.7           |  39.2           |   3.1           |  74.7           |   3.1           |  74.7           |   3.1          
+
+(参考) 足切りを考慮しない場合の合成スコア平均(全シーンclearedと仮定):  74.7
+最下位シーンの積載個数: suite_D05_A_1c_40_tall.json::000 -> 12/40 個
+
+=== 平均 ===
+fill_score      : 15.70
+cog_score       : 59.79
+stability_score : 97.80
+placement_score : 100.00
+soft_item_score : 100.00
+num_placed_items: 36.2%
+fill_counted_ratio: 55.0%
+(scored 4/4 scenes)
