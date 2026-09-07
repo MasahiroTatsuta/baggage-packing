@@ -194,7 +194,8 @@ def _placed_aabb(cont, item, act):
 
 
 WBC_SKYLINE = os.environ.get('MYSOLVER_WBC_SKYLINE', '1') == '1'
-WBC_WALL_DEPTH_MULT = float(os.environ.get('MYSOLVER_WBC_WALL_DEPTH_MULT', '2.6'))
+WBC_WALL_DEPTH_MULT = float(os.environ.get('MYSOLVER_WBC_WALL_DEPTH_MULT', '3.5'))
+WBC_WALL_GAP = float(os.environ.get('MYSOLVER_WBC_WALL_GAP', '0.02'))  # 壁/床から荷物を離すクリアランス(inclusion margin 対策)
 
 
 def _orients_for_depth(item, max_depth):
@@ -218,14 +219,19 @@ def _pack_wall(cont, ci, y_back, depth, x_lo, x_hi, z_lo, z_hi, items, prepacked
     sky = [(x_lo, x_hi, z_lo)]
     placements = []
     used = set()
+    _diag = {'no_orient': 0, 'no_slot': 0, 'validate_none': 0, 'tried': 0}
     progressed = True
     while progressed and items:
         progressed = False
         for it in list(items):
             if it['index'] in used:
                 continue
+            _diag['tried'] += 1
             best = None                     # (top_z_after, xs, orn, dxyz)
-            for orn, dxyz, hy in _orients_for_depth(it, depth):
+            _os = _orients_for_depth(it, depth)
+            if not _os:
+                _diag['no_orient'] += 1
+            for orn, dxyz, hy in _os:
                 w, h = dxyz[0], dxyz[2]
                 if w > (x_hi - x_lo) + 1e-6 or h > (z_hi - z_lo) + 1e-6:
                     continue
@@ -247,15 +253,18 @@ def _pack_wall(cont, ci, y_back, depth, x_lo, x_hi, z_lo, z_hi, items, prepacked
                             best = cand
                     xs += max(0.02, w * 0.34)
             if best is None:
+                if _os:
+                    _diag['no_slot'] += 1
                 continue
             top_after, xs, orn, dxyz, seg_top, hy = best
             lx = xs + dxyz[0] / 2.0
-            ly = y_back - hy                 # 背面密着
+            ly = y_back - hy - WBC_WALL_GAP  # 背面密着(壁から少し離す = inclusion margin 対策)
             lz = seg_top + dxyz[2] / 2.0
             r = planner.validate_planned_xy(cont, it, (lx, ly), orn,
                                             prepacked_ids=prepacked_ids,
                                             strict_support=strict_support)
             if r is None:
+                _diag['validate_none'] += 1
                 continue
             rp = r.get('local_pos', (lx, ly, lz))
             act = {'place_pos': np.asarray(rp, dtype=float), 'orientation': int(orn),
@@ -279,6 +288,9 @@ def _pack_wall(cont, ci, y_back, depth, x_lo, x_hi, z_lo, z_hi, items, prepacked
             nsky.append((xs, xe, top_after))
             sky = sorted(nsky)
             progressed = True
+    if os.environ.get('MYSOLVER_WBC_DEBUG', '0') == '1':
+        import sys
+        print(f'[WBC]   _pack_wall diag={_diag}', file=sys.stderr)
     return placements, used
 
 
@@ -300,7 +312,8 @@ def _wbc_plan_skyline(container_list, items_by_index, item_list, lookahead_k, bu
     while (remaining and y_back - z0 * 0 - y0 > 0.02 and not budget.exhausted()
            and time.perf_counter() < wall_deadline):
         depth = min(wall_depth, y_back - y0)
-        placements, used = _pack_wall(cont, ci, y_back, depth, x0, x1, z0, z1,
+        g = WBC_WALL_GAP
+        placements, used = _pack_wall(cont, ci, y_back, depth, x0 + g, x1 - g, z0 + g, z1 - g,
                                       remaining, prepacked_ids, strict_support=False)
         _nwall += 1
         if _dbg:
