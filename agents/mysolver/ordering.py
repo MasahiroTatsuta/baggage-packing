@@ -1745,14 +1745,19 @@ def build_plan(item_list: list[dict], container_list: list[dict] | None, lookahe
         return order, []
     items_by_index = {it['index']: it for it in item_list}
     plan: list[dict] = []
-    # LDBC / CDR(2026-09-07、docs/search_rewrite_design.md): 既定 '0' では従来経路。
+    # LDBC / CDR / WBC(2026-09-07、docs/): 既定 '0' では従来経路(ビット単位不変)。
     _ldbc = os.environ.get('MYSOLVER_LDBC', '0') == '1'
     _cdr = os.environ.get('MYSOLVER_CDR', '0') == '1'
+    _wbc = os.environ.get('MYSOLVER_WBC', '0') == '1'
     try:
         budget = planner.SearchBudget.from_seconds(min(30.0, time_budget))
-        if _ldbc or _cdr:
+        _wd = time.perf_counter() + min(30.0, time_budget) * 2.0
+        if _wbc:
+            from . import wallbuild as _wb
+            plan = _wb.wbc_plan(container_list, items_by_index, item_list, lookahead_k,
+                                budget, wall_deadline=_wd)
+        elif _ldbc or _cdr:
             from . import search as _search_mod
-            _wd = time.perf_counter() + min(30.0, time_budget) * 2.0
             _fn = _search_mod.cdr_plan if _cdr else _search_mod.ldbc_plan
             plan = _fn(container_list, items_by_index, order, lookahead_k, budget, wall_deadline=_wd)
         else:
@@ -1760,6 +1765,11 @@ def build_plan(item_list: list[dict], container_list: list[dict] | None, lookahe
                                     max(1, int(lookahead_k or 1)), budget, plan_out=plan)
     except Exception:
         plan = []
+    if _wbc and plan:
+        # WBC は独自のアイテム順で埋める。plan-executor が想定どおり再現できるよう
+        # order も WBC のプラン順 + 未配置(体積降順)に置き換える。
+        _seen = {p['index'] for p in plan}
+        order = [p['index'] for p in plan] + [i for i in order if i not in _seen]
     if PLAN_TOPO_REORDER and plan:
         try:
             reordered = _topo_reorder_plan(plan, container_list, items_by_index)

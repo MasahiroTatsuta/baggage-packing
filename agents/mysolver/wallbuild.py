@@ -1,0 +1,231 @@
+"""WBC — Wall-Building Constructor(2026-09-07 着手、docs/wallbuild_design.md)。
+
+planner の候補生成を Extreme Point 貪欲 → maximal-space + 層(壁)構築へ差し替える第1手。
+コンテナを奥(y 最大)→ 手前へ maximal space 単位で埋め、参照空間を常に「最も奥・最も低い・
+最も左」から選ぶことで front-to-back を構築規則としてハード保証する。搬入経路は「まだ
+埋めていない手前空間」を必ず通れるため、is_valid 死(搬入経路衝突)が構造的に起きない。
+
+配置そのもの(着地 z・支持・内包・搬入経路の検証)は既存 `planner.plan` を region 制約付きで
+呼んで流用する(新規の幾何は書かない = Phase86 の教訓)。WBC の寄与は「どの空間を・どの順で
+埋めるか」の選択規則。
+
+既定 `MYSOLVER_WBC=0` では `ordering.build_plan` から呼ばれない。
+"""
+import os
+import time
+
+import numpy as np
+
+from . import geometry as geo
+from . import planner
+from . import simulate
+
+WBC_CAND_ITEMS = int(os.environ.get('MYSOLVER_WBC_CAND_ITEMS', '12'))
+WBC_STEP_S = float(os.environ.get('MYSOLVER_WBC_STEP_S', '0.8'))
+WBC_W_VOL = float(os.environ.get('MYSOLVER_WBC_W_VOL', '1.0'))
+WBC_W_BEHIND = float(os.environ.get('MYSOLVER_WBC_W_BEHIND', '1.0'))
+WBC_W_FRONT = float(os.environ.get('MYSOLVER_WBC_W_FRONT', '1.0'))
+WBC_MIN_SPACE = float(os.environ.get('MYSOLVER_WBC_MIN_SPACE', '0.05'))   # この辺長未満の空間は無視
+
+# space = (ci, x0, y0, z0, x1, y1, z1)  すべて container-local
+
+
+def _vol(s):
+    return max(0.0, s[4] - s[1]) * max(0.0, s[5] - s[2]) * max(0.0, s[6] - s[3])
+
+
+def _contains(a, b, eps=1e-9):
+    """a が b を(ほぼ)完全に包含するか。"""
+    return (a[0] == b[0] and a[1] - eps <= b[1] and a[2] - eps <= b[2] and a[3] - eps <= b[3]
+            and a[4] + eps >= b[4] and a[5] + eps >= b[5] and a[6] + eps >= b[6])
+
+
+def _overlap(s, box):
+    return (s[1] < box[3] and box[0] < s[4] and s[2] < box[4] and box[1] < s[5]
+            and s[3] < box[5] and box[2] < s[6])
+
+
+def _split_space(s, box):
+    """maximal space s から障害物 box(同じ ci・local AABB)の占有分を引いた極大直方体群。
+    最大6個(左/右/手前-y/奥+y/下/上)。s と box が重ならなければ [s]。"""
+    ci = s[0]
+    if not _overlap(s, box):
+        return [s]
+    x0, y0, z0, x1, y1, z1 = s[1], s[2], s[3], s[4], s[5], s[6]
+    bx0, by0, bz0, bx1, by1, bz1 = box[1], box[2], box[3], box[4], box[5], box[6]
+    out = []
+    if bx0 > x0:
+        out.append((ci, x0, y0, z0, min(bx0, x1), y1, z1))            # 左
+    if bx1 < x1:
+        out.append((ci, max(bx1, x0), y0, z0, x1, y1, z1))            # 右
+    if by0 > y0:
+        out.append((ci, x0, y0, z0, x1, min(by0, y1), z1))           # 手前
+    if by1 < y1:
+        out.append((ci, x0, max(by1, y0), z0, x1, y1, z1))           # 奥
+    if bz0 > z0:
+        out.append((ci, x0, y0, z0, x1, y1, min(bz0, z1)))           # 下
+    if bz1 < z1:
+        out.append((ci, x0, y0, max(bz1, z0), x1, y1, z1))           # 上
+    return [o for o in out if _vol(o) > 1e-9]
+
+
+def _prune(spaces):
+    """極小空間・重複を除き、他に真に包含される空間を除く。"""
+    kept = []
+    seen = set()
+    for s in spaces:
+        if s in seen:
+            continue
+        if min(s[4] - s[1], s[5] - s[2], s[6] - s[3]) < WBC_MIN_SPACE:
+            continue
+        seen.add(s)
+        kept.append(s)
+    final = []
+    for i, s in enumerate(kept):
+        if any(j != i and _contains(kept[j], s) and _vol(kept[j]) >= _vol(s)
+               and not (j > i and kept[j] == s) for j in range(len(kept))):
+            continue
+        final.append(s)
+    return final
+
+
+def _interior_bounds(cont):
+    L = cont['length']; W = cont['width']; H = cont['height']
+    th = cont.get('thickness', 0.0)
+    return (-L / 2.0, -W / 2.0, th, L / 2.0, W / 2.0, H)
+
+
+def init_maximal_spaces(containers):
+    """各コンテナの初期 maximal space 群。cutcorner の斜め面・棚・既積みを障害物として subtract。"""
+    S = []
+    for ci, cont in enumerate(containers):
+        x0, y0, z0, x1, y1, z1 = _interior_bounds(cont)
+        spaces = [(ci, x0, y0, z0, x1, y1, z1)]
+        obstacles = []
+        # cutcorner: x が最小側・z が最大側の楔を矩形で保守近似
+        cut_x = cont.get('cut_x', 0.0) or 0.0
+        cut_y = cont.get('cut_y', 0.0) or 0.0
+        if cut_x > 1e-6 and cut_y > 1e-6:
+            obstacles.append((ci, x0, y0, z1 - cut_y, x0 + cut_x, y1, z1))
+        # 棚(脇の小棚 + あれば大棚)
+        for ab in geo.static_obstacles(cont):
+            c, h = np.asarray(ab[0], float), np.asarray(ab[1], float)
+            ox = cont['center'][0]
+            obstacles.append((ci, c[0] - ox - h[0], c[1] - h[1], c[2] - h[2],
+                              c[0] - ox + h[0], c[1] + h[1], c[2] + h[2]))
+        # 既積み
+        for it in cont.get('packed_items', []):
+            aabb = _item_local_aabb(cont, it)
+            if aabb is not None:
+                obstacles.append(aabb)
+        for box in obstacles:
+            nxt = []
+            for s in spaces:
+                nxt.extend(_split_space(s, box))
+            spaces = _prune(nxt)
+        S.extend(spaces)
+    return _prune(S)
+
+
+def _item_local_aabb(cont, packed_item):
+    """packed_items の1要素 → container-local AABB space タプル。"""
+    pos = packed_item.get('pos')
+    if pos is None:
+        return None
+    ox = cont['center'][0]
+    try:
+        R = geo.quat_abs_rotmat(packed_item['orn'])
+        hw = R @ np.array([packed_item['length'] / 2.0, packed_item['width'] / 2.0,
+                           packed_item['height'] / 2.0])
+        hw = np.abs(hw)
+    except Exception:
+        hw = np.array([packed_item['length'] / 2.0, packed_item['width'] / 2.0,
+                       packed_item['height'] / 2.0])
+    cx = pos[0] - ox
+    ci = None  # 呼び出し側で埋める必要はない: init のループが ci を知っている
+    return (0, cx - hw[0], pos[1] - hw[1], pos[2] - hw[2],
+            cx + hw[0], pos[1] + hw[1], pos[2] + hw[2])
+
+
+def _pick_ref(S, min_dim):
+    """最も奥(y0 最大)→ 最も低い(z0 最小)→ 最も左(x0 最小)。min_dim 未満の空間は除外。"""
+    cand = [s for s in S if min(s[4] - s[1], s[5] - s[2], s[6] - s[3]) >= min_dim]
+    if not cand:
+        return None
+    return min(cand, key=lambda s: (-s[2], s[3], s[1]))
+
+
+def _layer_score(item, act, ref):
+    pp = act['place_pos']
+    half = geo.half_extent((item['length'], item['width'], item['height']), act['orientation'])
+    vol = item['length'] * item['width'] * item['height']
+    gap_behind = max(0.0, (float(pp[1]) - float(half[1])) - ref[2])
+    front_face = float(pp[1]) + float(half[1])
+    return (WBC_W_VOL * vol * 1000.0
+            - WBC_W_BEHIND * gap_behind * 100.0
+            - WBC_W_FRONT * (front_face - ref[2]) * 50.0)
+
+
+def _placed_aabb(cont, item, act):
+    pp = act['place_pos']
+    ox = cont['center'][0]
+    half = geo.half_extent((item['length'], item['width'], item['height']), act['orientation'])
+    cx = float(pp[0])   # act['place_pos'] は既に container-local
+    return (0, cx - half[0], float(pp[1]) - half[1], float(pp[2]) - half[2],
+            cx + half[0], float(pp[1]) + half[1], float(pp[2]) + half[2])
+
+
+def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wall_deadline=None):
+    """戻り値: plan_entries のリスト。anytime(budget / wall_deadline 枯渇で打ち切り)。"""
+    if not container_list or not item_list:
+        return []
+    if wall_deadline is None:
+        wall_deadline = time.perf_counter() + 1e9
+    conts = simulate.clone_containers(container_list)
+    S = init_maximal_spaces(conts)
+    remaining = sorted(item_list, key=lambda it: -(it['length'] * it['width'] * it['height']))
+    remaining = [dict(it) for it in remaining]
+    plan: list[dict] = []
+    min_item_dim = min(min(it['length'], it['width'], it['height']) for it in remaining)
+
+    while remaining and not budget.exhausted() and time.perf_counter() < wall_deadline:
+        ref = _pick_ref(S, min_item_dim)
+        if ref is None:
+            break
+        ci = ref[0]
+        region = (ref[1], ref[2], ref[3], ref[4], ref[5], ref[6])
+        best = None
+        for item in remaining[:WBC_CAND_ITEMS]:
+            if budget.exhausted() or time.perf_counter() >= wall_deadline:
+                break
+            try:
+                act = planner.plan([conts[ci]], [dict(item)], max_pool_items=None,
+                                   budget=budget.child_seconds(WBC_STEP_S), region=region)
+            except Exception:
+                act = None
+            if act is None:
+                continue
+            sc = _layer_score(item, act, ref)
+            if best is None or sc > best[0]:
+                best = (sc, item, act)
+        if best is None:
+            S = [s for s in S if s is not ref]
+            continue
+        _, item, act = best
+        act = {'place_pos': np.asarray(act['place_pos'], dtype=float),
+               'orientation': int(act['orientation']), 'container_idx': 0}
+        placed = simulate._place(conts[ci], dict(item), act)
+        conts[ci]['packed_items'].append(placed)
+        pp = act['place_pos']
+        plan.append({'index': int(item['index']), 'container_idx': int(ci),
+                     'place_pos': (float(pp[0]), float(pp[1]), float(pp[2])),
+                     'orientation': int(act['orientation'])})
+        remaining = [it for it in remaining if it['index'] != item['index']]
+        box = _placed_aabb(conts[ci], item, act)
+        box = (ci,) + box[1:]
+        nxt = []
+        for s in S:
+            nxt.extend(_split_space(s, box) if s[0] == ci else [s])
+        S = _prune(nxt)
+
+    return plan
