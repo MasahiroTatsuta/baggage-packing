@@ -219,10 +219,20 @@ region 貪欲へ先に縮退(`MYSOLVER_WBC_REPLAY_R`、`MYSOLVER_WBC=1` のと�
 → **領域制約の縮退では不十分。根本は WBC の計画位置自体の内包スラックが薄い**
 (ダンプの slk −0.013〜−0.024、実閾値 −0.005 に近い)ため実機ドリフトで落ちる。
 
+### v7/v8(2026-09-07 深夜): スラック余裕を入れたら constructor が崩壊
+`WBC_SLACK_MARGIN`(-0.03)+ `WBC_AABB_INFLATE`(0.008)を追加 + `WBC_1C_ONLY`。
+→ **offline plan が A01=4 / A02=0 / A07=6 で崩壊、`|S|`(maximal space 数)が数手で 0 に。**
+= replay ではなく **maximal-space コア(`_split_space`/`_prune`/`init_maximal_spaces`)自体の
+バグ**。大きな前面空間を失っている。単体テストを書かずに速く組んだツケ。
+v5(14手プラン)の方が良かった。knobs は -0.008 / 0.0 に戻した。
+
 ### 次セッションの WBC 作業(更新、優先順)
-1. **計画時にスラック余裕を組み込む**: `wbc_plan` で候補採用時、`inclusion_slack` に
-   `WBC_SLACK_MARGIN`(例 −0.03)より余裕があるものだけ採る。壁を数 mm 内側に。
-   `_placed_aabb` / maximal-space 更新も数 mm 膨らませて次の荷物に余裕を残す。
+0. **★最優先: `tools/test_maximal_space.py` を書き、`_split_space`/`_prune`/
+   `init_maximal_spaces` を正しくする。** 既知ケース: 1個の空間を中央の box で割ると 6 slab、
+   合計体積 = 元 - box、`|S|` は増えて安定(collapse しない)。cutcorner/shelf/prepacked の
+   init も体積検算。**これを直すまで他の調整は無意味**(v7-v8 は空プランを調整していた)。
+1. (0 が済んだら)計画時にスラック余裕: `WBC_SLACK_MARGIN` を -0.012〜-0.016 で、
+   `WBC_AABB_INFLATE` を 0.002〜0.004 で慎重に。
 2. **シーン別**: D04(flat)/A05(prio)で回帰。flat は薄い壁に不利 → band 下限を上げる。
    prio は優先コンテナ割当(2c)の WBC 対応が未実装。まず 1c・非優先で baseline 超えを狙う。
 3. 壁内 X-Z 密度(`_layer_score` の footprint 重み↑、スリット併合)。
