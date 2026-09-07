@@ -285,6 +285,30 @@ skyline が「ここに載る」と言う位置を validate が「支持不足 /
 特に skyline が item B を item A の上に載せるとき、A の validate 着地 z と skyline の A.top が
 ずれ、B の位置が実際とずれて拒否される。
 
+### v15(2026-09-07): cutcorner 検出 + マルチスロット検証 → 動くが episode 崩壊 → ストップロス
+- v14 placed=0 の原因: skyline が bottom-left(x_lo)から埋めるが、そこが **cutcorner の斜め面**
+  (`worst_face` n=[-0.67,0,-0.74])に掛かり `inclusion_slack=+0.24` で全 reject。
+  1候補を先に選んでから検証していたため cut を外れた x を試せなかった。
+- v15: 候補を (top_z, xs) 昇順に集め、`check_inclusion_batch`+`transport_legal_batch` を
+  通る最初の1つを採用。→ wall#1 placed=5, wall#3 placed=5, plan=10-16/40。
+- **だが episode は壊滅**: A01 **23→7** / D01 23→15 / D04 27→17 / D05 14→9。num_placed 30%。
+  WBC のプランを plan-executor が replay すると自前着地z と実物理が乖離 → `validate_planned_xy`
+  が大半を弾き → 全域貪欲へ縮退 → 早期死。**A01 が 7 は v1(13)より悪い。**
+
+### ★ WBC 最終判定(2026-09-07、15ラウンド): ストップロス発動
+Deep Research のストップロス「ローカルで悪化シーン ≤ 2 かつ net 明確プラス」の**逆**
+(全シーン悪化、net −40以上、A01 は 23→7)。15ラウンドで:
+- maximal-space コア(`_overlap`)/ 壁カーソル / 床優先 ref / skyline 2D packing / cutcorner /
+  着地z 自前化 — 個々のバグは潰したが、**「WBC の offline プランを plan-executor が実物理で
+  replay する」段で必ず崩れる**。自前着地z ↔ 実沈降、skyline 支持 ↔ 実支持、の乖離が
+  埋まらず、しかも縮退先の全域貪欌が壁を壊して連鎖死。
+- 密に詰めるほど replay で崩れやすく、Deep Research が指摘した「offline を悲観化すると
+  臆病になる」のと同型の袋小路。
+**→ WBC(この offline-plan + replay 定式化)は打ち止め。A3(58.5 凍結・防御)へ。**
+本当に効かせるには online policy 自体を wall-building にする(offline plan を捨てる)必要が
+あり、それは plan-executor の設計全体の作り直し = 数週間、本セッション群の射程外。
+コードは全て `MYSOLVER_WBC=0` 既定・ビット単位不変で `exp/wallbuild` に残置。
+
 ### v14(2026-09-07): 着地z/支持を自前化 → placed=0(呼び出し形式の不整合)
 `_pack_wall` の `validate_planned_xy` 委譲を廃止し、着地 z = skyline shelf top + `REST_CLEARANCE`、
 `geo.check_inclusion_batch` + `planner.transport_legal_batch`(既配置 AABB を obstacles)直呼びに。
