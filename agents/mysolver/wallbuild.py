@@ -220,8 +220,9 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
     _band_init = max(WBC_INIT_BAND_MULT * min_item_dim, min_item_dim + 0.02)
     _front = {ci: c['center'][1] - c['width'] / 2.0 for ci, c in enumerate(conts)}
     while remaining and not budget.exhausted() and time.perf_counter() < wall_deadline:
-        topK = remaining[:WBC_CAND_ITEMS]
-        usable = [s for s in S if _space_fits_any(s, topK)]
+        # usable = 残り荷物の**どれか**が入る空間(top-K だけで見ると大型が入らない空間を
+        # 誤って捨て、小物用のスリットを活かせず早期に止まる)。
+        usable = [s for s in S if _space_fits_any(s, remaining)]
         if not usable:
             break
         ref = None
@@ -256,8 +257,12 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
         # 伸びる空間でも、planner が荷物中心を壁帯内にしか置けないようにする)。
         region = (ref[1], max(ref[2], wall_back[ci] - band), ref[3],
                   ref[4], min(ref[5], wall_back[ci]), ref[6])
+        # ref に3辺で収まる候補だけを、体積降順で最大 WBC_CAND_ITEMS 個試す。
+        cand_items = [it for it in remaining if _space_fits_any(ref, [it])][:WBC_CAND_ITEMS]
+        if not cand_items:
+            cand_items = remaining[:WBC_CAND_ITEMS]
         best = None
-        for item in remaining[:WBC_CAND_ITEMS]:
+        for item in cand_items:
             if budget.exhausted() or time.perf_counter() >= wall_deadline:
                 break
             try:
