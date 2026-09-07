@@ -25,7 +25,9 @@ WBC_STEP_S = float(os.environ.get('MYSOLVER_WBC_STEP_S', '0.8'))
 WBC_W_VOL = float(os.environ.get('MYSOLVER_WBC_W_VOL', '1.0'))
 WBC_W_BEHIND = float(os.environ.get('MYSOLVER_WBC_W_BEHIND', '1.0'))
 WBC_W_FRONT = float(os.environ.get('MYSOLVER_WBC_W_FRONT', '1.0'))
-WBC_MIN_SPACE = float(os.environ.get('MYSOLVER_WBC_MIN_SPACE', '0.05'))   # この辺長未満の空間は無視
+WBC_MIN_SPACE = float(os.environ.get('MYSOLVER_WBC_MIN_SPACE', '0.02'))   # この辺長未満の空間は無視
+WBC_Z_TOL = float(os.environ.get('MYSOLVER_WBC_Z_TOL', '0.06'))           # ref の z 帯からの許容はみ出し
+WBC_WALL_BAND = float(os.environ.get('MYSOLVER_WBC_WALL_BAND', '0.0'))    # >0 なら現在の壁帯の厚み(0=自動)
 
 # space = (ci, x0, y0, z0, x1, y1, z1)  すべて container-local
 
@@ -90,9 +92,14 @@ def _prune(spaces):
 
 
 def _interior_bounds(cont):
+    """container-local (= world for y,z / world-ox for x) の内部直方体。
+    指示書: place_pos は local、world = (x+ox, y, z)。x は中心0、y/z は world そのもの。"""
     L = cont['length']; W = cont['width']; H = cont['height']
     th = cont.get('thickness', 0.0)
-    return (-L / 2.0, -W / 2.0, th, L / 2.0, W / 2.0, H)
+    cy = cont['center'][1]; cz = cont['center'][2]
+    # z は world 座標。床上面 = cz - H/2 + th、天井 = cz + H/2。
+    return (-L / 2.0 + th, cy - W / 2.0 + th, cz - H / 2.0 + th,
+            L / 2.0 - th, cy + W / 2.0 - th, cz + H / 2.0)
 
 
 def init_maximal_spaces(containers):
@@ -156,14 +163,17 @@ def _pick_ref(S, min_dim):
 
 
 def _layer_score(item, act, ref):
+    """壁は背面(ref[5], y_hi)から手前へ積む。背面に密着し、手前へ張り出さない候補を選好。"""
     pp = act['place_pos']
     half = geo.half_extent((item['length'], item['width'], item['height']), act['orientation'])
     vol = item['length'] * item['width'] * item['height']
-    gap_behind = max(0.0, (float(pp[1]) - float(half[1])) - ref[2])
-    front_face = float(pp[1]) + float(half[1])
+    back_face = float(pp[1]) + float(half[1])
+    front_face = float(pp[1]) - float(half[1])
+    gap_behind = max(0.0, ref[5] - back_face)              # 背面からの隙間(小さいほど良い)
+    protrude = max(0.0, ref[5] - front_face)               # 手前への張り出し(壁を薄く保つ)
     return (WBC_W_VOL * vol * 1000.0
             - WBC_W_BEHIND * gap_behind * 100.0
-            - WBC_W_FRONT * (front_face - ref[2]) * 50.0)
+            - WBC_W_FRONT * protrude * 50.0)
 
 
 def _placed_aabb(cont, item, act):
@@ -187,13 +197,53 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
     remaining = [dict(it) for it in remaining]
     plan: list[dict] = []
     min_item_dim = min(min(it['length'], it['width'], it['height']) for it in remaining)
+    _dbg = os.environ.get('MYSOLVER_WBC_DEBUG', '0') == '1'
+    if _dbg:
+        import sys
+        for ci_, c_ in enumerate(conts):
+            print(f'[WBC] cont{ci_} interior={tuple(round(v,3) for v in _interior_bounds(c_))} '
+                  f'shelf={c_.get("shelf")} cut=({c_.get("cut_x")},{c_.get("cut_y")}) '
+                  f'prepacked={len(c_.get("packed_items",[]))}', file=sys.stderr)
+        for s in sorted(S, key=lambda s: (-s[2], s[3], s[1]))[:8]:
+            print(f'[WBC]   init space ci{s[0]} '
+                  f'x[{s[1]:.2f},{s[4]:.2f}] y[{s[2]:.2f},{s[5]:.2f}] z[{s[3]:.2f},{s[6]:.2f}]',
+                  file=sys.stderr)
 
+    # 壁カーソル: コンテナごとに「現在埋めている壁の背面 y」。コンテナ背面から前へ進む。
+    # 現在の壁帯 = [wall_back - band, wall_back]。この帯に届く空間だけを ref 候補にし、
+    # 帯が埋まったら wall_back を「残り使える空間の最も奥の背面」まで前進させる。
+    wall_back = {ci: c['center'][1] + c['width'] / 2.0 for ci, c in enumerate(conts)}
     while remaining and not budget.exhausted() and time.perf_counter() < wall_deadline:
-        ref = _pick_ref(S, min_item_dim)
+        band = WBC_WALL_BAND if WBC_WALL_BAND > 0 else \
+            0.5 * min(max(it['length'], it['width'], it['height'])
+                      for it in remaining[:WBC_CAND_ITEMS])
+        usable = [s for s in S
+                  if min(s[4] - s[1], s[5] - s[2], s[6] - s[3]) >= min_item_dim]
+        if not usable:
+            break
+        ref = None
+        for _adv in range(128):
+            cand = [s for s in usable if s[5] >= wall_back[s[0]] - band - 1e-6]
+            if cand:
+                # 現在の壁帯内で: 最も奥(y_hi 最大)→ 最も低い → 最も左
+                ref = min(cand, key=lambda s: (-s[5], s[3], s[1]))
+                break
+            back_of_deepest = max(s[5] for s in usable)      # 残り使える空間の最奥の背面
+            advanced = False
+            for k in wall_back:
+                if wall_back[k] > back_of_deepest + 1e-6:
+                    wall_back[k] = back_of_deepest
+                    advanced = True
+            if not advanced:
+                ref = min(usable, key=lambda s: (-s[5], s[3], s[1]))
+                break
         if ref is None:
             break
         ci = ref[0]
-        region = (ref[1], ref[2], ref[3], ref[4], ref[5], ref[6])
+        # region の y を現在の壁帯 [wall_back - band, wall_back] にクリップ(ref が前面まで
+        # 伸びる空間でも、planner が荷物中心を壁帯内にしか置けないようにする)。
+        region = (ref[1], max(ref[2], wall_back[ci] - band), ref[3],
+                  ref[4], min(ref[5], wall_back[ci]), ref[6])
         best = None
         for item in remaining[:WBC_CAND_ITEMS]:
             if budget.exhausted() or time.perf_counter() >= wall_deadline:
@@ -205,6 +255,15 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
                 act = None
             if act is None:
                 continue
+            zc = float(act['place_pos'][2])
+            if zc < ref[3] - WBC_Z_TOL or zc > ref[6] + WBC_Z_TOL:
+                continue
+            # 実 evaluator の厳しい内包マージン(-0.005)を落とす候補は最初から採らない
+            _half = geo.half_extent((item['length'], item['width'], item['height']),
+                                    int(act['orientation']))
+            _wp = geo.local_to_world(conts[ci], act['place_pos'])[None, :]
+            if float(geo.inclusion_slack_batch(conts[ci], _half, _wp)[0]) > geo.REAL_INCLUSION_MARGIN:
+                continue
             sc = _layer_score(item, act, ref)
             if best is None or sc > best[0]:
                 best = (sc, item, act)
@@ -214,6 +273,15 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
         _, item, act = best
         act = {'place_pos': np.asarray(act['place_pos'], dtype=float),
                'orientation': int(act['orientation']), 'container_idx': 0}
+        if _dbg and len(plan) < 12:
+            import sys
+            _half = geo.half_extent((item['length'], item['width'], item['height']), act['orientation'])
+            _wp = geo.local_to_world(conts[ci], act['place_pos'])[None, :]
+            _slk = float(geo.inclusion_slack_batch(conts[ci], _half, _wp)[0])
+            print(f'[WBC] #{len(plan)} ref ci{ref[0]} y[{ref[2]:.2f},{ref[5]:.2f}] z[{ref[3]:.2f},{ref[6]:.2f}] '
+                  f'-> item{item["index"]} orn{act["orientation"]} pos=({act["place_pos"][0]:.2f},'
+                  f'{act["place_pos"][1]:.2f},{act["place_pos"][2]:.2f}) incl_slack={_slk:.4f} '
+                  f'(<= {geo.INCLUSION_MARGIN} legal, real ~-0.005) |S|={len(S)}', file=sys.stderr)
         placed = simulate._place(conts[ci], dict(item), act)
         conts[ci]['packed_items'].append(placed)
         pp = act['place_pos']
