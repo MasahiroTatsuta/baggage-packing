@@ -257,21 +257,28 @@ def _pack_wall(cont, ci, y_back, depth, x_lo, x_hi, z_lo, z_hi, items, prepacked
                     _diag['no_slot'] += 1
                 continue
             top_after, xs, orn, dxyz, seg_top, hy = best
-            lx = xs + dxyz[0] / 2.0
+            hx, hzz = dxyz[0] / 2.0, dxyz[2] / 2.0
+            lx = xs + hx
             ly = y_back - hy - WBC_WALL_GAP  # 背面密着(壁から少し離す = inclusion margin 対策)
-            lz = seg_top + dxyz[2] / 2.0
-            r = planner.validate_planned_xy(cont, it, (lx, ly), orn,
-                                            prepacked_ids=prepacked_ids,
-                                            strict_support=strict_support)
-            if r is None:
+            lz = seg_top + hzz + geo.REST_CLEARANCE   # skyline shelf(床 or 下の荷物)に載る
+            half = np.array([hx, hy, hzz], dtype=np.float64)
+            wp = geo.local_to_world(cont, (lx, ly, lz))[None, :]
+            # 着地 z / 支持は skyline(shelf)が保証。ここでは内包 + 搬入経路だけ確認。
+            if not bool(geo.check_inclusion_batch(cont, half, wp)[0]):
                 _diag['validate_none'] += 1
                 continue
-            rp = r.get('local_pos', (lx, ly, lz))
-            act = {'place_pos': np.asarray(rp, dtype=float), 'orientation': int(orn),
+            _obst = [(np.asarray(pit['pos'], float),
+                      np.abs(geo.quat_abs_rotmat(pit['orn']) @ np.array(
+                          [pit['length'] / 2, pit['width'] / 2, pit['height'] / 2])))
+                     for pit in cont.get('packed_items', [])]
+            if not bool(planner.transport_legal_batch(cont, half, wp, obstacles=_obst)[0]):
+                _diag['validate_none'] += 1
+                continue
+            act = {'place_pos': np.array([lx, ly, lz], dtype=float), 'orientation': int(orn),
                    'container_idx': 0}
             cont['packed_items'].append(simulate._place(cont, dict(it), act))
             placements.append({'index': int(it['index']), 'container_idx': int(ci),
-                               'place_pos': (float(rp[0]), float(rp[1]), float(rp[2])),
+                               'place_pos': (float(lx), float(ly), float(lz)),
                                'orientation': int(orn)})
             used.add(it['index'])
             # skyline 更新: [xs, xs+w] 区間を top_after に持ち上げる
