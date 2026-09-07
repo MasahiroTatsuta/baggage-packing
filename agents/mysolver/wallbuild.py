@@ -246,7 +246,7 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
                 if s[5] >= wall_back[s[0]] - d - 1e-6:
                     cand.append(s)
             if cand:
-                ref = min(cand, key=lambda s: (-s[5], s[3], s[1]))
+                ref = min(cand, key=lambda s: (s[3], -s[5], s[1]))
                 ci = ref[0]
                 break
             # 帯内に何も無い → 壁を1枚ぶん前進(contiguous に保つ)。前面に達したら打ち切り。
@@ -259,7 +259,7 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
                     advanced = True
             if not advanced:
                 # 前面近くの薄い残り: 帯制限を外して全 usable から選ぶ
-                ref = min(usable, key=lambda s: (-s[5], s[3], s[1]))
+                ref = min(usable, key=lambda s: (s[3], -s[5], s[1]))
                 ci = ref[0]
                 break
         if ref is None:
