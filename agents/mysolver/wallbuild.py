@@ -29,8 +29,8 @@ WBC_MIN_SPACE = float(os.environ.get('MYSOLVER_WBC_MIN_SPACE', '0.02'))   # こ�
 WBC_Z_TOL = float(os.environ.get('MYSOLVER_WBC_Z_TOL', '0.06'))           # ref の z 帯からの許容はみ出し
 WBC_WALL_BAND = float(os.environ.get('MYSOLVER_WBC_WALL_BAND', '0.0'))    # >0 なら現在の壁帯の厚み(0=自動)
 WBC_INIT_BAND_MULT = float(os.environ.get('MYSOLVER_WBC_INIT_BAND_MULT', '1.8'))  # 壁の初期厚み = これ×最小荷物辺
-WBC_SLACK_MARGIN = float(os.environ.get('MYSOLVER_WBC_SLACK_MARGIN', '-0.03'))    # 採用する候補の内包スラック上限(実閾値 -0.005 に対し余裕)
-WBC_AABB_INFLATE = float(os.environ.get('MYSOLVER_WBC_AABB_INFLATE', '0.008'))    # maximal-space 更新で配置 AABB を各辺これだけ膨張(次の荷物に余裕)
+WBC_SLACK_MARGIN = float(os.environ.get('MYSOLVER_WBC_SLACK_MARGIN', '-0.008'))    # 採用する候補の内包スラック上限(実閾値 -0.005 に対し余裕)
+WBC_AABB_INFLATE = float(os.environ.get('MYSOLVER_WBC_AABB_INFLATE', '0.0'))    # maximal-space 更新で配置 AABB を各辺これだけ膨張(次の荷物に余裕)
 WBC_1C_ONLY = os.environ.get('MYSOLVER_WBC_1C_ONLY', '1') == '1'                  # 単一・非優先コンテナのみ WBC(2c/優先は従来経路)
 
 # space = (ci, x0, y0, z0, x1, y1, z1)  すべて container-local
