@@ -28,6 +28,7 @@ WBC_W_FRONT = float(os.environ.get('MYSOLVER_WBC_W_FRONT', '1.0'))
 WBC_MIN_SPACE = float(os.environ.get('MYSOLVER_WBC_MIN_SPACE', '0.02'))   # この辺長未満の空間は無視
 WBC_Z_TOL = float(os.environ.get('MYSOLVER_WBC_Z_TOL', '0.06'))           # ref の z 帯からの許容はみ出し
 WBC_WALL_BAND = float(os.environ.get('MYSOLVER_WBC_WALL_BAND', '0.0'))    # >0 なら現在の壁帯の厚み(0=自動)
+WBC_INIT_BAND_MULT = float(os.environ.get('MYSOLVER_WBC_INIT_BAND_MULT', '1.8'))  # 壁の初期厚み = これ×最小荷物辺
 
 # space = (ci, x0, y0, z0, x1, y1, z1)  すべて container-local
 
@@ -154,12 +155,14 @@ def _item_local_aabb(cont, packed_item):
             cx + hw[0], pos[1] + hw[1], pos[2] + hw[2])
 
 
-def _pick_ref(S, min_dim):
-    """最も奥(y0 最大)→ 最も低い(z0 最小)→ 最も左(x0 最小)。min_dim 未満の空間は除外。"""
-    cand = [s for s in S if min(s[4] - s[1], s[5] - s[2], s[6] - s[3]) >= min_dim]
-    if not cand:
-        return None
-    return min(cand, key=lambda s: (-s[2], s[3], s[1]))
+def _space_fits_any(s, items):
+    """s(space タプル)に items のいずれかが(3辺のソート比較で)収まるか。"""
+    sd = sorted((s[4] - s[1], s[5] - s[2], s[6] - s[3]))
+    for it in items:
+        idm = sorted((it['length'], it['width'], it['height']))
+        if idm[0] <= sd[0] + 1e-9 and idm[1] <= sd[1] + 1e-9 and idm[2] <= sd[2] + 1e-9:
+            return True
+    return False
 
 
 def _layer_score(item, act, ref):
@@ -210,36 +213,45 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
                   file=sys.stderr)
 
     # 壁カーソル: コンテナごとに「現在埋めている壁の背面 y」。コンテナ背面から前へ進む。
-    # 現在の壁帯 = [wall_back - band, wall_back]。この帯に届く空間だけを ref 候補にし、
-    # 帯が埋まったら wall_back を「残り使える空間の最も奥の背面」まで前進させる。
+    # 壁帯 = [wall_back - wall_depth, wall_back]。wall_depth はその壁の最初の荷物が決める
+    # (未確定なら最大荷物 1 個ぶんを仮に使う)。帯に届く空間だけ ref 候補、帯が埋まったら前進。
     wall_back = {ci: c['center'][1] + c['width'] / 2.0 for ci, c in enumerate(conts)}
+    wall_depth: dict = {ci: None for ci in range(len(conts))}
+    _band_init = max(WBC_INIT_BAND_MULT * min_item_dim, min_item_dim + 0.02)
+    _front = {ci: c['center'][1] - c['width'] / 2.0 for ci, c in enumerate(conts)}
     while remaining and not budget.exhausted() and time.perf_counter() < wall_deadline:
-        band = WBC_WALL_BAND if WBC_WALL_BAND > 0 else \
-            0.5 * min(max(it['length'], it['width'], it['height'])
-                      for it in remaining[:WBC_CAND_ITEMS])
-        usable = [s for s in S
-                  if min(s[4] - s[1], s[5] - s[2], s[6] - s[3]) >= min_item_dim]
+        topK = remaining[:WBC_CAND_ITEMS]
+        usable = [s for s in S if _space_fits_any(s, topK)]
         if not usable:
             break
         ref = None
-        for _adv in range(128):
-            cand = [s for s in usable if s[5] >= wall_back[s[0]] - band - 1e-6]
+        ci = None
+        for _adv in range(256):
+            cand = []
+            for s in usable:
+                d = wall_depth[s[0]] if wall_depth[s[0]] else _band_init
+                if s[5] >= wall_back[s[0]] - d - 1e-6:
+                    cand.append(s)
             if cand:
-                # 現在の壁帯内で: 最も奥(y_hi 最大)→ 最も低い → 最も左
                 ref = min(cand, key=lambda s: (-s[5], s[3], s[1]))
+                ci = ref[0]
                 break
-            back_of_deepest = max(s[5] for s in usable)      # 残り使える空間の最奥の背面
+            # 帯内に何も無い → 壁を1枚ぶん前進(contiguous に保つ)。前面に達したら打ち切り。
             advanced = False
             for k in wall_back:
-                if wall_back[k] > back_of_deepest + 1e-6:
-                    wall_back[k] = back_of_deepest
+                step = wall_depth[k] if wall_depth[k] else _band_init
+                if wall_back[k] - step > _front[k] - 1e-6:
+                    wall_back[k] = wall_back[k] - step
+                    wall_depth[k] = None
                     advanced = True
             if not advanced:
+                # 前面近くの薄い残り: 帯制限を外して全 usable から選ぶ
                 ref = min(usable, key=lambda s: (-s[5], s[3], s[1]))
+                ci = ref[0]
                 break
         if ref is None:
             break
-        ci = ref[0]
+        band = wall_depth[ci] if wall_depth[ci] else _band_init
         # region の y を現在の壁帯 [wall_back - band, wall_back] にクリップ(ref が前面まで
         # 伸びる空間でも、planner が荷物中心を壁帯内にしか置けないようにする)。
         region = (ref[1], max(ref[2], wall_back[ci] - band), ref[3],
@@ -273,15 +285,19 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
         _, item, act = best
         act = {'place_pos': np.asarray(act['place_pos'], dtype=float),
                'orientation': int(act['orientation']), 'container_idx': 0}
-        if _dbg and len(plan) < 12:
+        _ihalf = geo.half_extent((item['length'], item['width'], item['height']), act['orientation'])
+        if wall_depth[ci] is None:
+            # この壁の最初の荷物が壁の厚みを決める(背面 wall_back からの深さ)
+            wall_depth[ci] = max(0.05, wall_back[ci] - (float(act['place_pos'][1]) - float(_ihalf[1])))
+        if _dbg and len(plan) < 16:
             import sys
-            _half = geo.half_extent((item['length'], item['width'], item['height']), act['orientation'])
             _wp = geo.local_to_world(conts[ci], act['place_pos'])[None, :]
-            _slk = float(geo.inclusion_slack_batch(conts[ci], _half, _wp)[0])
-            print(f'[WBC] #{len(plan)} ref ci{ref[0]} y[{ref[2]:.2f},{ref[5]:.2f}] z[{ref[3]:.2f},{ref[6]:.2f}] '
+            _slk = float(geo.inclusion_slack_batch(conts[ci], _ihalf, _wp)[0])
+            print(f'[WBC] #{len(plan)} ref ci{ci} y[{ref[2]:.2f},{ref[5]:.2f}] z[{ref[3]:.2f},{ref[6]:.2f}] '
+                  f'band={band:.2f} wb={wall_back[ci]:.2f} wd={wall_depth[ci]:.2f} '
                   f'-> item{item["index"]} orn{act["orientation"]} pos=({act["place_pos"][0]:.2f},'
-                  f'{act["place_pos"][1]:.2f},{act["place_pos"][2]:.2f}) incl_slack={_slk:.4f} '
-                  f'(<= {geo.INCLUSION_MARGIN} legal, real ~-0.005) |S|={len(S)}', file=sys.stderr)
+                  f'{act["place_pos"][1]:.2f},{act["place_pos"][2]:.2f}) slk={_slk:.3f} |S|={len(S)}',
+                  file=sys.stderr)
         placed = simulate._place(conts[ci], dict(item), act)
         conts[ci]['packed_items'].append(placed)
         pp = act['place_pos']
