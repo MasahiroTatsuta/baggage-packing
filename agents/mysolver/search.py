@@ -131,4 +131,10 @@ def ldbc_plan(container_list, items_by_index, order, lookahead_k, budget, wall_d
             break
         i += 1
 
-    return best_plan if len(best_plan) >= len(placed) else placed
+    out = best_plan if len(best_plan) >= len(placed) else placed
+    if os.environ.get('MYSOLVER_LDBC_DEBUG', '0') == '1':
+        import sys
+        print(f'[LDBC] n_items={len(seq)} plan={len(out)} placed_final={len(placed)} '
+              f'discrepancies={discrepancies} forbidden_items={len(forbidden)} '
+              f'budget_exhausted={budget.exhausted()}', file=sys.stderr)
+    return out

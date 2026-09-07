@@ -103,11 +103,33 @@ Phase86 の Look-ahead Beam は **depth=1 で −23%、depth=2 で −32%** と�
       baseline と完全同一(A08 19 / A01 23 / D05 14)。**
       → **v0 の確率的ナッジ forbidden は弱すぎてプランを変えられない。**
       `planner.plan` は score_noise を上げても実質同じ位置を返す。想定内(設計 §2.4)。
-- [ ] **次段(v1): `planner.plan` に厳密除外 `forbidden=set[(item_index, xy_q, orn)]` を追加。**
-      `_search_best` の候補ループで `candidate_xy` を `_evaluate_candidates` に渡す前に
-      マッチ XY(量子化)を除外。既定 None でビット単位不変。これで「その手を封じて
-      次善手」が確実に効く。
-- [ ] v1 で 3シーン sanity → 10シーン A/B(判定: 悪化シーン少+net正)。
+- [x] 2026-09-07: **v1 実装** — `planner.plan` / `_search_best` に厳密除外
+      `forbidden=set[(item_index, x_q, y_q, orn)]` を追加。候補ループで量子化一致XYを
+      `_evaluate_candidates` の前に除外。`forbidden=None` で det-8 が earlier _la 実行と
+      完全一致(B01/A01/A02/A03 の差は w3 bakes 由来で不変)→ **私の変更はビット単位不変を確認**。
+      `search.py._place_one` を v1 化(確率的ナッジ廃止、forbidden= を直接渡す)。
+- [x] 2026-09-07: **v1 の 3シーン sanity + デバッグ → 撤退判定。**
+      - sanity(A08/A01/D05): 配置数は baseline と完全同一(19/23/14)。
+      - デバッグ(`MYSOLVER_LDBC_DEBUG=1`): `[LDBC] A01: plan=21 discrepancies=8`
+        `D05: plan=14 discrepancies=8`。**バックトラッキングは毎回上限(8)まで発火するが、
+        LDBC のプランは greedy(23/14)より悪い(21/≤14)。**
+      - 機序: デッドロック先読み(`_has_legal_spot`、0.6s の `planner.plan` 単発)が
+        この遅い箱で予算不足の偽 None を返し **偽デッドロックを乱発** → 巻き戻して
+        forbidden 追加 → 次善手は必ずより悪い fill/accessibility → 8回まで単調劣化して
+        degraded plan で終わる。**forbidden で位置を強制的にずらすと必ず悪化する**
+        (= TOPO/MID/UNBURY と同じ「貪欲は既に局所最適、摂動は悪化のみ」の再確認)。
+      - **判定(設計 §5 の撤退基準に該当): 改善シーンゼロ・net 劣化。貪欲構築 + 摂動/探索の
+        系統は完全に打ち止め。** LDBC コードは既定OFF・ビット単位不変のまま失敗記録として残す。
+
+## 7. 結論(2026-09-07)
+
+Phase73〜92 + 本セッションの計 **5系統の構造的攻め**(TOPO_REORDER / PACK_LNS_MID /
+PACK_LNS_UNBURY / LDBC-v0 / LDBC-v1)がすべて wash〜劣化。この貪欲構築ソルバの位置決定は
+既に局所最適に達しており、順序の並べ替え・部分再充填・discrepancy 探索のいずれも
+net で改善しない。**58.5 の天井を破るには、このソルバの枠内では不可能。**
+ground-up の別定式化(ILP / column generation / DRL)が要るが、それは数週間規模で
+本セッション群の射程外。→ **推奨: A3(58.5 で凍結、防御フェーズ = 10/12 選択期限の
+チェックリスト消化)。** 主枠 tb135(58.498)・2枠目 rest020 は無変更で健全。
 - [ ] デッドロック検出の見直し: 現在は `_has_legal_spot`(単一アイテム小予算 planner.plan)。
       過剰発火/見逃しの可能性。`transport_legal_batch` を候補 XY 集合に対して直接使う方が
       速く正確かもしれない。

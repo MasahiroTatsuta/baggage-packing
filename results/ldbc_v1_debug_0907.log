@@ -1,0 +1,146 @@
+pybullet build time: Sep  7 2026 00:15:11
+[local_eval] MYSOLVER_OPTIMIZE_BUDGET=45.0s (開発用の短縮予算)
+
+--- running suite_A01_1c_40_plain.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[LDBC] n_items=40 plan=21 placed_final=21 discrepancies=8 forbidden_items=4 budget_exhausted=False
+transport item 12
+place item 12
+transport item 24
+place item 24
+transport item 25
+place item 25
+transport item 30
+place item 30
+transport item 31
+place item 31
+transport item 36
+place item 36
+transport item 9
+place item 9
+transport item 28
+place item 28
+transport item 34
+place item 34
+transport item 32
+place item 32
+transport item 27
+place item 27
+transport item 39
+place item 39
+transport item 21
+place item 21
+transport item 37
+place item 37
+transport item 6
+place item 6
+transport item 20
+place item 20
+transport item 7
+place item 7
+transport item 22
+place item 22
+transport item 33
+place item 33
+transport item 4
+place item 4
+transport item 11
+place item 11
+transport item 5
+place item 5
+transport item 29
+place item 29
+transport item 16
+collision: 16 and 6 at (np.float32(-0.248), np.float32(-0.725), np.float32(0.1326)), distance -0.18012131256691555
+item 16 not packable. removed.
+item 12 not inside (hit boundary plane), [ 7.07226644e-05 -7.13932838e-01 -1.53007072e+00 -1.20606716e+00
+ -5.31764722e-01 -1.39145324e+00 -1.85467623e-02]
+item 24 not inside (hit boundary plane), [ 3.06569061e-04 -7.44135021e-01 -1.53030657e+00 -1.17586498e+00
+ -5.11274024e-01 -1.39202735e+00 -1.79726452e-02]
+item 27 not inside (hit boundary plane), [ 4.13612728e-05 -6.98012769e-01 -1.53004136e+00 -1.22198723e+00
+ -5.42495445e-01 -7.70601818e-01 -6.39398182e-01]
+item 39 not inside (hit boundary plane), [ 1.33950658e-05 -7.25768615e-01 -1.53001340e+00 -1.19423138e+00
+ -5.23845536e-01 -3.42523399e-01 -1.06747660e+00]
+item 37 not inside (hit boundary plane), [ 1.85025816e-04 -1.79777627e-02 -1.53018503e+00 -1.90202224e+00
+ -9.99830190e-01 -4.95640040e-01 -9.14359960e-01]
+item 6 not inside (hit boundary plane), [ 1.26160647e-05 -1.45588523e+00 -1.53001262e+00 -4.64114770e-01
+ -3.27165293e-02 -1.76232241e-01 -1.23376776e+00]
+close env.
+closed runner.
+  done in 43.5s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_D05_A_1c_40_tall.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[LDBC] n_items=40 plan=14 placed_final=11 discrepancies=8 forbidden_items=4 budget_exhausted=False
+transport item 10
+place item 10
+transport item 27
+place item 27
+transport item 29
+place item 29
+transport item 7
+place item 7
+transport item 18
+place item 18
+transport item 34
+place item 34
+transport item 24
+place item 24
+transport item 17
+place item 17
+transport item 32
+place item 32
+transport item 30
+place item 30
+transport item 33
+place item 33
+transport item 28
+place item 28
+transport item 9
+place item 9
+transport item 16
+place item 16
+transport item 12
+collision: 12 and 24 at (np.float32(-0.298), np.float32(-0.725), np.float32(0.1781)), distance -0.041002850208026215
+item 12 not packable. removed.
+item 10 not inside (hit boundary plane), [ 3.95843307e-05 -2.04211435e-02 -1.53003958e+00 -1.89957886e+00
+ -9.98294212e-01 -1.39213859e+00 -1.78614147e-02]
+item 27 not inside (hit boundary plane), [ 8.61736016e-05 -7.90901136e-01 -1.53008617e+00 -1.12909886e+00
+ -4.79978810e-01 -1.38211435e+00 -2.78856513e-02]
+item 34 not inside (hit boundary plane), [-1.32924693e-05 -2.03550052e-02 -1.52998671e+00 -1.89964499e+00
+ -9.98377827e-01 -6.14994770e-02 -1.34850052e+00]
+item 24 not inside (hit boundary plane), [-7.23782905e-07 -7.56725526e-01 -1.52999928e+00 -1.16327447e+00
+ -5.03032111e-01 -7.56380253e-01 -6.53619747e-01]
+close env.
+closed runner.
+  done in 43.4s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+=== シーン別結果 ===
+scene                      | fill    | cog     | stability | placement | soft    | placed      | placed%  | fill_cnt% | opt[s]  | policy[s] | status                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+suite_A01_1c_40_plain.json | 26.15   | 59.38   | 97.90     | 100.00    | 100.00  | 23/40       | 57.5     | 73.9      | 36.86   | 0.16      | Stopped in the middle. Did not satisfy ['i
+suite_D05_A_1c_40_tall.jso | 25.27   | 49.05   | 98.01     | 100.00    | 100.00  | 14/40       | 35.0     | 71.4      | 40.40   | 0.13      | Stopped in the middle. Did not satisfy ['i
+
+=== 足切り閾値 感度分析(仮説ごとの突破可否・合成スコア) ===
+scene                      | count>=10       | count>=15       | count>=20       | count>=30%total | count>=50%total | volume>=30%container | volume>=50%container
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+suite_A01_1c_40_plain.json | O  76.7         | O  76.7         | O  76.7         | O  76.7         | O  76.7         | O  76.7         | X   5.2        
+suite_D05_A_1c_40_tall.jso | O  74.5         | X   5.1         | X   5.1         | O  74.5         | X   5.1         | O  74.5         | X   5.1        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+突破シーン数                     | 2/2             | 1/2             | 1/2             | 2/2             | 1/2             | 2/2             | 0/2            
+合成スコア平均                    |  75.6           |  40.9           |  40.9           |  75.6           |  40.9           |  75.6           |   5.1          
+
+(参考) 足切りを考慮しない場合の合成スコア平均(全シーンclearedと仮定):  75.6
+最下位シーンの積載個数: suite_D05_A_1c_40_tall.json::000 -> 14/40 個
+
+=== 平均 ===
+fill_score      : 25.71
+cog_score       : 54.21
+stability_score : 97.95
+placement_score : 100.00
+soft_item_score : 100.00
+num_placed_items: 46.2%
+fill_counted_ratio: 72.7%
+(scored 2/2 scenes)
