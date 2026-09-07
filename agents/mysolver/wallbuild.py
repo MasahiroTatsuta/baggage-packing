@@ -261,10 +261,11 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
         if ref is None:
             break
         band = wall_depth[ci] if wall_depth[ci] else _band_init
-        # region の y を現在の壁帯 [wall_back - band, wall_back] にクリップ(ref が前面まで
-        # 伸びる空間でも、planner が荷物中心を壁帯内にしか置けないようにする)。
-        region = (ref[1], max(ref[2], wall_back[ci] - band), ref[3],
-                  ref[4], min(ref[5], wall_back[ci]), ref[6])
+        # region の y: 荷物**中心**が入る範囲。中心を [wall_back-band, wall_back] に絞ると
+        # band より深い荷物が1つも入らない(band < 2*half_y で範囲が反転)。中心の下限を
+        # 大きく緩め、背面密着は _layer_score(gap_behind/protrude)に任せる。
+        region = (ref[1], max(ref[2], wall_back[ci] - 2.0 * band - _band_init), ref[3],
+                  ref[4], min(ref[5], wall_back[ci] + 0.02), ref[6])
         # ref に3辺で収まる候補だけを、体積降順で最大 WBC_CAND_ITEMS 個試す。
         cand_items = [it for it in remaining if _space_fits_any(ref, [it])][:WBC_CAND_ITEMS]
         if not cand_items:
