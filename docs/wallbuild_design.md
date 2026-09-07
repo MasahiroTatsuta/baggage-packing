@@ -285,7 +285,18 @@ skyline が「ここに載る」と言う位置を validate が「支持不足 /
 特に skyline が item B を item A の上に載せるとき、A の validate 着地 z と skyline の A.top が
 ずれ、B の位置が実際とずれて拒否される。
 
+### v14(2026-09-07): 着地z/支持を自前化 → placed=0(呼び出し形式の不整合)
+`_pack_wall` の `validate_planned_xy` 委譲を廃止し、着地 z = skyline shelf top + `REST_CLEARANCE`、
+`geo.check_inclusion_batch` + `planner.transport_legal_batch`(既配置 AABB を obstacles)直呼びに。
+→ **A01 で全 wall placed=0。** `check_inclusion_batch(half, world_pos)` または
+`transport_legal_batch(cont, half, world_pos, obstacles=[(pos,half),...])` の引数形式に不整合の疑い
+(half の shape / world_pos の (N,3) / obstacles タプルの中身)。次回はこの2関数を単体で
+1候補に対して呼んで戻り値を確認してから組み直す。
+
 ### 次の作業(優先順、最新)
+0. **★ v14 の placed=0 デバッグ**: `check_inclusion_batch` / `transport_legal_batch` を
+   壁1の最初の候補1個に対して直接呼び、True/False と shape を確認。`_topo_reorder_plan`
+   (同ファイル)が `transport_legal_batch` を正しく呼んでいるのでその形式に合わせる。
 1. **`_pack_wall` が着地 z と支持を自前で持つ**。`validate_planned_xy` への委譲をやめ、
    skyline の shelf(区間ごとの top_z)を「支持面」として自分で管理し、
    inclusion(`geo.check_inclusion_batch`)と搬入(`planner.transport_legal_batch`)だけ
