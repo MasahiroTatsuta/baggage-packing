@@ -269,11 +269,37 @@ divergence**。特に配置済み荷物の間の細いギャップ空間を `_sp
 2. これで密度が出て baseline を超えたら決定的8シーン不変 → 10シーン A/B → ストップロス判定。
 3. 出なければ WBC(この定式化)も打ち止め → A3(58.5 凍結・防御)。
 
-### WBC 反復まとめ(v1→v11)
-バグ修正: 座標系(v2)/ 薄い壁・contiguous(v4)/ usable 判定(v5)/ **`_overlap` index(v9、最重要)**/
-region y 緩和(v10)/ `_pick_ref` 床優先(v11)。
-**構造(back-to-front 薄壁)は正しくなったが、`planner.plan` 充填の密度不足が最後の壁。
-壁内 2D packing を自前で持つのが次の本命。**
+### v12/v13(2026-09-07): 壁内 X-Z skyline 2D packing を実装(本命)
+`_pack_wall`(skyline bottom-left)+ `_wbc_plan_skyline`(壁カーソルを奥→前へ)。
+`MYSOLVER_WBC_SKYLINE=1` 既定。荷物は Y方向寸法 <= wall_depth の向きのみ、体積降順。
+- v12: 全 wall placed=0。診断で `validate_none 25/40`(背面/壁に密着 → inclusion margin
+  -0.012 未達)+ `no_orient 15/40`(壁 0.33 が薄い)。
+- v13: `WBC_WALL_GAP=0.02`(荷物を壁/床から離す)+ wall_depth mult 2.6→3.5。
+  → wall#1 placed=4, wall#3 placed=5。だが **`validate_none` が依然 ~87%**
+  (wall#1: 66/76、wall#3: 81/99)。plan=9/40(A01)。
+
+### ★ v13 の結論: skyline は構造的に動くが、`validate_planned_xy` が大半を弾く
+`_pack_wall` は skyline で z を見積もるが、`validate_planned_xy`(= `_evaluate_candidates`)は
+自前で着地 z / 支持 / 搬入経路を再計算する。**この2つの見立てが乖離** →
+skyline が「ここに載る」と言う位置を validate が「支持不足 / 搬入不可 / 内包不足」で拒否。
+特に skyline が item B を item A の上に載せるとき、A の validate 着地 z と skyline の A.top が
+ずれ、B の位置が実際とずれて拒否される。
+
+### 次の作業(優先順、最新)
+1. **`_pack_wall` が着地 z と支持を自前で持つ**。`validate_planned_xy` への委譲をやめ、
+   skyline の shelf(区間ごとの top_z)を「支持面」として自分で管理し、
+   inclusion(`geo.check_inclusion_batch`)と搬入(`planner.transport_legal_batch`)だけ
+   確認する。着地 z = その X 区間の skyline top(= 下の荷物 or 床)。これで validate との
+   乖離が消える。新規幾何は inclusion/transport の**呼び出し**だけ(式は既存)。
+2. wall_depth を適応化(その壁の最大荷物の min-dim)。`no_orient` を減らす。
+3. これで plan が 25-35/40 に届き episode が baseline を超えるか。超えれば決定的8シーン不変 →
+   10シーン A/B → ストップロス。超えなければ WBC 打ち止め → A3。
+
+### WBC 反復まとめ(v1→v13)
+座標系(v2)/ 薄い壁(v4)/ usable(v5)/ **`_overlap` index(v9、最重要)**/ region y(v10)/
+`_pick_ref` 床優先(v11)/ **skyline 2D packing(v12-13)**/ wall gap(v13)。
+**構造は正しい。残る一点: `_pack_wall` の着地 z/支持を自前化して `validate_planned_xy` との
+乖離を消す。** それで密度が出れば baseline 超えの可能性。
 2. **シーン別**: D04(flat)/A05(prio)で回帰。flat は薄い壁に不利 → band 下限を上げる。
    prio は優先コンテナ割当(2c)の WBC 対応が未実装。まず 1c・非優先で baseline 超えを狙う。
 3. 壁内 X-Z 密度(`_layer_score` の footprint 重み↑、スリット併合)。

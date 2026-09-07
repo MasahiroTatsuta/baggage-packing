@@ -1,0 +1,139 @@
+pybullet build time: Sep  7 2026 00:15:11
+[local_eval] MYSOLVER_OPTIMIZE_BUDGET=45.0s (開発用の短縮予算)
+
+--- running suite_A01_1c_40_plain.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[WBC]   _pack_wall diag={'no_orient': 6, 'no_slot': 0, 'validate_none': 66, 'tried': 76}
+[WBC] wall#1 y[0.25,0.68] depth=0.44 placed=4 plan_total=4 remaining=36
+[WBC]   _pack_wall diag={'no_orient': 3, 'no_slot': 0, 'validate_none': 33, 'tried': 36}
+[WBC] wall#2 y[-0.19,0.25] depth=0.44 placed=0 plan_total=4 remaining=36
+[WBC]   _pack_wall diag={'no_orient': 9, 'no_slot': 4, 'validate_none': 81, 'tried': 99}
+[WBC] wall#3 y[-0.63,-0.19] depth=0.44 placed=5 plan_total=9 remaining=31
+[WBC]   _pack_wall diag={'no_orient': 31, 'no_slot': 0, 'validate_none': 0, 'tried': 31}
+[WBC] wall#4 y[-0.68,-0.63] depth=0.06 placed=0 plan_total=9 remaining=31
+[WBC] FINAL(skyline) plan=9/40 walls=4 remaining=31
+transport item 11
+place item 11
+transport item 36
+place item 36
+transport item 28
+place item 28
+transport item 27
+place item 27
+transport item 5
+place item 5
+transport item 9
+place item 9
+transport item 29
+place item 29
+transport item 33
+place item 33
+transport item 4
+place item 4
+transport item 34
+place item 34
+transport item 7
+place item 7
+transport item 22
+place item 22
+transport item 20
+place item 20
+transport item 21
+place item 21
+transport item 39
+place item 39
+transport item 6
+place item 6
+transport item 26
+place item 26
+transport item 12
+place item 12
+transport item 24
+place item 24
+transport item 25
+collision: 25 and 9 at (np.float32(-0.1755), np.float32(-0.725), np.float32(0.2001)), distance -0.1317205407289813
+collision: 25 and 29 at (np.float32(-0.1755), np.float32(-0.725), np.float32(0.2001)), distance -0.10735624537580013
+item 25 not packable. removed.
+item 36 not inside (hit boundary plane), [-5.39653845e-05 -1.27978382e+00 -1.52994603e+00 -6.40216182e-01
+ -1.51224424e-01 -1.39413678e+00 -1.58632181e-02]
+item 28 not inside (hit boundary plane), [ 1.51219616e-05 -3.32202574e-01 -1.53001512e+00 -1.58779743e+00
+ -7.88585427e-01 -1.39139374e+00 -1.86062631e-02]
+item 27 not inside (hit boundary plane), [ 6.75747337e-05 -5.18081908e-02 -1.53006757e+00 -1.86819181e+00
+ -9.77160288e-01 -1.08358879e+00 -3.26411211e-01]
+item 9 not inside (hit boundary plane), [ 1.87158039e-06 -1.09761953e+00 -1.53000187e+00 -8.22380474e-01
+ -2.73720071e-01 -5.08775940e-01 -9.01224060e-01]
+item 33 not inside (hit boundary plane), [ 8.51689788e-06 -1.22630844e+00 -1.53000852e+00 -6.93691559e-01
+ -1.87149623e-01 -1.10728647e+00 -3.02713527e-01]
+item 4 not inside (hit boundary plane), [ 1.85246364e-05 -3.22093522e-02 -1.53001852e+00 -1.88779065e+00
+ -9.90380188e-01 -7.40431941e-01 -6.69568059e-01]
+item 39 not inside (hit boundary plane), [ 2.54458226e-05 -2.54657467e-01 -1.53002545e+00 -1.66534253e+00
+ -8.40740271e-01 -6.67671936e-01 -7.42328064e-01]
+close env.
+closed runner.
+  done in 36.0s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_A02_1c_80_plain.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[WBC]   _pack_wall diag={'no_orient': 26, 'no_slot': 8, 'validate_none': 112, 'tried': 153}
+[WBC] wall#1 y[0.23,0.68] depth=0.46 placed=7 plan_total=7 remaining=73
+[WBC]   _pack_wall diag={'no_orient': 13, 'no_slot': 0, 'validate_none': 60, 'tried': 73}
+[WBC] wall#2 y[-0.23,0.23] depth=0.46 placed=0 plan_total=7 remaining=73
+[WBC]   _pack_wall diag={'no_orient': 45, 'no_slot': 2, 'validate_none': 155, 'tried': 208}
+[WBC] wall#3 y[-0.68,-0.23] depth=0.45 placed=6 plan_total=13 remaining=67
+[WBC] FINAL(skyline) plan=13/80 walls=3 remaining=67
+transport item 41
+place item 41
+transport item 47
+place item 47
+transport item 2
+place item 2
+transport item 37
+place item 37
+transport item 68
+place item 68
+transport item 69
+place item 69
+transport item 65
+place item 65
+transport item 31
+place item 31
+transport item 15
+place item 15
+transport item 66
+place item 66
+transport item 34
+place item 34
+transport item 3
+place item 3
+transport item 57
+place item 57
+transport item 64
+place item 64
+transport item 28
+place item 28
+transport item 25
+place item 25
+transport item 56
+place item 56
+transport item 67
+collision: 67 and 15 at (np.float32(-0.1145), np.float32(-0.70516133), np.float32(0.2856)), distance 0.011854465695784244
+item 67 not packable. removed.
+item 47 not inside (hit boundary plane), [-6.09113218e-05 -6.73829324e-01 -1.52993909e+00 -1.24617068e+00
+ -5.58838666e-01 -1.01437232e+00 -3.95627676e-01]
+item 2 not inside (hit boundary plane), [ 1.79074023e-05 -2.72080169e-01 -1.53001791e+00 -1.64791983e+00
+ -8.29026072e-01 -1.39136890e+00 -1.86310973e-02]
+item 68 not inside (hit boundary plane), [ 8.58711475e-06 -2.57181892e-02 -1.53000859e+00 -1.89428181e+00
+ -9.94753970e-01 -1.39190714e+00 -1.80928572e-02]
+item 15 not inside (hit boundary plane), [ 9.62357942e-04 -1.41455906e+00 -1.53096236e+00 -5.05440943e-01
+ -5.98127695e-02 -4.72745880e-01 -9.37254120e-01]
+item 66 not inside (hit boundary plane), [ 8.78352550e-06 -6.27169002e-01 -1.53000878e+00 -1.29283100e+00
+ -5.90174226e-01 -4.73200807e-01 -9.36799193e-01]
+close env.
+closed runner.
+  done in 49.5s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_D01_A_1c_40_softheavy.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
