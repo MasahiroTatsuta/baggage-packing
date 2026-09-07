@@ -29,6 +29,9 @@ WBC_MIN_SPACE = float(os.environ.get('MYSOLVER_WBC_MIN_SPACE', '0.02'))   # こ�
 WBC_Z_TOL = float(os.environ.get('MYSOLVER_WBC_Z_TOL', '0.06'))           # ref の z 帯からの許容はみ出し
 WBC_WALL_BAND = float(os.environ.get('MYSOLVER_WBC_WALL_BAND', '0.0'))    # >0 なら現在の壁帯の厚み(0=自動)
 WBC_INIT_BAND_MULT = float(os.environ.get('MYSOLVER_WBC_INIT_BAND_MULT', '1.8'))  # 壁の初期厚み = これ×最小荷物辺
+WBC_SLACK_MARGIN = float(os.environ.get('MYSOLVER_WBC_SLACK_MARGIN', '-0.03'))    # 採用する候補の内包スラック上限(実閾値 -0.005 に対し余裕)
+WBC_AABB_INFLATE = float(os.environ.get('MYSOLVER_WBC_AABB_INFLATE', '0.008'))    # maximal-space 更新で配置 AABB を各辺これだけ膨張(次の荷物に余裕)
+WBC_1C_ONLY = os.environ.get('MYSOLVER_WBC_1C_ONLY', '1') == '1'                  # 単一・非優先コンテナのみ WBC(2c/優先は従来経路)
 
 # space = (ci, x0, y0, z0, x1, y1, z1)  すべて container-local
 
@@ -192,6 +195,9 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
     """戻り値: plan_entries のリスト。anytime(budget / wall_deadline 枯渇で打ち切り)。"""
     if not container_list or not item_list:
         return []
+    if WBC_1C_ONLY and (len(container_list) != 1
+                        or any(c.get('is_prioritized') for c in container_list)):
+        return []                       # 2c / 優先コンテナは従来経路(simulate_order)に委ねる
     if wall_deadline is None:
         wall_deadline = time.perf_counter() + 1e9
     conts = simulate.clone_containers(container_list)
@@ -279,7 +285,7 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
             _half = geo.half_extent((item['length'], item['width'], item['height']),
                                     int(act['orientation']))
             _wp = geo.local_to_world(conts[ci], act['place_pos'])[None, :]
-            if float(geo.inclusion_slack_batch(conts[ci], _half, _wp)[0]) > geo.REAL_INCLUSION_MARGIN:
+            if float(geo.inclusion_slack_batch(conts[ci], _half, _wp)[0]) > WBC_SLACK_MARGIN:
                 continue
             sc = _layer_score(item, act, ref)
             if best is None or sc > best[0]:
@@ -311,7 +317,9 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
                      'orientation': int(act['orientation'])})
         remaining = [it for it in remaining if it['index'] != item['index']]
         box = _placed_aabb(conts[ci], item, act)
-        box = (ci,) + box[1:]
+        _inf = WBC_AABB_INFLATE
+        box = (ci, box[1] - _inf, box[2] - _inf, box[3] - _inf,
+               box[4] + _inf, box[5] + _inf, box[6] + _inf)  # 数mm膨張(次の荷物に余裕)
         nxt = []
         for s in S:
             nxt.extend(_split_space(s, box) if s[0] == ci else [s])
