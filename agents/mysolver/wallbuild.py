@@ -47,8 +47,10 @@ def _contains(a, b, eps=1e-9):
 
 
 def _overlap(s, box):
-    return (s[1] < box[3] and box[0] < s[4] and s[2] < box[4] and box[1] < s[5]
-            and s[3] < box[5] and box[2] < s[6])
+    # タプルは (ci, x0, y0, z0, x1, y1, z1) = index (0, 1,2,3, 4,5,6)。
+    return (s[1] < box[4] and box[1] < s[4]
+            and s[2] < box[5] and box[2] < s[5]
+            and s[3] < box[6] and box[3] < s[6])
 
 
 def _split_space(s, box):
