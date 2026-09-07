@@ -211,7 +211,27 @@ D04(flat)は WBC と相性が悪く回帰。**
    → band 下限を荷物の中央値辺で。
 4. baseline に匹敵したら決定的8シーン不変確認 → 10シーン A/B → ストップロス判定。
 
-### WBC 反復のまとめ(v1→v5、2026-09-07)
-v1(未調整、-23)→ z座標系/壁カーソル/region クリップ(v2)→ 薄い壁/contiguous 前進(v4)
-→ usable 判定修正(v5)。**5ラウンドで「動くだけ」から「構造的に正しい wall-building」まで到達。
-baseline 超えは次段のドリフト耐性 + 壁内密度 + シーン別調整。2週間の第1手として順調。**
+### v6(2026-09-07、続き): plan-executor 縮退の region 制約 → 効果薄
+`agent.policy` で validate_planned_xy が弾いた荷物を、全域貪欲でなく計画位置 ±0.20 の
+region 貪欲へ先に縮退(`MYSOLVER_WBC_REPLAY_R`、`MYSOLVER_WBC=1` のときだけ)。
+6シーン A/B: A01 21 / B01 24 / A04 27 / D04 17 / A05 20 / D05 18(baseline 23/24/27/27/24/14、
+**net −12**)。D05(tall)+4 のみ好転、D04(flat)−10・A05(prio)−4。boundary errs 41(v5 は 27)。
+→ **領域制約の縮退では不十分。根本は WBC の計画位置自体の内包スラックが薄い**
+(ダンプの slk −0.013〜−0.024、実閾値 −0.005 に近い)ため実機ドリフトで落ちる。
+
+### 次セッションの WBC 作業(更新、優先順)
+1. **計画時にスラック余裕を組み込む**: `wbc_plan` で候補採用時、`inclusion_slack` に
+   `WBC_SLACK_MARGIN`(例 −0.03)より余裕があるものだけ採る。壁を数 mm 内側に。
+   `_placed_aabb` / maximal-space 更新も数 mm 膨らませて次の荷物に余裕を残す。
+2. **シーン別**: D04(flat)/A05(prio)で回帰。flat は薄い壁に不利 → band 下限を上げる。
+   prio は優先コンテナ割当(2c)の WBC 対応が未実装。まず 1c・非優先で baseline 超えを狙う。
+3. 壁内 X-Z 密度(`_layer_score` の footprint 重み↑、スリット併合)。
+4. baseline 匹敵 → 決定的8シーン不変(`MYSOLVER_WBC=0`)→ 10シーン A/B → 2週間ストップロス判定。
+
+### WBC 反復のまとめ(v1→v6、2026-09-07 全体)
+v1(未調整、−23)→ 座標系/壁カーソル/region クリップ(v2)→ 薄い壁/contiguous 前進(v4)
+→ usable 判定(v5)→ replay region 縮退(v6、効果薄)。
+**6ラウンドで「構造的に正しい wall-building」に到達(ダンプ確認)。だが 6シーン net −12。
+baseline 超えには計画スラック余裕 + シーン別調整 + 壁内密度。2週間の第1手、week1 相当で
+「動く・正しい」まで。week2 で「baseline 超え」を狙う段階。ストップロス(悪化≤2 かつ
+net明確+)は維持。**
