@@ -40,6 +40,67 @@ def _replay(container_list, items_by_index, entries):
     return conts
 
 
+CDR_ROUNDS = int(os.environ.get('MYSOLVER_CDR_ROUNDS', '6'))
+CDR_MAX_PEEL = int(os.environ.get('MYSOLVER_CDR_MAX_PEEL', '14'))
+
+
+def cdr_plan(container_list, items_by_index, order, lookahead_k, budget, wall_deadline=None):
+    """CDR — Conflict-Directed sequence Repair(2026-09-07)。
+    貪欲プランが stall したら、置けない先頭荷物 u の搬入L経路を塞いでいる既配置荷物を
+    「末尾から1個ずつ剥がして u が置けるようになるまで」で特定し、その荷物〜u直前 を
+    順序上で u の直後へ回す(=「奥から詰めて前面を開ける」を順序で表現)。再び貪欲。
+    LDBC と違い位置は強制しない(貪欲の局所最適をそのまま使う)ため、best は round0
+    (=従来の simulate_order プラン)から始まり、配置数が増えたときだけ更新 = 構造的に
+    劣化しない。既定 MYSOLVER_CDR=0 で本関数は呼ばれない。"""
+    if wall_deadline is None:
+        wall_deadline = time.perf_counter() + 1e9
+    cur = list(order)
+    lk = max(1, int(lookahead_k or 1))
+    best: list[dict] = []
+    for _r in range(CDR_ROUNDS):
+        if budget.exhausted() or time.perf_counter() >= wall_deadline:
+            break
+        plan: list[dict] = []
+        stall: dict = {}
+        try:
+            simulate.simulate_order(container_list, items_by_index, cur, lk,
+                                    budget.child_seconds(18.0), plan_out=plan, stall_info=stall)
+        except Exception:
+            break
+        if len(plan) > len(best):
+            best = list(plan)
+        if not stall.get('stalled') or len(plan) >= len(cur):
+            break
+        placed_set = {p['index'] for p in plan}
+        u = next((x for x in cur if x not in placed_set), None)
+        if u is None:
+            break
+        u_item = items_by_index.get(u)
+        if u_item is None:
+            break
+        blocker_id = None
+        for peel in range(1, min(len(plan), CDR_MAX_PEEL) + 1):
+            if budget.exhausted() or time.perf_counter() >= wall_deadline:
+                break
+            keep = plan[:len(plan) - peel]
+            conts = _replay(container_list, items_by_index, keep)
+            if planner.plan(conts, [dict(u_item)], max_pool_items=None,
+                            budget=budget.child_seconds(2.0)) is not None:
+                blocker_id = plan[len(plan) - peel]['index']
+                break
+        if blocker_id is None:
+            break
+        try:
+            bi = cur.index(blocker_id)
+            ui = cur.index(u)
+        except ValueError:
+            break
+        if bi >= ui:
+            break
+        cur = cur[:bi] + [u] + cur[bi:ui] + cur[ui + 1:]
+    return best
+
+
 def _forbid_key(entry):
     px, py, _ = entry['place_pos']
     return (round(px, 2), round(py, 2), entry['orientation'])

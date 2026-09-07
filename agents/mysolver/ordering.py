@@ -1745,15 +1745,16 @@ def build_plan(item_list: list[dict], container_list: list[dict] | None, lookahe
         return order, []
     items_by_index = {it['index']: it for it in item_list}
     plan: list[dict] = []
-    # LDBC(2026-09-07、docs/search_rewrite_design.md): 既定 '0' では従来経路。
+    # LDBC / CDR(2026-09-07、docs/search_rewrite_design.md): 既定 '0' では従来経路。
     _ldbc = os.environ.get('MYSOLVER_LDBC', '0') == '1'
+    _cdr = os.environ.get('MYSOLVER_CDR', '0') == '1'
     try:
         budget = planner.SearchBudget.from_seconds(min(30.0, time_budget))
-        if _ldbc:
+        if _ldbc or _cdr:
             from . import search as _search_mod
             _wd = time.perf_counter() + min(30.0, time_budget) * 2.0
-            plan = _search_mod.ldbc_plan(container_list, items_by_index, order,
-                                         lookahead_k, budget, wall_deadline=_wd)
+            _fn = _search_mod.cdr_plan if _cdr else _search_mod.ldbc_plan
+            plan = _fn(container_list, items_by_index, order, lookahead_k, budget, wall_deadline=_wd)
         else:
             simulate.simulate_order(container_list, items_by_index, order,
                                     max(1, int(lookahead_k or 1)), budget, plan_out=plan)
