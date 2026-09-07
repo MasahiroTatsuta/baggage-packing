@@ -123,8 +123,17 @@ Phase86 の Look-ahead Beam は **depth=1 で −23%、depth=2 で −32%** と�
 
 ## 7. 結論(2026-09-07)
 
-Phase73〜92 + 本セッションの計 **5系統の構造的攻め**(TOPO_REORDER / PACK_LNS_MID /
-PACK_LNS_UNBURY / LDBC-v0 / LDBC-v1)がすべて wash〜劣化。この貪欲構築ソルバの位置決定は
+### 追記: CDR(順序レベル conflict-directed repair)も net −1・改善ゼロ
+
+「位置は強制せず順序だけ直す(=構造的に劣化しない設計)」で LDBC の敗因を回避したが、
+11シーン A/B で base 240 → CDR 239、改善シーンゼロ。機序: **plan 導出の `simulate_order`
+(18s child budget)はほぼ stall せず budget 上限で止まるだけ**なので `stall_info` が
+立たず、CDR は round0 で break → baseline と同じ(budget 分割分だけ僅かに損)。
+実エピソードのデッドロックは offline geo sim(短予算)が到達する前にある = **repair する
+対象がそもそも offline に現れない。**
+
+Phase73〜92 + 本セッションの計 **6系統の構造的攻め**(TOPO_REORDER / PACK_LNS_MID /
+PACK_LNS_UNBURY / LDBC-v0 / LDBC-v1 / CDR)がすべて wash〜劣化。この貪欲構築ソルバの位置決定は
 既に局所最適に達しており、順序の並べ替え・部分再充填・discrepancy 探索のいずれも
 net で改善しない。**58.5 の天井を破るには、このソルバの枠内では不可能。**
 ground-up の別定式化(ILP / column generation / DRL)が要るが、それは数週間規模で
