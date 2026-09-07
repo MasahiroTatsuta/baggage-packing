@@ -227,53 +227,51 @@ def _pack_wall(cont, ci, y_back, depth, x_lo, x_hi, z_lo, z_hi, items, prepacked
             if it['index'] in used:
                 continue
             _diag['tried'] += 1
-            best = None                     # (top_z_after, xs, orn, dxyz)
             _os = _orients_for_depth(it, depth)
             if not _os:
                 _diag['no_orient'] += 1
+                continue
+            # 全 (orn, xs) スロット候補を集め、(top_z, xs) 昇順に。
+            cands = []
             for orn, dxyz, hy in _os:
                 w, h = dxyz[0], dxyz[2]
                 if w > (x_hi - x_lo) + 1e-6 or h > (z_hi - z_lo) + 1e-6:
                     continue
-                # skyline 上で、幅 w が収まる各開始 x について、その区間の最大 top_z を求める
                 xs = x_lo
                 while xs + w <= x_hi + 1e-6:
                     seg_top = z_lo
-                    covered = False
                     for (sxs, sxe, st) in sky:
-                        if sxe <= xs + 1e-9 or sxs >= xs + w - 1e-9:
-                            continue
-                        seg_top = max(seg_top, st)
-                        covered = True
-                    if not covered:
-                        seg_top = z_lo
+                        if not (sxe <= xs + 1e-9 or sxs >= xs + w - 1e-9):
+                            seg_top = max(seg_top, st)
                     if seg_top + h <= z_hi + 1e-6:
-                        cand = (seg_top + h, xs, orn, dxyz, seg_top, hy)
-                        if best is None or (cand[0], cand[1]) < (best[0], best[1]):
-                            best = cand
+                        cands.append((seg_top + h, xs, orn, dxyz, seg_top, hy))
                     xs += max(0.02, w * 0.34)
-            if best is None:
-                if _os:
-                    _diag['no_slot'] += 1
+            if not cands:
+                _diag['no_slot'] += 1
                 continue
-            top_after, xs, orn, dxyz, seg_top, hy = best
-            hx, hzz = dxyz[0] / 2.0, dxyz[2] / 2.0
-            lx = xs + hx
-            ly = y_back - hy - WBC_WALL_GAP  # 背面密着(壁から少し離す = inclusion margin 対策)
-            lz = seg_top + hzz + geo.REST_CLEARANCE   # skyline shelf(床 or 下の荷物)に載る
-            half = np.array([hx, hy, hzz], dtype=np.float64)
-            wp = geo.local_to_world(cont, (lx, ly, lz))[None, :]
-            # 着地 z / 支持は skyline(shelf)が保証。ここでは内包 + 搬入経路だけ確認。
-            if not bool(geo.check_inclusion_batch(cont, half, wp)[0]):
-                _diag['validate_none'] += 1
-                continue
+            cands.sort(key=lambda c: (round(c[0], 3), c[1]))
             _obst = [(np.asarray(pit['pos'], float),
                       np.abs(geo.quat_abs_rotmat(pit['orn']) @ np.array(
                           [pit['length'] / 2, pit['width'] / 2, pit['height'] / 2])))
                      for pit in cont.get('packed_items', [])]
-            if not bool(planner.transport_legal_batch(cont, half, wp, obstacles=_obst)[0]):
+            picked = None
+            for (top_after, xs, orn, dxyz, seg_top, hy) in cands[:24]:
+                hx, hzz = dxyz[0] / 2.0, dxyz[2] / 2.0
+                lx = xs + hx
+                ly = y_back - hy - WBC_WALL_GAP
+                lz = seg_top + hzz + geo.REST_CLEARANCE
+                half = np.array([hx, hy, hzz], dtype=np.float64)
+                wp = geo.local_to_world(cont, (lx, ly, lz))[None, :]
+                if not bool(geo.check_inclusion_batch(cont, half, wp)[0]):
+                    continue
+                if not bool(planner.transport_legal_batch(cont, half, wp, obstacles=_obst)[0]):
+                    continue
+                picked = (top_after, xs, orn, dxyz, lx, ly, lz)
+                break
+            if picked is None:
                 _diag['validate_none'] += 1
                 continue
+            top_after, xs, orn, dxyz, lx, ly, lz = picked
             act = {'place_pos': np.array([lx, ly, lz], dtype=float), 'orientation': int(orn),
                    'container_idx': 0}
             cont['packed_items'].append(simulate._place(cont, dict(it), act))
