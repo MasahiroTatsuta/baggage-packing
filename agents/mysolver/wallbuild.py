@@ -193,6 +193,133 @@ def _placed_aabb(cont, item, act):
             cx + half[0], float(pp[1]) + half[1], float(pp[2]) + half[2])
 
 
+WBC_SKYLINE = os.environ.get('MYSOLVER_WBC_SKYLINE', '1') == '1'
+WBC_WALL_DEPTH_MULT = float(os.environ.get('MYSOLVER_WBC_WALL_DEPTH_MULT', '2.6'))
+
+
+def _orients_for_depth(item, max_depth):
+    """Y(壁の奥行き)方向の寸法が max_depth 以下になる向き。(orn, (dx,dy,dz)) を Y薄い順で。"""
+    out = []
+    for o in range(6):
+        h = geo.half_extent((item['length'], item['width'], item['height']), o)
+        d = (2.0 * h[0], 2.0 * h[1], 2.0 * h[2])
+        if d[1] <= max_depth + 1e-6:
+            out.append((o, d, float(h[1])))
+    out.sort(key=lambda t: t[1][1])          # Y が薄い向きを優先
+    return out
+
+
+def _pack_wall(cont, ci, y_back, depth, x_lo, x_hi, z_lo, z_hi, items, prepacked_ids,
+               strict_support):
+    """1つの壁帯 [y_back-depth, y_back] × X[x_lo,x_hi] × Z[z_lo,z_hi] を X-Z 2D skyline で密に詰める。
+    items(体積降順)から入るものを bottom-left で置き、planner.validate_planned_xy で最終検証。
+    戻り値: (placements[list of dict], used_ids[set])。"""
+    # skyline: X 軸上の区分 [(xs, xe, top_z), ...]、初期は床フラット。
+    sky = [(x_lo, x_hi, z_lo)]
+    placements = []
+    used = set()
+    progressed = True
+    while progressed and items:
+        progressed = False
+        for it in list(items):
+            if it['index'] in used:
+                continue
+            best = None                     # (top_z_after, xs, orn, dxyz)
+            for orn, dxyz, hy in _orients_for_depth(it, depth):
+                w, h = dxyz[0], dxyz[2]
+                if w > (x_hi - x_lo) + 1e-6 or h > (z_hi - z_lo) + 1e-6:
+                    continue
+                # skyline 上で、幅 w が収まる各開始 x について、その区間の最大 top_z を求める
+                xs = x_lo
+                while xs + w <= x_hi + 1e-6:
+                    seg_top = z_lo
+                    covered = False
+                    for (sxs, sxe, st) in sky:
+                        if sxe <= xs + 1e-9 or sxs >= xs + w - 1e-9:
+                            continue
+                        seg_top = max(seg_top, st)
+                        covered = True
+                    if not covered:
+                        seg_top = z_lo
+                    if seg_top + h <= z_hi + 1e-6:
+                        cand = (seg_top + h, xs, orn, dxyz, seg_top, hy)
+                        if best is None or (cand[0], cand[1]) < (best[0], best[1]):
+                            best = cand
+                    xs += max(0.02, w * 0.34)
+            if best is None:
+                continue
+            top_after, xs, orn, dxyz, seg_top, hy = best
+            lx = xs + dxyz[0] / 2.0
+            ly = y_back - hy                 # 背面密着
+            lz = seg_top + dxyz[2] / 2.0
+            r = planner.validate_planned_xy(cont, it, (lx, ly), orn,
+                                            prepacked_ids=prepacked_ids,
+                                            strict_support=strict_support)
+            if r is None:
+                continue
+            rp = r.get('local_pos', (lx, ly, lz))
+            act = {'place_pos': np.asarray(rp, dtype=float), 'orientation': int(orn),
+                   'container_idx': 0}
+            cont['packed_items'].append(simulate._place(cont, dict(it), act))
+            placements.append({'index': int(it['index']), 'container_idx': int(ci),
+                               'place_pos': (float(rp[0]), float(rp[1]), float(rp[2])),
+                               'orientation': int(orn)})
+            used.add(it['index'])
+            # skyline 更新: [xs, xs+w] 区間を top_after に持ち上げる
+            xe = xs + dxyz[0]
+            nsky = []
+            for (sxs, sxe, st) in sky:
+                if sxe <= xs + 1e-9 or sxs >= xe - 1e-9:
+                    nsky.append((sxs, sxe, st))
+                    continue
+                if sxs < xs:
+                    nsky.append((sxs, xs, st))
+                if sxe > xe:
+                    nsky.append((xe, sxe, st))
+            nsky.append((xs, xe, top_after))
+            sky = sorted(nsky)
+            progressed = True
+    return placements, used
+
+
+def _wbc_plan_skyline(container_list, items_by_index, item_list, lookahead_k, budget, wall_deadline):
+    """壁カーソルを奥→前へ進め、各壁帯を _pack_wall(X-Z skyline)で密に詰める。"""
+    conts = simulate.clone_containers(container_list)
+    cont = conts[0]
+    ci = 0
+    prepacked_ids = geo.initial_prepacked_ids(conts)
+    x0, y0, z0, x1, y1, z1 = _interior_bounds(cont)
+    remaining = sorted(item_list, key=lambda it: -(it['length'] * it['width'] * it['height']))
+    remaining = [dict(it) for it in remaining]
+    min_dim = min(min(it['length'], it['width'], it['height']) for it in remaining)
+    wall_depth = max(WBC_WALL_DEPTH_MULT * min_dim, min_dim + 0.03)
+    _dbg = os.environ.get('MYSOLVER_WBC_DEBUG', '0') == '1'
+    plan: list[dict] = []
+    y_back = y1
+    _nwall = 0
+    while (remaining and y_back - z0 * 0 - y0 > 0.02 and not budget.exhausted()
+           and time.perf_counter() < wall_deadline):
+        depth = min(wall_depth, y_back - y0)
+        placements, used = _pack_wall(cont, ci, y_back, depth, x0, x1, z0, z1,
+                                      remaining, prepacked_ids, strict_support=False)
+        _nwall += 1
+        if _dbg:
+            import sys
+            print(f'[WBC] wall#{_nwall} y[{y_back-depth:.2f},{y_back:.2f}] depth={depth:.2f} '
+                  f'placed={len(placements)} plan_total={len(plan)+len(placements)} '
+                  f'remaining={len(remaining)-len(used)}', file=sys.stderr)
+        plan.extend(placements)
+        remaining = [it for it in remaining if it['index'] not in used]
+        y_back -= depth if placements else max(depth, min_dim + 0.03)
+        if _nwall > 60:
+            break
+    if _dbg:
+        import sys
+        print(f'[WBC] FINAL(skyline) plan={len(plan)}/{len(item_list)} walls={_nwall} '
+              f'remaining={len(remaining)}', file=sys.stderr)
+    return plan
+
+
 def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wall_deadline=None):
     """戻り値: plan_entries のリスト。anytime(budget / wall_deadline 枯渇で打ち切り)。"""
     if not container_list or not item_list:
@@ -202,6 +329,10 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
         return []                       # 2c / 優先コンテナは従来経路(simulate_order)に委ねる
     if wall_deadline is None:
         wall_deadline = time.perf_counter() + 1e9
+
+    if WBC_SKYLINE:
+        return _wbc_plan_skyline(container_list, items_by_index, item_list, lookahead_k,
+                                 budget, wall_deadline)
     conts = simulate.clone_containers(container_list)
     S = init_maximal_spaces(conts)
     remaining = sorted(item_list, key=lambda it: -(it['length'] * it['width'] * it['height']))
