@@ -147,7 +147,26 @@ Parreño は単一コンテナ。2c は現行の優先コンテナ割当ロジ�
 ## 6. 進捗
 
 - [x] 2026-09-07: 設計(本ドキュメント)。
-- [ ] `wallbuild.py` maximal-space コア + 単体テスト。
-- [ ] `wbc_plan` メインループ + `build_plan` 統合(`MYSOLVER_WBC`)。
-- [ ] 決定的8シーン不変確認 → 単シーン sanity。
-- [ ] 10シーン A/B → 全26+2 → ストップロス判定。
+- [x] 2026-09-07: `wallbuild.py` v1 実装(maximal-space コア + `wbc_plan`)+ `planner.plan` に
+      `region=` 制約 + `build_plan` 統合(`MYSOLVER_WBC`、既定OFF)。**例外なく動く。**
+- [x] 2026-09-07: 3シーン smoke(A01/A03/A08) → **v1 は大幅な回帰**:
+      A01 23→13 / A03 22→17 / A08 19→11(net −23)。num_placed 37.4%→27.6%。
+      実エピソードで多数の "not inside (hit boundary plane)" = WBC が提案する位置が内包判定を
+      落としている。原因候補(要デバッグ、次セッション):
+      - `init_maximal_spaces` の z 上限 = `height`。実際の使用可能上限が `height - thickness` 等なら
+        天井側の空間が過大 → planner が region 内で天井貫通位置を拾い RETRY_GRID で妥協。
+      - cutcorner の矩形近似が甘い/位置ずれ → 楔の外の deep 空間を過大評価。
+      - `region` 絞りが厳しすぎて planner が region 内で合法候補を失い、最終 RETRY_GRID の
+        粗いグリッドで縁ぎりぎりの位置を返している(→ region を「中心XYが入る」でなく
+        「荷物AABBが概ね入る」の緩い判定に、または region に z 上限も渡す)。
+      - `_pick_ref` が「最も奥」を選ぶが、奥に薄いスリット空間が残ると毎回そこを選んで
+        小物を詰めようとし失敗 → S.remove するが数が減らない可能性。ref 選択に「体積下限」も。
+      - 沈降後 `simulate._place` の pos ズレを maximal-space 更新に反映していない(planned pos で
+        AABB を引いている)→ 実際より空きを狭く見積もる/広く見積もる。
+- [ ] 上記のデバッグ(まず `init_maximal_spaces` の bounds を1シーンでダンプして目視)。
+- [ ] `wbc_plan` が baseline に匹敵する配置数を出すまで v1 を調整。
+- [ ] 決定的8シーン不変確認(`MYSOLVER_WBC=0`)→ 10シーン A/B → 全26+2 → ストップロス判定。
+
+**現状: WBC のスキャフォールドは組めて end-to-end で動くが、v1 は未調整で baseline に −23。
+2週間の第1手の初日としては想定内(初版の maximal-space 構築が調整済み貪欲に即勝つことは稀)。
+次は "hit boundary plane" の原因特定から。**

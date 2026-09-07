@@ -1,0 +1,178 @@
+pybullet build time: Sep  7 2026 00:15:11
+[local_eval] MYSOLVER_OPTIMIZE_BUDGET=45.0s (開発用の短縮予算)
+
+--- running suite_A01_1c_40_plain.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+transport item 3
+place item 3
+transport item 13
+place item 13
+transport item 0
+place item 0
+transport item 23
+place item 23
+transport item 35
+place item 35
+transport item 12
+place item 12
+transport item 33
+place item 33
+transport item 7
+place item 7
+transport item 4
+place item 4
+transport item 16
+place item 16
+transport item 6
+place item 6
+transport item 22
+place item 22
+transport item 11
+place item 11
+transport item 14
+collision: 14 and 35 at (np.float32(-0.151), np.float32(-0.725), np.float32(0.2631)), distance -0.020038665992167894
+collision: 14 and 12 at (np.float32(-0.151), np.float32(-0.725), np.float32(0.2631)), distance -0.19991296198759784
+item 14 not packable. removed.
+item 3 not inside (hit boundary plane), [ 1.51083703e-05 -8.49723902e-01 -1.53001511e+00 -1.07027610e+00
+ -4.40462919e-01 -1.39218162e+00 -1.78183829e-02]
+item 13 not inside (hit boundary plane), [ 6.18022110e-06 -8.79189213e-01 -1.53000618e+00 -1.04081079e+00
+ -4.20649012e-01 -1.14319123e+00 -2.66808765e-01]
+item 35 not inside (hit boundary plane), [ 9.87988409e-06 -7.72039262e-01 -1.53000988e+00 -1.14796074e+00
+ -4.92723132e-01 -4.95077584e-01 -9.14922416e-01]
+item 12 not inside (hit boundary plane), [ 2.21694226e-05 -8.77858914e-01 -1.53002217e+00 -1.04214109e+00
+ -4.21532037e-01 -2.99085501e-01 -1.11091450e+00]
+close env.
+closed runner.
+  done in 52.7s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_A03_1c_40_shelf.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+transport item 13
+place item 13
+transport item 28
+place item 28
+transport item 37
+place item 37
+transport item 34
+place item 34
+transport item 22
+place item 22
+transport item 25
+place item 25
+transport item 27
+place item 27
+transport item 9
+place item 9
+transport item 16
+place item 16
+transport item 20
+place item 20
+transport item 18
+place item 18
+transport item 4
+place item 4
+transport item 3
+place item 3
+transport item 30
+place item 30
+transport item 21
+place item 21
+transport item 14
+place item 14
+transport item 17
+place item 17
+transport item 5
+collision: 5 and 3 at (np.float32(-0.1595), np.float32(-0.725), np.float32(0.1681)), distance -0.18226023297238633
+collision: 5 and 30 at (np.float32(-0.1595), np.float32(-0.725), np.float32(0.1681)), distance -0.2511153268941887
+item 5 not packable. removed.
+item 13 not inside (hit boundary plane), [ 1.42995073e-05 -9.02246412e-01 -1.53001430e+00 -1.01775359e+00
+ -4.05133054e-01 -1.39252128e+00 -1.74787208e-02]
+item 28 not inside (hit boundary plane), [ 8.06618807e-06 -1.07298060e+00 -1.53000807e+00 -8.47019398e-01
+ -2.90289422e-01 -1.39115360e+00 -1.88464022e-02]
+item 22 not inside (hit boundary plane), [ 9.59181586e-06 -1.81576415e-02 -1.53000959e+00 -1.90184236e+00
+ -9.99839001e-01 -7.93000917e-01 -6.16999083e-01]
+item 27 not inside (hit boundary plane), [ 1.30151568e-05 -1.02457948e+00 -1.53001302e+00 -8.95420518e-01
+ -3.22843877e-01 -9.00512661e-01 -5.09487339e-01]
+item 3 not inside (hit boundary plane), [ 1.86842860e-06 -9.17390141e-01 -1.53000187e+00 -1.00260986e+00
+ -3.94955478e-01 -5.50246846e-01 -8.59753154e-01]
+item 30 not inside (hit boundary plane), [ 1.54730074e-05 -1.34566745e+00 -1.53001547e+00 -5.74332546e-01
+ -1.06854915e-01 -1.83650982e-01 -1.22634902e+00]
+close env.
+closed runner.
+  done in 60.4s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_A08_2c_140_extreme.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+transport item 12
+place item 12
+transport item 4
+place item 4
+transport item 6
+place item 6
+transport item 75
+place item 75
+transport item 120
+place item 120
+transport item 67
+place item 67
+transport item 90
+place item 90
+transport item 131
+place item 131
+transport item 101
+place item 101
+transport item 24
+place item 24
+transport item 58
+place item 58
+transport item 47
+collision: 47 and 4 at (np.float32(-0.116), np.float32(-0.725), np.float32(0.2591)), distance -0.254417407418564
+item 47 not packable. removed.
+item 12 not inside (hit boundary plane), [ 7.62612588e-06 -2.06397284e-02 -1.53000763e+00 -1.89936027e+00
+ -9.98170823e-01 -8.44542066e-01 -5.65457934e-01]
+item 4 not inside (hit boundary plane), [ 0.01705195 -1.33495035 -1.54705195 -0.58504965 -0.10145805 -0.81521519
+ -0.59478481]
+item 101 not inside (hit boundary plane), [ 2.23638738e-05 -1.69626440e-02 -1.53002236e+00 -1.90303736e+00
+ -1.00063339e+00 -8.10245915e-01 -5.99754085e-01]
+item 75 not inside (hit boundary plane), [ 0.01185794 -0.02009511 -1.54185794 -1.89990489 -0.98976865 -0.95306405
+ -0.45693595]
+item 120 not inside (hit boundary plane), [ 0.02958599 -0.01834413 -1.55958599 -1.90165587 -0.9778288  -0.92886648
+ -0.48113352]
+item 67 not inside (hit boundary plane), [ 0.0219834  -0.79799134 -1.5519834  -1.12200866 -0.45900679 -0.87226801
+ -0.53773199]
+close env.
+closed runner.
+  done in 62.8s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+=== シーン別結果 ===
+scene                      | fill    | cog     | stability | placement | soft    | placed      | placed%  | fill_cnt% | opt[s]  | policy[s] | status                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+suite_A01_1c_40_plain.json | 15.83   | 50.48   | 97.63     | 100.00    | 100.00  | 13/40       | 32.5     | 69.2      | 50.12   | 0.12      | Stopped in the middle. Did not satisfy ['i
+suite_A03_1c_40_shelf.json | 21.53   | 55.80   | 98.49     | 100.00    | 100.00  | 17/40       | 42.5     | 64.7      | 56.81   | 0.19      | Stopped in the middle. Did not satisfy ['i
+suite_A08_2c_140_extreme.j | 16.70   | 61.58   | 98.49     | 100.00    | 100.00  | 11/140      | 7.9      | 45.5      | 61.19   | 0.20      | Stopped in the middle. Did not satisfy ['i
+
+=== 足切り閾値 感度分析(仮説ごとの突破可否・合成スコア) ===
+scene                      | count>=10       | count>=15       | count>=20       | count>=30%total | count>=50%total | volume>=30%container | volume>=50%container
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+suite_A01_1c_40_plain.json | O  72.8         | X   3.2         | X   3.2         | O  72.8         | X   3.2         | O  72.8         | X   3.2        
+suite_A03_1c_40_shelf.json | O  75.2         | O  75.2         | X   4.3         | O  75.2         | X   4.3         | O  75.2         | X   4.3        
+suite_A08_2c_140_extreme.j | O  75.4         | X   3.3         | X   3.3         | X   3.3         | X   3.3         | O  75.4         | X   3.3        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+突破シーン数                     | 3/3             | 1/3             | 0/3             | 2/3             | 0/3             | 3/3             | 0/3            
+合成スコア平均                    |  74.4           |  27.2           |   3.6           |  50.4           |   3.6           |  74.4           |   3.6          
+
+(参考) 足切りを考慮しない場合の合成スコア平均(全シーンclearedと仮定):  74.4
+最下位シーンの積載個数: suite_A08_2c_140_extreme.json::000 -> 11/140 個
+
+=== 平均 ===
+fill_score      : 18.02
+cog_score       : 55.95
+stability_score : 98.20
+placement_score : 100.00
+soft_item_score : 100.00
+num_placed_items: 27.6%
+fill_counted_ratio: 59.8%
+(scored 3/3 scenes)
