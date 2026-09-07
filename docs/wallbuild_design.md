@@ -226,13 +226,31 @@ region 貪欲へ先に縮退(`MYSOLVER_WBC_REPLAY_R`、`MYSOLVER_WBC=1` のと�
 バグ**。大きな前面空間を失っている。単体テストを書かずに速く組んだツケ。
 v5(14手プラン)の方が良かった。knobs は -0.008 / 0.0 に戻した。
 
-### 次セッションの WBC 作業(更新、優先順)
-0. **★最優先: `tools/test_maximal_space.py` を書き、`_split_space`/`_prune`/
-   `init_maximal_spaces` を正しくする。** 既知ケース: 1個の空間を中央の box で割ると 6 slab、
-   合計体積 = 元 - box、`|S|` は増えて安定(collapse しない)。cutcorner/shelf/prepacked の
-   init も体積検算。**これを直すまで他の調整は無意味**(v7-v8 は空プランを調整していた)。
-1. (0 が済んだら)計画時にスラック余裕: `WBC_SLACK_MARGIN` を -0.012〜-0.016 で、
-   `WBC_AABB_INFLATE` を 0.002〜0.004 で慎重に。
+### v9/v10(2026-09-07 深夜、続き): `_overlap` の index バグを発見・修正 → まだ密に詰まらない
+- **★ `_overlap(s, box)` がタプル `(ci, x0..z1)` の ci オフセットを無視して `s[1] < box[3]`
+  (x0 と z0 を比較)していた。正: `s[1] < box[4]`。** → `_split_space` がほぼ発火せず
+  maximal space が更新されず、数手で `|S|→0`、plan 崩壊。**v1〜v8 の全 WBC 不振の主因。**
+  `tools/test_maximal_space.py`(コンテナ内で実行)で特定・回帰防止。
+- v9(`_overlap` 修正): `|S|` 崩壊は止まった(17〜240)。だが offline plan はまだ 5〜17 手。
+- v10(region の y-下限を大きく緩める): plan が 13〜16 手に。だが **episode はまだ baseline 以下**:
+  A01 15(23)/ A02 16(24)/ D01 14(23)/ D04 19(27)/ B01 24(=)/ **D05 20(14、+6)**/ A07 9(=)。
+  **D05(tall)だけ一貫して baseline 超え。**
+
+### 現状の総括(v1→v10、10ラウンド)
+`_overlap` バグ修正で maximal-space は正しく動くようになったが、**WBC の構築が 40個中
+~14-16個で止まり、それ以上密に詰められない**。1.5 壁ぶんくらい埋めて stall する。
+`planner.plan` + region で1荷物ずつ充填する方式が、壁内 X-Z を密に埋めきれていない。
+D05(tall、縦壁が有利)以外は baseline に勝てない。
+
+### 次の作業(優先順)
+1. **なぜ ~14個で止まるか**を1シーンで `[WBC] #N` 全手ダンプ(現在 16手上限を外す)+
+   stall 時の usable/cand/region を出す。「壁が埋まっていないのに ref が無くなる」のか
+   「planner.plan が region で候補を失う」のかを特定。
+2. **壁内 X-Z 充填を planner.plan 依存から自前の 2D 詰めに**(Parreño の層内 shelf 法 or
+   CP-SAT noOverlap2D、設計 §「第4手」)。1荷物ずつ region 貪欲では密度が出ない可能性。
+3. D05 が効くなら「WBC を tall/背高シーンだけに gate」して本番1枠、も選択肢
+   (ただし Phase90 の gate 不採用の前例)。
+4. baseline 匹敵まで来たら決定的8シーン不変 → 10シーン A/B → 2週間ストップロス判定。
 2. **シーン別**: D04(flat)/A05(prio)で回帰。flat は薄い壁に不利 → band 下限を上げる。
    prio は優先コンテナ割当(2c)の WBC 対応が未実装。まず 1c・非優先で baseline 超えを狙う。
 3. 壁内 X-Z 密度(`_layer_score` の footprint 重み↑、スリット併合)。
