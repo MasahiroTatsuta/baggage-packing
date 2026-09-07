@@ -1,0 +1,240 @@
+pybullet build time: Sep  7 2026 00:15:11
+[local_eval] MYSOLVER_OPTIMIZE_BUDGET=45.0s (開発用の短縮予算)
+
+--- running suite_A01_1c_40_plain.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[WBC] cont0 interior=(-0.96, -0.685, 0.04, 0.96, 0.685, 1.61) shelf=False cut=(0.44,0.4) prepacked=0
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.04,0.81]
+[WBC]   init space ci0 x[-0.52,0.96] y[-0.68,0.68] z[0.04,1.61]
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.85,1.21]
+[WBC] #0 ref ci0 y[-0.68,0.68] z[0.04,0.81] -> item35 orn1 pos=(0.50,0.45,0.43) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=3
+[WBC] #1 ref ci0 y[-0.68,0.68] z[0.04,0.81] -> item14 orn4 pos=(-0.26,0.44,0.41) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=9
+[WBC] #2 ref ci0 y[-0.68,0.68] z[0.77,1.61] -> item8 orn4 pos=(-0.24,0.45,1.08) incl_slack=-0.0167 (<= -0.012 legal, real ~-0.005) |S|=15
+[WBC] #3 ref ci0 y[-0.68,0.23] z[0.04,1.61] -> item17 orn4 pos=(0.43,0.02,0.44) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=14
+[WBC] #4 ref ci0 y[-0.68,0.23] z[0.77,1.61] -> item30 orn4 pos=(0.33,-0.02,1.13) incl_slack=-0.1430 (<= -0.012 legal, real ~-0.005) |S|=24
+[WBC] #5 ref ci0 y[-0.68,0.22] z[0.04,0.81] -> item2 orn5 pos=(-0.24,0.02,0.50) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=31
+[WBC] #6 ref ci0 y[-0.68,-0.13] z[0.04,1.61] -> item26 orn1 pos=(0.31,-0.43,0.35) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=31
+[WBC] #7 ref ci0 y[-0.68,-0.13] z[0.04,1.61] -> item19 orn3 pos=(0.37,-0.42,0.86) incl_slack=-0.1305 (<= -0.012 legal, real ~-0.005) |S|=31
+[WBC] #8 ref ci0 y[-0.68,-0.13] z[0.04,1.61] -> item18 orn1 pos=(0.40,-0.42,1.24) incl_slack=-0.1375 (<= -0.012 legal, real ~-0.005) |S|=31
+[WBC] #9 ref ci0 y[-0.68,-0.15] z[0.04,0.81] -> item1 orn1 pos=(-0.31,-0.39,0.42) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=29
+[WBC] #10 ref ci0 y[-0.68,-0.15] z[0.04,1.61] -> item25 orn4 pos=(-0.26,-0.33,1.13) incl_slack=-0.1010 (<= -0.012 legal, real ~-0.005) |S|=28
+transport item 35
+place item 35
+transport item 14
+place item 14
+transport item 8
+place item 8
+transport item 17
+place item 17
+transport item 30
+place item 30
+transport item 2
+place item 2
+transport item 26
+place item 26
+transport item 19
+place item 19
+transport item 18
+place item 18
+transport item 33
+place item 33
+transport item 4
+place item 4
+transport item 21
+place item 21
+transport item 20
+place item 20
+transport item 6
+place item 6
+transport item 7
+place item 7
+transport item 39
+place item 39
+transport item 34
+place item 34
+transport item 22
+place item 22
+transport item 1
+collision: 1 and 21 at (np.float32(-0.3115), np.float32(-0.725), np.float32(0.2456)), distance -0.21787059144659418
+collision: 1 and 20 at (np.float32(-0.3115), np.float32(-0.725), np.float32(0.2456)), distance -0.08615268614318215
+item 1 not packable. removed.
+item 35 not inside (hit boundary plane), [ 7.62951469e-06 -2.05128310e-02 -1.53000763e+00 -1.89948717e+00
+ -9.98256181e-01 -9.56568514e-01 -4.53431486e-01]
+item 14 not inside (hit boundary plane), [ 1.26763386e-05 -1.47750214e+00 -1.53001268e+00 -4.42497856e-01
+ -1.81753748e-02 -1.38430674e+00 -2.56932642e-02]
+item 8 not inside (hit boundary plane), [-7.17955425e-01 -1.43092583e+00 -8.12044575e-01 -4.89074168e-01
+ -5.80759363e-01 -1.41003864e+00  3.86369898e-05]
+item 17 not inside (hit boundary plane), [ 3.16753124e-05 -9.42917904e-01 -1.53003168e+00 -9.77082096e-01
+ -3.77761591e-01 -8.85823095e-01 -5.24176905e-01]
+item 2 not inside (hit boundary plane), [ 0.01004874 -0.97215731 -1.54004874 -0.94784269 -0.35068101 -0.90667101
+ -0.50332899]
+item 26 not inside (hit boundary plane), [ 0.00506635 -0.34280027 -1.53506635 -1.57719973 -0.77771904 -0.09705659
+ -1.31294341]
+item 21 not inside (hit boundary plane), [-5.62530457e-08 -9.86534407e-01 -1.52999994e+00 -9.33465593e-01
+ -3.48445435e-01 -5.23439511e-01 -8.86560489e-01]
+item 6 not inside (hit boundary plane), [ 1.22371158e-05 -1.38904482e-02 -1.53001224e+00 -1.90610955e+00
+ -1.00270747e+00 -5.49000083e-01 -8.60999917e-01]
+close env.
+closed runner.
+  done in 59.2s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_A08_2c_140_extreme.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+[WBC] cont0 interior=(-0.96, -0.685, 0.04, 0.96, 0.685, 1.61) shelf=False cut=(0.44,0.4) prepacked=0
+[WBC] cont1 interior=(-0.96, -0.685, 0.04, 0.96, 0.685, 1.61) shelf=False cut=(0.44,0.4) prepacked=0
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.04,0.81]
+[WBC]   init space ci1 x[-0.96,0.96] y[-0.68,0.68] z[0.04,1.61]
+[WBC]   init space ci0 x[-0.52,0.96] y[-0.68,0.68] z[0.04,1.61]
+[WBC]   init space ci0 x[-0.96,0.96] y[-0.68,0.68] z[0.85,1.21]
+[WBC] #0 ref ci0 y[-0.68,0.68] z[0.04,0.81] -> item12 orn1 pos=(0.49,0.39,0.47) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=4
+[WBC] #1 ref ci1 y[-0.68,0.68] z[0.04,1.61] -> item75 orn1 pos=(0.48,0.45,0.51) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=8
+[WBC] #2 ref ci1 y[-0.68,0.68] z[0.04,1.61] -> item11 orn5 pos=(-0.24,0.36,0.50) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=8
+[WBC] #3 ref ci0 y[-0.68,0.68] z[0.85,1.21] -> item120 orn1 pos=(0.50,0.38,1.22) incl_slack=-0.0190 (<= -0.012 legal, real ~-0.005) |S|=6
+[WBC] #4 ref ci0 y[-0.68,0.12] z[0.04,0.81] -> item4 orn4 pos=(0.05,-0.17,0.43) incl_slack=-0.0160 (<= -0.012 legal, real ~-0.005) |S|=10
+[WBC] #5 ref ci0 y[-0.68,0.12] z[0.81,1.61] -> item131 orn2 pos=(-0.24,-0.08,1.19) incl_slack=-0.0140 (<= -0.012 legal, real ~-0.005) |S|=15
+transport item 12
+place item 12
+transport item 75
+place item 75
+transport item 11
+place item 11
+transport item 120
+place item 120
+transport item 4
+place item 4
+transport item 131
+place item 131
+transport item 47
+place item 47
+transport item 128
+place item 128
+transport item 24
+place item 24
+transport item 46
+place item 46
+transport item 60
+place item 60
+transport item 85
+collision: 85 and 4 at (np.float32(-0.1405), np.float32(-0.71505314), np.float32(0.2726)), distance 0.013053801512663374
+item 85 not packable. removed.
+item 12 not inside (hit boundary plane), [ 3.15488897e-06 -2.05213209e-02 -1.53000315e+00 -1.89947868e+00
+ -9.98253781e-01 -8.44060665e-01 -5.65939335e-01]
+item 4 not inside (hit boundary plane), [ 0.01874821 -1.33493363 -1.54874821 -0.58506637 -0.10021417 -0.81505215
+ -0.59494785]
+item 75 not inside (hit boundary plane), [ 0.00929385 -0.02011813 -1.53929385 -1.89988187 -0.99165044 -0.95304884
+ -0.45695116]
+item 11 not inside (hit boundary plane), [ 7.32615254e-06 -9.73145596e-01 -1.53000733e+00 -9.46854404e-01
+ -3.57446262e-01 -1.38981236e+00 -2.01876402e-02]
+item 47 not inside (hit boundary plane), [ 7.70955917e-05 -6.50138927e-01 -1.53007710e+00 -1.26986107e+00
+ -5.74672435e-01 -8.51778722e-01 -5.58221278e-01]
+item 128 not inside (hit boundary plane), [ 9.62345068e-06 -8.22299133e-01 -1.53000962e+00 -1.09770087e+00
+ -4.58914874e-01 -3.54329048e-01 -1.05567095e+00]
+close env.
+closed runner.
+  done in 58.7s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+--- running suite_B01_1c_40_plain.json::000 ---
+argv[0]=
+pybullet build time: Sep  7 2026 00:15:11
+transport item 4
+place item 4
+transport item 7
+place item 7
+transport item 11
+place item 11
+transport item 1
+place item 1
+transport item 12
+place item 12
+transport item 0
+place item 0
+transport item 6
+place item 6
+transport item 16
+place item 16
+transport item 15
+place item 15
+transport item 10
+place item 10
+transport item 19
+place item 19
+transport item 20
+place item 20
+transport item 14
+place item 14
+transport item 8
+place item 8
+transport item 18
+place item 18
+transport item 23
+place item 23
+transport item 25
+place item 25
+transport item 17
+place item 17
+transport item 27
+place item 27
+transport item 21
+place item 21
+transport item 29
+place item 29
+transport item 24
+place item 24
+transport item 28
+place item 28
+transport item 31
+place item 31
+transport item 2
+collision: 2 and 20 at (np.float32(-0.263), np.float32(-0.725), np.float32(0.2201)), distance -0.04025199192611978
+collision: 2 and 14 at (np.float32(-0.263), np.float32(-0.725), np.float32(0.2201)), distance -0.25588654085511303
+collision: 2 and 18 at (np.float32(-0.263), np.float32(-0.725), np.float32(0.2201)), distance -0.09429042272112982
+item 2 not packable. removed.
+item 4 not inside (hit boundary plane), [ 9.60548445e-06 -2.01995179e-02 -1.53000961e+00 -1.89980048e+00
+ -9.98465476e-01 -1.39079481e+00 -1.92051879e-02]
+item 7 not inside (hit boundary plane), [ 1.89781392e-05 -4.90218757e-01 -1.53001898e+00 -1.42978124e+00
+ -6.82289386e-01 -1.38979896e+00 -2.02010400e-02]
+item 11 not inside (hit boundary plane), [ 3.97616407e-05 -8.46262855e-01 -1.53003976e+00 -1.07373715e+00
+ -4.42772829e-01 -1.39420997e+00 -1.57900307e-02]
+item 1 not inside (hit boundary plane), [ 0.0054407  -0.02960231 -1.5354407  -1.89039769 -0.98812179 -1.00510173
+ -0.40489827]
+item 10 not inside (hit boundary plane), [ 1.08449462e-04 -4.63325678e-01 -1.53010845e+00 -1.45667432e+00
+ -7.00313426e-01 -7.55283264e-01 -6.54716736e-01]
+item 20 not inside (hit boundary plane), [ 0.00513567 -0.48618358 -1.53513567 -1.43381642 -0.68121769 -0.61953598
+ -0.79046402]
+item 14 not inside (hit boundary plane), [ 9.17144450e-06 -1.04010430e+00 -1.53000917e+00 -8.79895697e-01
+ -3.12403596e-01 -7.36764391e-01 -6.73235609e-01]
+close env.
+closed runner.
+  done in 20.1s (status: Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe'])
+
+=== シーン別結果 ===
+scene                      | fill    | cog     | stability | placement | soft    | placed      | placed%  | fill_cnt% | opt[s]  | policy[s] | status                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+suite_A01_1c_40_plain.json | 14.99   | 52.90   | 97.51     | 100.00    | 100.00  | 18/40       | 45.0     | 55.6      | 53.76   | 0.12      | Stopped in the middle. Did not satisfy ['i
+suite_A08_2c_140_extreme.j | 15.71   | 54.23   | 98.29     | 100.00    | 100.00  | 11/140      | 7.9      | 45.5      | 56.55   | 0.20      | Stopped in the middle. Did not satisfy ['i
+suite_B01_1c_40_plain.json | 27.83   | 61.21   | 97.56     | 100.00    | 100.00  | 24/40       | 60.0     | 70.8      | 0.00    | 1.36      | Stopped in the middle. Did not satisfy ['i
+
+=== 足切り閾値 感度分析(仮説ごとの突破可否・合成スコア) ===
+scene                      | count>=10       | count>=15       | count>=20       | count>=30%total | count>=50%total | volume>=30%container | volume>=50%container
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+suite_A01_1c_40_plain.json | O  73.1         | O  73.1         | X   3.0         | O  73.1         | X   3.0         | O  73.1         | X   3.0        
+suite_A08_2c_140_extreme.j | O  73.6         | X   3.1         | X   3.1         | X   3.1         | X   3.1         | O  73.6         | X   3.1        
+suite_B01_1c_40_plain.json | O  77.3         | O  77.3         | O  77.3         | O  77.3         | O  77.3         | O  77.3         | X   5.6        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+突破シーン数                     | 3/3             | 2/3             | 1/3             | 2/3             | 1/3             | 3/3             | 0/3            
+合成スコア平均                    |  74.7           |  51.2           |  27.8           |  51.2           |  27.8           |  74.7           |   3.9          
+
+(参考) 足切りを考慮しない場合の合成スコア平均(全シーンclearedと仮定):  74.7
+最下位シーンの積載個数: suite_A08_2c_140_extreme.json::000 -> 11/140 個
+
+=== 平均 ===
+fill_score      : 19.51
+cog_score       : 56.11
+stability_score : 97.79
+placement_score : 100.00
+soft_item_score : 100.00
+num_placed_items: 37.6%
+fill_counted_ratio: 57.3%
+(scored 3/3 scenes)
