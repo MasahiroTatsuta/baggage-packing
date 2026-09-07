@@ -325,4 +325,8 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
             nxt.extend(_split_space(s, box) if s[0] == ci else [s])
         S = _prune(nxt)
 
+    if _dbg:
+        import sys
+        print(f'[WBC] FINAL offline plan={len(plan)} / total={len(item_list)} '
+              f'(remaining={len(remaining)}, |S|={len(S)})', file=sys.stderr)
     return plan
