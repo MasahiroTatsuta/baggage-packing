@@ -227,11 +227,15 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
     wall_depth: dict = {ci: None for ci in range(len(conts))}
     _band_init = max(WBC_INIT_BAND_MULT * min_item_dim, min_item_dim + 0.02)
     _front = {ci: c['center'][1] - c['width'] / 2.0 for ci, c in enumerate(conts)}
+    _stall = {'no_usable': 0, 'no_ref': 0, 'no_best_planNone': 0, 'no_best_slack': 0,
+              'no_best_z': 0, 'no_best_other': 0, 'iters': 0}
     while remaining and not budget.exhausted() and time.perf_counter() < wall_deadline:
+        _stall['iters'] += 1
         # usable = 残り荷物の**どれか**が入る空間(top-K だけで見ると大型が入らない空間を
         # 誤って捨て、小物用のスリットを活かせず早期に止まる)。
         usable = [s for s in S if _space_fits_any(s, remaining)]
         if not usable:
+            _stall['no_usable'] += 1
             break
         ref = None
         ci = None
@@ -259,6 +263,7 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
                 ci = ref[0]
                 break
         if ref is None:
+            _stall['no_ref'] += 1
             break
         band = wall_depth[ci] if wall_depth[ci] else _band_init
         # region の y: 荷物**中心**が入る範囲。中心を [wall_back-band, wall_back] に絞ると
@@ -271,6 +276,7 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
         if not cand_items:
             cand_items = remaining[:WBC_CAND_ITEMS]
         best = None
+        _r = {'planNone': 0, 'z': 0, 'slack': 0}
         for item in cand_items:
             if budget.exhausted() or time.perf_counter() >= wall_deadline:
                 break
@@ -280,20 +286,37 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
             except Exception:
                 act = None
             if act is None:
+                _r['planNone'] += 1
                 continue
             zc = float(act['place_pos'][2])
             if zc < ref[3] - WBC_Z_TOL or zc > ref[6] + WBC_Z_TOL:
+                _r['z'] += 1
                 continue
             # 実 evaluator の厳しい内包マージン(-0.005)を落とす候補は最初から採らない
             _half = geo.half_extent((item['length'], item['width'], item['height']),
                                     int(act['orientation']))
             _wp = geo.local_to_world(conts[ci], act['place_pos'])[None, :]
             if float(geo.inclusion_slack_batch(conts[ci], _half, _wp)[0]) > WBC_SLACK_MARGIN:
+                _r['slack'] += 1
                 continue
             sc = _layer_score(item, act, ref)
             if best is None or sc > best[0]:
                 best = (sc, item, act)
         if best is None:
+            if _r['planNone'] >= len(cand_items):
+                _stall['no_best_planNone'] += 1
+            elif _r['slack'] > _r['z'] and _r['slack'] > 0:
+                _stall['no_best_slack'] += 1
+            elif _r['z'] > 0:
+                _stall['no_best_z'] += 1
+            else:
+                _stall['no_best_other'] += 1
+            if _dbg and sum(v for k, v in _stall.items() if k.startswith('no_best')) <= 6:
+                import sys
+                print(f'[WBC] stall@plan={len(plan)} ref y[{ref[2]:.2f},{ref[5]:.2f}] '
+                      f'z[{ref[3]:.2f},{ref[6]:.2f}] band={band:.2f} wb={wall_back[ci]:.2f} '
+                      f'#cand={len(cand_items)} planNone={_r["planNone"]} z={_r["z"]} '
+                      f'slack={_r["slack"]} |S|={len(S)}', file=sys.stderr)
             S = [s for s in S if s is not ref]
             continue
         _, item, act = best
@@ -303,7 +326,7 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
         if wall_depth[ci] is None:
             # この壁の最初の荷物が壁の厚みを決める(背面 wall_back からの深さ)
             wall_depth[ci] = max(0.05, wall_back[ci] - (float(act['place_pos'][1]) - float(_ihalf[1])))
-        if _dbg and len(plan) < 16:
+        if _dbg and len(plan) < 999:
             import sys
             _wp = geo.local_to_world(conts[ci], act['place_pos'])[None, :]
             _slk = float(geo.inclusion_slack_batch(conts[ci], _ihalf, _wp)[0])
@@ -331,5 +354,5 @@ def wbc_plan(container_list, items_by_index, item_list, lookahead_k, budget, wal
     if _dbg:
         import sys
         print(f'[WBC] FINAL offline plan={len(plan)} / total={len(item_list)} '
-              f'(remaining={len(remaining)}, |S|={len(S)})', file=sys.stderr)
+              f'(remaining={len(remaining)}, |S|={len(S)}) stall={_stall}', file=sys.stderr)
     return plan
