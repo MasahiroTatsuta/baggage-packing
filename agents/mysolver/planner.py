@@ -1371,7 +1371,7 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
                   has_prioritized_container, rng=None, score_noise=0.0, stats=None,
                   grid_density: int = BASE_GRID_DENSITY, n_y_slices: int = Y_SLICE_COUNT,
                   reserve_priority_container: bool = False, strict_support: bool = False,
-                  prepacked_ids: dict | None = None, top_k: int = 1):
+                  prepacked_ids: dict | None = None, top_k: int = 1, forbidden=None):
     """
     (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
     enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
@@ -1396,6 +1396,13 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
     使わない」を保証するため、コンテナのループの内側でlevelを0から昇順に試し、合法候補が
     見つかった時点でそのコンテナの手番を確定する(それより手前の層は開放しない)。
     """
+    # LDBC(2026-09-07): forbidden = set[(item_index, x_q, y_q, orn)]。バックトラッキングで
+    # 「その手を封じて次善手」を実現する厳密除外。None/空なら以下は完全に no-op(不変)。
+    _fb = None
+    if forbidden:
+        _fb = {}
+        for _fi, _fx, _fy, _fo in forbidden:
+            _fb.setdefault((_fi, _fo), []).append((_fx, _fy))
     best_overall = None
     by_item_overall: dict = {}
     for container in container_list:
@@ -1465,6 +1472,17 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
                                                               + 8 * len(obstacles)))
                     half, full_xy = candidate_cache[cache_key]
                     candidate_xy = full_xy if is_fully_open else _apply_y_slice_filter(full_xy, half[1], y_active_lo)
+                    if _fb is not None:
+                        _bad = _fb.get((item.get('index'), orn_idx))
+                        if _bad and candidate_xy.shape[0] > 0:
+                            _keep = np.ones(candidate_xy.shape[0], dtype=bool)
+                            _rx = np.round(candidate_xy[:, 0], 2)
+                            _ry = np.round(candidate_xy[:, 1], 2)
+                            for _fx, _fy in _bad:
+                                _keep &= ~((_rx == _fx) & (_ry == _fy))
+                            candidate_xy = candidate_xy[_keep]
+                        if candidate_xy.shape[0] == 0:
+                            continue
                     r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, budget,
                                               stats=stats, strict_support=strict_support,
                                               corridor_obstacles=corridor_obstacles)
@@ -1568,7 +1586,7 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
          max_pool_items: int | None = MAX_POOL_ITEMS, rng=None, score_noise: float = 0.0,
          stats=None, info: dict | None = None, strict_support: bool = False,
          prepacked_ids: dict | None = None, budget: 'SearchBudget | None' = None,
-         hard_deadline: float | None = None) -> dict | None:
+         hard_deadline: float | None = None, forbidden=None) -> dict | None:
     """
     max_pool_items: online(agent.policy)は既定のMAX_POOL_ITEMSで呼ぶ。offlineの順序探索
     (ordering.build_order)は None を渡し、プール全件(=候補となる全未配置荷物)から
@@ -1618,13 +1636,13 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
                                  has_prioritized_container=has_prioritized_container, rng=rng,
                                  score_noise=score_noise, stats=stats,
                                  reserve_priority_container=has_prioritized_container and has_plain_container,
-                                 strict_support=strict_support, prepacked_ids=prepacked_ids)
+                                 strict_support=strict_support, prepacked_ids=prepacked_ids, forbidden=forbidden)
     if best_overall is None and has_prioritized_container and not budget.exhausted():
         # 優先コンテナ限定では合法手が全く無かった場合のみ、非優先コンテナも含めて再探索する
         # (それ以上待っても優先コンテナに入らない荷物を無駄に足止めしないため)。
         best_overall = _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
-                                     stats=stats, strict_support=strict_support, prepacked_ids=prepacked_ids)
+                                     stats=stats, strict_support=strict_support, prepacked_ids=prepacked_ids, forbidden=forbidden)
 
     if best_overall is None and not budget.exhausted():
         # Phase7: 通常密度のグリッド+Extreme Pointで合法候補が1つも無かった場合の最終リトライ。
@@ -1640,7 +1658,7 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
         # stability の保守性より優先する。
         best_overall = _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
-                                     stats=stats, grid_density=RETRY_GRID_DENSITY, prepacked_ids=prepacked_ids)
+                                     stats=stats, grid_density=RETRY_GRID_DENSITY, prepacked_ids=prepacked_ids, forbidden=forbidden)
 
     if best_overall is None:
         return None

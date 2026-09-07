@@ -46,30 +46,18 @@ def _forbid_key(entry):
 
 
 def _place_one(conts, item, budget, forbidden_for_item):
-    """item を1個置く。forbidden_for_item(このアイテムで過去に外した (x,y,orn) 集合)が
-    非空なら score_noise を上げ rng を差し替えて別の手へ誘導する(v0: 確率的)。"""
-    n = len(forbidden_for_item)
-    if n == 0:
-        rng = None
-        noise = 0.0
-    else:
-        rng = np.random.default_rng(abs(hash((int(item['index']), n))) % (2 ** 32))
-        noise = min(0.6, 0.35 + 0.1 * n)
-    for _ in range(1 + (2 if n else 0)):        # forbidden 時は数回引き直す
-        act = planner.plan(conts, [dict(item)], max_pool_items=None,
-                           rng=rng, score_noise=noise,
-                           budget=budget.child_seconds(LDBC_STEP_S))
-        if act is None:
-            return None
-        ci = int(act['container_idx'])
-        pp = act['place_pos']
-        entry = {'index': int(item['index']), 'container_idx': ci,
-                 'place_pos': (float(pp[0]), float(pp[1]), float(pp[2])),
-                 'orientation': int(act['orientation'])}
-        if _forbid_key(entry) not in forbidden_for_item:
-            return entry, act
-        if rng is None:
-            return entry, act                  # ナッジ不能(noise=0)なら諦めて返す
+    """item を1個置く。forbidden_for_item(このアイテムで過去に外した (x_q,y_q,orn) 集合)を
+    planner.plan の厳密除外 forbidden= に渡し、その手を候補から外して次善手を採らせる(v1)。"""
+    idx = int(item['index'])
+    fb = {(idx, fx, fy, fo) for (fx, fy, fo) in forbidden_for_item} or None
+    act = planner.plan(conts, [dict(item)], max_pool_items=None,
+                       budget=budget.child_seconds(LDBC_STEP_S), forbidden=fb)
+    if act is None:
+        return None
+    pp = act['place_pos']
+    entry = {'index': idx, 'container_idx': int(act['container_idx']),
+             'place_pos': (float(pp[0]), float(pp[1]), float(pp[2])),
+             'orientation': int(act['orientation'])}
     return entry, act
 
 
