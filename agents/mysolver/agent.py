@@ -334,7 +334,15 @@ class Agent:
                 action = planner.plan(container_list, pool_list, time_budget=POLICY_TIME_BUDGET,
                                        hard_deadline=time.perf_counter() + POLICY_HARD_WALL,
                                        strict_support=not self._optimize,
-                                       prepacked_ids=self._prepacked_ids)
+                                       prepacked_ids=self._prepacked_ids,
+                                       # Phase96: last-resort 支持緩和は「オンラインの実手番で、
+                                       # これが None なら _fallback_place_pos に落ちて 100%
+                                       # sudden death する」ここだけで許可する。オフラインの
+                                       # 純幾何シミュ(simulate/ordering からの plan() 呼び出し)
+                                       # では決して有効にしない——あちらで緩めると代理関数が
+                                       # 楽観化して実物理との乖離が広がり、DRIFT_MODEL と
+                                       # 同型の失敗になる。
+                                       lastresort=True)
             except Exception:
                 action = None
 

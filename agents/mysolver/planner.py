@@ -168,6 +168,28 @@ MAX_SUPPORT_CENTROID_OFFSET = float(os.environ.get('MYSOLVER_MAX_SUPPORT_CENTROI
 # 本当に置けるか」を事前にふるいにかけられる。一方 optimize=False(パターンB、lookahead=10)
 # ではその事前検証が一切無く、際どい支持のまま積み上げが実行時に初めて試される。B01の
 # stability低下がパターンB群で層別最大(98.57→97.56, phase11 §4.2)だったことと整合する仮説。
+# ---------------------------------------------------------------------------
+# Phase96: last-resort 支持緩和(MYSOLVER_LASTRESORT、既定OFF)
+#
+# Phase64/65/66 の再測定(現行 public 58.498 ソルバ、results/phase96_*.json):
+#   - sudden death 25局面のうち 14 (56%) に、内包・搬入経路とも合法な解が実在した
+#   - その解 250/250 (100%) が `support_ok` 単独で落選(内包/搬入/候補生成/向き/tier は無罪)
+#   - 内訳: threshold_only 22.8% / forbidden_hit 併発 77.2% / forbidden_only 0%
+#     (Phase66=緩2以前は 44.3%/55.7%。緩2が閾値側を刈った結果、残渣が forbidden_hit に集中)
+#   - forbidden_only=0 なので `forbidden_hit` を外すだけでは1件も救えず、閾値も同時に緩める要あり
+#
+# したがって last-resort は段階的に緩める。発火するのは plan() が「合法手ゼロ」を返す
+# 直前だけで、そこは現状 agent._fallback_place_pos が床9点しか見ずに非合法位置を返して
+# 100% sudden death している1手(Phase64: 合法解の z 源は 100% item_top、床は0件)。
+# 「確定死 vs 確率的生存」の交換なので、この分岐に下振れは無い。
+#
+# L2 の閾値は緩3(0.25/0.3/0.30)相当。緩3は全体設定としては public 54.80 で不採用だが、
+# rest012 の 9.19 のような崖ではなく「物理的に定着する配置を作れる」ことは本番で実証済み。
+LASTRESORT = os.environ.get('MYSOLVER_LASTRESORT', '0') == '1'
+LASTRESORT_MAX_LEVEL = int(os.environ.get('MYSOLVER_LASTRESORT_MAX_LEVEL', '3'))
+LASTRESORT_L2_THRESHOLDS = (0.25, 0.3, 0.30)
+LASTRESORT_L3_MIN_RATIO = float(os.environ.get('MYSOLVER_LASTRESORT_L3_MIN_RATIO', '0.0'))
+
 MIN_UNION_SUPPORT_RATIO_STRICT = 0.75
 MIN_SUPPORT_SPAN_RATIO_STRICT = 0.75
 MAX_SUPPORT_CENTROID_OFFSET_STRICT = 0.10
@@ -999,7 +1021,7 @@ def _score(container, local_x, local_y, world_z, half, item, support_ratio, cont
 
 
 def _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, budget, stats=None,
-                          strict_support=False, corridor_obstacles=None):
+                          strict_support=False, corridor_obstacles=None, relax_support: int = 0):
     """
     候補XY一覧について、乗せられる一番高い支持面(landing z)を求め、内包・搬入経路衝突を
     チェックしたうえで最良の1候補を返す。合法な候補が無ければ None。
@@ -1117,6 +1139,11 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     union_ratio = MIN_UNION_SUPPORT_RATIO_STRICT if strict_support else MIN_UNION_SUPPORT_RATIO
     span_ratio = MIN_SUPPORT_SPAN_RATIO_STRICT if strict_support else MIN_SUPPORT_SPAN_RATIO
     centroid_offset = MAX_SUPPORT_CENTROID_OFFSET_STRICT if strict_support else MAX_SUPPORT_CENTROID_OFFSET
+    # Phase96: last-resort 緩和。relax_support>0 は plan() が「合法手ゼロ」を返す直前
+    # (=現状 100% sudden death が確定している1手)でのみ渡される。relax_support=0 の
+    # ときは以下の3行がすべて no-op で、従来と完全に同一(ビット単位不変)。
+    if relax_support >= 2:
+        union_ratio, span_ratio, centroid_offset = LASTRESORT_L2_THRESHOLDS
 
     safe_area = np.maximum(sum_area, 1e-12)
     off_x = np.abs(cen_x / safe_area - world_x) / max(half[0], 1e-9)
@@ -1125,7 +1152,11 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
                ((span_y_hi - span_y_lo) >= span_ratio * 2.0 * half[1]))
     balanced = span_ok & (off_x <= centroid_offset) & (off_y <= centroid_offset)
     stacked_ok = (sum_ratio >= MIN_SUPPORT_RATIO) | ((sum_ratio >= union_ratio) & balanced)
-    support_ok = on_floor | (stacked_ok & ~forbidden_hit)
+    if relax_support >= 3:
+        # 「何かの支持面に載っている」だけを要求する(接触面積>0)。定着判定は実物理に委ねる。
+        stacked_ok = stacked_ok | (sum_ratio > LASTRESORT_L3_MIN_RATIO)
+    allow_forbidden = relax_support >= 1
+    support_ok = on_floor | (stacked_ok & (~forbidden_hit | allow_forbidden))
     landing_ratio = np.where(on_floor, 1.0, np.minimum(sum_ratio, 1.0))
 
     world_z = landing_top + half[2] + geo.REST_CLEARANCE
@@ -1371,7 +1402,8 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
                   has_prioritized_container, rng=None, score_noise=0.0, stats=None,
                   grid_density: int = BASE_GRID_DENSITY, n_y_slices: int = Y_SLICE_COUNT,
                   reserve_priority_container: bool = False, strict_support: bool = False,
-                  prepacked_ids: dict | None = None, top_k: int = 1, forbidden=None, region=None):
+                  prepacked_ids: dict | None = None, top_k: int = 1, forbidden=None, region=None,
+                  relax_support: int = 0):
     """
     (container × pool item × orientation × 候補位置) を総当たりし、合法な手のうち最良を返す。
     enforce_priority_container=True の間は、優先コンテナが存在するのに優先荷物を非優先
@@ -1494,7 +1526,8 @@ def _search_best(container_list, pool_list, n_pool, budget, enforce_priority_con
                             continue
                     r = _evaluate_candidates(container, item, half, obstacles, supports, candidate_xy, budget,
                                               stats=stats, strict_support=strict_support,
-                                              corridor_obstacles=corridor_obstacles)
+                                              corridor_obstacles=corridor_obstacles,
+                                              relax_support=relax_support)
                     if r is None:
                         continue
 
@@ -1595,7 +1628,8 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
          max_pool_items: int | None = MAX_POOL_ITEMS, rng=None, score_noise: float = 0.0,
          stats=None, info: dict | None = None, strict_support: bool = False,
          prepacked_ids: dict | None = None, budget: 'SearchBudget | None' = None,
-         hard_deadline: float | None = None, forbidden=None, region=None) -> dict | None:
+         hard_deadline: float | None = None, forbidden=None, region=None,
+         lastresort: bool = False) -> dict | None:
     """
     max_pool_items: online(agent.policy)は既定のMAX_POOL_ITEMSで呼ぶ。offlineの順序探索
     (ordering.build_order)は None を渡し、プール全件(=候補となる全未配置荷物)から
@@ -1668,6 +1702,26 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
         best_overall = _search_best(container_list, pool_list, n_pool, budget, enforce_priority_container=False,
                                      has_prioritized_container=has_prioritized_container, rng=rng, score_noise=score_noise,
                                      stats=stats, grid_density=RETRY_GRID_DENSITY, prepacked_ids=prepacked_ids, forbidden=forbidden, region=region)
+
+    if best_overall is None and LASTRESORT and lastresort:
+        # Phase96: ここに到達した = 通常密度・密グリッド・全コンテナのいずれでも合法手ゼロ。
+        # agent.policy はこの直後、床9点しか見ない `_fallback_place_pos` で非合法位置を返し
+        # 100% sudden death する(残り全荷物ロスト)。その1手に限り支持判定を段階的に緩め、
+        # 最初に合法手が出た段階で採用する。予算(budget)は延長しない(policy 8s を守る)。
+        for lvl in range(1, max(0, LASTRESORT_MAX_LEVEL) + 1):
+            if budget.exhausted():
+                break
+            best_overall = _search_best(container_list, pool_list, n_pool, budget,
+                                         enforce_priority_container=False,
+                                         has_prioritized_container=has_prioritized_container, rng=rng,
+                                         score_noise=score_noise, stats=stats,
+                                         grid_density=RETRY_GRID_DENSITY, prepacked_ids=prepacked_ids,
+                                         forbidden=forbidden, region=region, relax_support=lvl)
+            if best_overall is not None:
+                if stats is not None:
+                    stats['lastresort_hit'] = stats.get('lastresort_hit', 0) + 1
+                    stats[f'lastresort_hit_L{lvl}'] = stats.get(f'lastresort_hit_L{lvl}', 0) + 1
+                break
 
     if best_overall is None:
         return None
