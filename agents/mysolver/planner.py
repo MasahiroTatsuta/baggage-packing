@@ -187,8 +187,27 @@ MAX_SUPPORT_CENTROID_OFFSET = float(os.environ.get('MYSOLVER_MAX_SUPPORT_CENTROI
 # rest012 の 9.19 のような崖ではなく「物理的に定着する配置を作れる」ことは本番で実証済み。
 LASTRESORT = os.environ.get('MYSOLVER_LASTRESORT', '0') == '1'
 LASTRESORT_MAX_LEVEL = int(os.environ.get('MYSOLVER_LASTRESORT_MAX_LEVEL', '3'))
+# Phase96b: ラダーの開始段。本番実測(L1=public 58.498 / L2=58.521 / L3=60.824)で
+# Lv1・Lv2 は public にほぼ何も足さないのに探索予算を消費することが判明した
+# (policy 壁時計 L1 5.875s < HARD_WALL 6.0s <= L2 6.076s / L3 6.070s ——
+# L2/L3 は壁に張り付いており、Lv1/Lv2 が予算を食って Lv3 に到達できない手番がある)。
+# MIN_LEVEL=3 にすると Lv3 へ直行し、その分だけ Lv3 の発火機会が増える。
+LASTRESORT_MIN_LEVEL = int(os.environ.get('MYSOLVER_LASTRESORT_MIN_LEVEL', '1'))
 LASTRESORT_L2_THRESHOLDS = (0.25, 0.3, 0.30)
 LASTRESORT_L3_MIN_RATIO = float(os.environ.get('MYSOLVER_LASTRESORT_L3_MIN_RATIO', '0.0'))
+# Phase96b Lv4: planner は実 validator より 7mm ずつ保守的(SAFETY_MARGIN_XY 0.022 vs 実 0.015、
+# INCLUSION_MARGIN -0.012 vs 実 -0.005)。この自制が「真の詰み」に見える局面を作っている
+# 可能性があるため、last-resort の最終段でのみ実値まで開ける。全体設定として動かすのは
+# Phase76-77 で両側悪化が確定しているが(0.018→54.00 / 0.022→57.185 / 0.026→53.62)、
+# ここは確定死の1手にしか適用しないので、その山型とは別の話になる。
+# Phase97: マージン緩和を「何段目から」有効にするか。既定4=独立した最終段。
+# 3 にするとラダー最終段(接触のみ)にマージン緩和を畳み込み、探索回数を増やさずに
+# Lv4 の効果を入れられる。実測(results/phase96b_ab_L4only.json)で Lv4 単独は +13 の
+# 効果があるのに MAX_LEVEL=4 では ±0 —— Lv1〜3 の空振りで予算を使い切り Lv4 に
+# 到達していなかった(B03: Lv1-3 全滅で 27 のまま、Lv4 単独なら 29)。
+LASTRESORT_MARGIN_FROM_LEVEL = int(os.environ.get('MYSOLVER_LASTRESORT_MARGIN_FROM_LEVEL', '4'))
+LASTRESORT_L4_SAFETY_MARGIN_XY = float(os.environ.get('MYSOLVER_LASTRESORT_L4_SAFETY_MARGIN_XY', '0.015'))
+LASTRESORT_L4_INCLUSION_MARGIN = float(os.environ.get('MYSOLVER_LASTRESORT_L4_INCLUSION_MARGIN', '-0.005'))
 
 MIN_UNION_SUPPORT_RATIO_STRICT = 0.75
 MIN_SUPPORT_SPAN_RATIO_STRICT = 0.75
@@ -784,13 +803,18 @@ def _y_sweep_unreachable_mask(container, half, candidate_xy, obstacles):
     return (~gap_found) & (covered_hi >= z_max - eps)
 
 
-def _apply_obstacle_filters(world_pos, half, obstacles, x_lo_arr, x_hi_arr, y_lo_arr, y_hi_arr, z_center):
+def _apply_obstacle_filters(world_pos, half, obstacles, x_lo_arr, x_hi_arr, y_lo_arr, y_hi_arr, z_center,
+                            margin_xy=None):
     """
     world_pos: (N,3) 最終目標点。x_lo_arr..z_center: 搬入経路(掃引)の外接範囲。
     戻り値: 衝突していない(合法)候補の bool マスク (N,)
+
+    margin_xy: None(既定)なら geo.SAFETY_MARGIN_XY = 従来と完全に同一(ビット単位不変)。
+    Phase96b の last-resort Lv4 だけが実 validator 相当の値を明示的に渡す。
     """
     n = world_pos.shape[0]
     ok = np.ones(n, dtype=bool)
+    mxy = geo.SAFETY_MARGIN_XY if margin_xy is None else float(margin_xy)
 
     min_final = world_pos - half[None, :]
     max_final = world_pos + half[None, :]
@@ -812,9 +836,10 @@ def _apply_obstacle_filters(world_pos, half, obstacles, x_lo_arr, x_hi_arr, y_lo
         margin_z_final = np.where(is_direct_support, geo.Z_TOUCH_EPS, geo.OBSTACLE_Z_MARGIN)
         # 掃引(搬入経路の移動中)は「別の荷物のすぐ上をかすめる」際の実余裕を確保するため、
         # z方向により大きい margin(SWEEP_Z_MARGIN)を要求する。
-        collide_final = geo.box_overlap_batch(min_final, max_final, center, ohalf, margin_z=margin_z_final)
+        collide_final = geo.box_overlap_batch(min_final, max_final, center, ohalf,
+                                              margin_xy=mxy, margin_z=margin_z_final)
         collide_sweep = geo.box_overlap_batch(min_sweep, max_sweep, center, ohalf,
-                                              margin_xy=geo.SAFETY_MARGIN_XY + TRANSPORT_MARGIN,
+                                              margin_xy=mxy + TRANSPORT_MARGIN,
                                               margin_z=geo.SWEEP_Z_MARGIN + TRANSPORT_MARGIN)
         ok &= ~collide_final
         ok &= ~collide_sweep
@@ -1165,7 +1190,10 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     world_pos = np.stack([world_x, world_y, world_z], axis=1)
 
     slack = geo.inclusion_slack_batch(container, half, world_pos)
-    incl = slack <= geo.INCLUSION_MARGIN
+    # Phase96b Lv4: 内包マージンも実 validator 相当まで開ける(relax_support<4 では no-op)。
+    _incl_margin = (LASTRESORT_L4_INCLUSION_MARGIN if relax_support >= LASTRESORT_MARGIN_FROM_LEVEL
+                    else geo.INCLUSION_MARGIN)
+    incl = slack <= _incl_margin
     base_legal = incl & valid_h & support_ok
 
     # NOTE(Phase11): 配置後の物理演算で荷物は目標点(支持面から geo.REST_CLEARANCE=16mm 浮かせた
@@ -1264,12 +1292,15 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     # phase1: y方向掃引 (x=搬入時のx固定)
     y1_lo = np.minimum(y_entry, local_y); y1_hi = np.maximum(y_entry, local_y)
     x1_lo = start_x_world; x1_hi = start_x_world
-    legal1 = _apply_obstacle_filters(world_pos, half, obstacles, x1_lo, x1_hi, y1_lo, y1_hi, sweep_z)
+    _mxy = (LASTRESORT_L4_SAFETY_MARGIN_XY if relax_support >= LASTRESORT_MARGIN_FROM_LEVEL else None)
+    legal1 = _apply_obstacle_filters(world_pos, half, obstacles, x1_lo, x1_hi, y1_lo, y1_hi, sweep_z,
+                                     margin_xy=_mxy)
 
     # phase2: x方向掃引 (y=target_y固定)
     x2_lo = np.minimum(start_x_world, world_x); x2_hi = np.maximum(start_x_world, world_x)
     y2_lo = world_y; y2_hi = world_y
-    legal2 = _apply_obstacle_filters(world_pos, half, obstacles, x2_lo, x2_hi, y2_lo, y2_hi, sweep_z)
+    legal2 = _apply_obstacle_filters(world_pos, half, obstacles, x2_lo, x2_hi, y2_lo, y2_hi, sweep_z,
+                                     margin_xy=_mxy)
 
     legal = base_legal & legal1 & legal2
     if not np.any(legal):
@@ -1708,7 +1739,7 @@ def plan(container_list: list[dict], pool_list: list[dict], time_budget: float =
         # agent.policy はこの直後、床9点しか見ない `_fallback_place_pos` で非合法位置を返し
         # 100% sudden death する(残り全荷物ロスト)。その1手に限り支持判定を段階的に緩め、
         # 最初に合法手が出た段階で採用する。予算(budget)は延長しない(policy 8s を守る)。
-        for lvl in range(1, max(0, LASTRESORT_MAX_LEVEL) + 1):
+        for lvl in range(max(1, LASTRESORT_MIN_LEVEL), max(0, LASTRESORT_MAX_LEVEL) + 1):
             if budget.exhausted():
                 break
             best_overall = _search_best(container_list, pool_list, n_pool, budget,

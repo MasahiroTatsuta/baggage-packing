@@ -270,8 +270,37 @@ def cutoff_target(total_items: int) -> int:
     return min(target, total_items)
 
 
+# Phase98: リスタート候補の比較キーを「体積優先」から「配置数優先」へ入れ替えるフック。
+#
+# 既定 '0' は従来と完全に同一(ビット単位不変)。
+#
+# 根拠(2026-09-09〜10 の本番6提出、docs/submission_policy.md §14-9):
+#   版          public   num_placed   fill
+#   L3          60.824    0.66279   38.969
+#   sup_loose3  60.573    0.65721   39.390
+#   sup_tight1  60.171    0.64969   39.740
+#   sup_mid     59.973    0.64969   39.844
+#   → public vs num_placed の相関 +0.980 / public vs fill の相関 **−0.984**
+#
+# 得点のゲートは「積み付けられた手荷物の**数**」による足切りであり(official_spec §32)、
+# fill は足切りを生き延びる側=レバレッジが最も低い。にもかかわらずソルバは体積を
+# 第1キーに順序を選んでいた。この選択は Phase10 期の「fill が public を支配していた」
+# という当時の理解に基づくもので、Phase96 で足切りの実効性(本番シーンの約3割が
+# 足切りに落ちる)が判明した後も見直されていなかった。Phase70 が変えたのは
+# **測定KPI**であって、ソルバ自身の目的関数ではない。
+#
+# 退化のリスクについて: Phase18 は「加算ペナルティにすると『何も置かない方が得』へ
+# 収束する」ことを実測しているが、配置数を第1キーにする本フックは最大化方向が
+# 逆(数を増やすほど良い)なので、その退化は構造的に起こらない。体積は第2キーとして
+# 残るので、同数なら従来どおり体積の大きい方を採る。
+_ORDER_BY_COUNT = os.environ.get('MYSOLVER_ORDER_BY_COUNT', '0') == '1'
+
+
 def _better(candidate: tuple[float, int], current: tuple[float, int]) -> bool:
-    """(placement込みの調整体積, 配置数) の辞書式比較。体積を主指標、配置数は同点タイブレークのみ。"""
+    """(placement込みの調整体積, 配置数) の辞書式比較。既定は体積が主指標で配置数は同点
+    タイブレークのみ。MYSOLVER_ORDER_BY_COUNT=1 で主従を入れ替える(配置数が主指標)。"""
+    if _ORDER_BY_COUNT:
+        return (candidate[1], candidate[0]) > (current[1], current[0])
     return candidate > current
 
 
@@ -1010,6 +1039,20 @@ def build_order(item_list: list[dict], container_list: list[dict] | None, lookah
     # これにより小さい予算の系列は大きい予算の系列の**接頭辞**になり、
     # build_order は「決定的な系列の先頭 N 個の argmax」= N に対して単調になる。
     default_items = strategy_orders[0][1]
+    # Phase98: フェーズ1の**主種**(全リスタート共通の初期並び)を差し替えるフック。
+    # 既定''では上の行のまま=体積優先で、従来とビット単位不変。
+    #
+    # 目的関数を配置数優先(MYSOLVER_ORDER_BY_COUNT=1)に入れ替えた場合、種の側も
+    # count_first(体積の昇順=小さい荷物から)に揃えるのが整合する。Phase91 は
+    # count_first を「最後の1リスタートの種」としてのみ試して net −6 だったが、
+    # あれは**体積を第1キーに評価していた**ため、個数を稼ぐ順序が構造的に選ばれない
+    # 条件下での測定だった。PHASE1_EXTRA_STRATEGY が最後の1本しか差し替えないのに対し、
+    # こちらは全リスタートの種を差し替える。
+    _primary = os.environ.get('MYSOLVER_PHASE1_PRIMARY_STRATEGY', '').strip()
+    if _primary:
+        _by_name = {name.replace('_strategy_', '', 1): items for name, items in strategy_orders}
+        if _primary in _by_name:
+            default_items = _by_name[_primary]
     # Phase91: 既定''なら以下は常にNoneのまま=全リスタートが体積優先(従来どおり)。
     _strategy_by_short_name = {name.replace('_strategy_', '', 1): items
                                 for name, items in strategy_orders}
