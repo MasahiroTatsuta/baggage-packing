@@ -193,6 +193,9 @@ LASTRESORT_MAX_LEVEL = int(os.environ.get('MYSOLVER_LASTRESORT_MAX_LEVEL', '3'))
 # L2/L3 は壁に張り付いており、Lv1/Lv2 が予算を食って Lv3 に到達できない手番がある)。
 # MIN_LEVEL=3 にすると Lv3 へ直行し、その分だけ Lv3 の発火機会が増える。
 LASTRESORT_MIN_LEVEL = int(os.environ.get('MYSOLVER_LASTRESORT_MIN_LEVEL', '1'))
+# Phase99: last-resort の候補順位付けを「支持の質(sum_ratio)優先」にする。既定OFF。
+LASTRESORT_SUPPORT_FIRST = os.environ.get('MYSOLVER_LASTRESORT_SUPPORT_FIRST', '0') == '1'
+LASTRESORT_SUPPORT_FIRST_W = float(os.environ.get('MYSOLVER_LASTRESORT_SUPPORT_FIRST_W', '1000.0'))
 LASTRESORT_L2_THRESHOLDS = (0.25, 0.3, 0.30)
 LASTRESORT_L3_MIN_RATIO = float(os.environ.get('MYSOLVER_LASTRESORT_L3_MIN_RATIO', '0.0'))
 # Phase96b Lv4: planner は実 validator より 7mm ずつ保守的(SAFETY_MARGIN_XY 0.022 vs 実 0.015、
@@ -220,6 +223,16 @@ MAX_SUPPORT_CENTROID_OFFSET_STRICT = 0.10
 # そのものを作らないことで、置く順序や重み調整に頼らずハード制約として回避する。
 PRIORITY_CLEARANCE_XY = 0.05
 PRIORITY_CLEARANCE_Z = 0.05
+# Phase100: この立入禁止帯を last-resort(relax_support>0)でも維持するか。既定 '1' は従来どおり。
+# '0' にすると「合法手ゼロ=確定死」の1手に限り解除する。根拠:
+#  (a) 守っている placement_score は足切りで0にされる側であり、§14 の換算では
+#      跨ぎ1回 +2.75pt に対し placement 1違反 -0.11pt(25:1)。
+#  (b) last-resort では既に forbidden_hit を解除しており、これより遥かに重い違反
+#      (非優先を優先の真上に積む)を許している。真横5cmだけ禁じる理由がない。
+#  (c) 実行可能集合の拡大は本番で効いた唯一のカテゴリ(last-resort +2.33)。
+#      再ランク付け(supfirst -2.27 / 定数掃引10本全滅)とは結果が明確に分かれている。
+LASTRESORT_KEEP_PRIORITY_CLEARANCE = os.environ.get(
+    'MYSOLVER_LASTRESORT_KEEP_PRIORITY_CLEARANCE', '1') == '1'
 # Phase14: 搬入経路の詰まり(fail_transport_y)対策 —— 「階段状スカイライン」の選好。
 #
 # 荷物は必ず手前(y=-width/2)から入り、直置き面(床・棚上面)の 0〜50mm 上に底面が来る候補は
@@ -1208,7 +1221,7 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     # 目標点の slack のまま(=Phase10 と同じ評価)に留める。詳細と検証案は
     # results/phase11_report.md の「床直置きと fill_score」節を参照。
 
-    if not item_is_prioritized:
+    if not item_is_prioritized and (relax_support == 0 or LASTRESORT_KEEP_PRIORITY_CLEARANCE):
         min_final = world_pos - half[None, :]
         max_final = world_pos + half[None, :]
         for center, oh, sup_prioritized, _, _shelf in supports:
@@ -1330,6 +1343,23 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
                 if CORRIDOR_WEIGHT > 0.0 else None)
     scores = _score(container, local_x, local_y, world_z, half, item, landing_ratio, contact, slack,
                     corridor_excess=corridor, front_gap=front_gap)
+    # Phase99: last-resort(relax_support>0)で救出するときは、通常のスコア(fill+contact+
+    # back_term−corridor…)ではなく**支持の質**を最優先に候補を選ぶ。
+    #
+    # 根拠(本番実測): L3only(常に最も緩い段を使う)は L3(穏やかな段から順に試す)より
+    # public −2.35 だった。配置数はほぼ同一(−0.06pp)なのに足切りゲート4指標が
+    # 軒並み −2.7〜−3.7 落ちており、**救出配置の支持の質がその後のエピソード生存
+    # (=そのシーンが足切りを跨げるか)を左右している**ことを示す。本番の死因には
+    # `is_placed_safe`(定着判定)が一貫して出続けており、支持の甘い救出が沈降で
+    # 崩れて死んでいる分があると考えられる。
+    #
+    # これは「どの荷物をどの順で置くか」の分布を一切変えない —— 救出する1手の
+    # 置き場所の質だけを上げる。ローカルスイートの構成に依存しない(= oc_cf のような
+    # 分布的変更が転移しなかったのに対し、last-resort と同じ因果的に普遍な変更)。
+    if relax_support > 0 and LASTRESORT_SUPPORT_FIRST:
+        # sum_ratio(底面が支持面に乗っている割合)を主キーにする。スコアは同点時の
+        # タイブレークとして効くよう、十分小さい係数で加える。
+        scores = np.minimum(sum_ratio, 1.0) * LASTRESORT_SUPPORT_FIRST_W + scores * 1e-6
     scores = np.where(legal, scores, -np.inf)
     best_i = int(np.argmax(scores))
     if not legal[best_i]:
