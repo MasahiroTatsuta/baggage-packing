@@ -4,3 +4,5 @@ __pycache__/
 *.zip
 *.so
 _hist/
+.DS_Store
+agents/mysolver.phase92_bak/

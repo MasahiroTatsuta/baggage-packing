@@ -1,0 +1,544 @@
+
+--- running sample_config.json::000 ---
+transport item 3
+place item 3
+transport item 17
+place item 17
+transport item 21
+place item 21
+transport item 33
+place item 33
+transport item 8
+place item 8
+transport item 13
+place item 13
+transport item 5
+place item 5
+transport item 9
+place item 9
+transport item 11
+place item 11
+transport item 19
+place item 19
+transport item 20
+place item 20
+transport item 22
+place item 22
+transport item 23
+place item 23
+transport item 35
+place item 35
+transport item 39
+place item 39
+transport item 30
+place item 30
+transport item 0
+place item 0
+transport item 4
+place item 4
+transport item 6
+place item 6
+transport item 10
+place item 10
+transport item 12
+place item 12
+transport item 18
+place item 18
+transport item 24
+place item 24
+not included. [3.57627873148747e-09, -0.6849999999999999, -1.2900000035762786, -0.6849999999999999, -0.18130934657855485, -0.5249999999999999, -0.48499999999999993]
+item 3 not inside (hit boundary plane), [ 6.27680669e-05 -2.11189951e-02 -1.53006277e+00 -1.89888100e+00
+ -9.97807632e-01 -1.39110873e+00 -1.88912713e-02]
+item 21 not inside (hit boundary plane), [ 3.05474645e-05 -1.35076267e+00 -1.53003055e+00 -5.69237333e-01
+ -1.03416349e-01 -1.37244114e+00 -3.75588552e-02]
+item 33 not inside (hit boundary plane), [ 9.41479310e-06 -1.35222776e+00 -1.53000941e+00 -5.67772242e-01
+ -1.02446460e-01 -1.07176840e+00 -3.38231598e-01]
+item 22 not inside (hit boundary plane), [ 9.98203099e-06 -1.37633591e-01 -1.53000998e+00 -1.78236641e+00
+ -9.19470491e-01 -7.47459462e-01 -6.62540538e-01]
+item 23 not inside (hit boundary plane), [ 5.28284826e-06 -1.26414341e+00 -1.53000528e+00 -6.55856586e-01
+ -1.61701459e-01 -6.88802637e-01 -7.21197363e-01]
+item 35 not inside (hit boundary plane), [ 7.44805269e-06 -1.36961369e-01 -1.53000745e+00 -1.78303863e+00
+ -9.19924552e-01 -2.04977840e-02 -1.38950222e+00]
+close env.
+closed runner.
+  done in 160.4s (status: Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe'])
+
+--- running sample_config.json::001 ---
+transport item 0
+place item 0
+transport item 7
+place item 7
+transport item 8
+place item 8
+transport item 9
+place item 9
+transport item 1
+place item 1
+transport item 3
+place item 3
+transport item 4
+place item 4
+transport item 11
+place item 11
+transport item 12
+place item 12
+transport item 13
+place item 13
+transport item 14
+place item 14
+transport item 17
+place item 17
+transport item 19
+place item 19
+transport item 22
+place item 22
+transport item 21
+place item 21
+transport item 16
+place item 16
+transport item 25
+place item 25
+transport item 2
+place item 2
+transport item 26
+place item 26
+transport item 28
+place item 28
+transport item 27
+place item 27
+transport item 5
+place item 5
+transport item 6
+place item 6
+transport item 10
+place item 10
+transport item 33
+place item 33
+not included. [2.9802322831784522e-09, -0.625, -1.2700000029802323, -0.625, -0.15347980063300298, -0.535, -0.485]
+item 0 not inside (hit boundary plane), [ 0.04190001 -0.02047916 -1.56190001 -1.87952084 -0.97726026 -1.44944193
+ -0.02055807]
+item 7 not inside (hit boundary plane), [ 0.01294534 -0.83385601 -1.53294534 -1.06614399 -0.44446631 -1.44476142
+ -0.02523858]
+item 9 not inside (hit boundary plane), [ 0.0133643  -0.34503632 -1.5333643  -1.55496368 -0.77709657 -0.84178735
+ -0.62821265]
+item 1 not inside (hit boundary plane), [ 9.69201019e-06 -1.42576612e+00 -1.52000969e+00 -4.74233877e-01
+ -5.07853057e-02 -1.06241483e+00 -4.07585169e-01]
+item 19 not inside (hit boundary plane), [ 9.99046326e-06 -1.63100243e-02 -1.52000999e+00 -1.88368998e+00
+ -1.01077119e+00 -8.11999998e-01 -6.58000002e-01]
+item 16 not inside (hit boundary plane), [-7.30417521e-05 -1.24459498e+00 -1.51992696e+00 -6.55405021e-01
+ -1.74242263e-01 -7.88581127e-01 -6.81418873e-01]
+item 25 not inside (hit boundary plane), [ 6.01062279e-05 -2.03218530e-02 -1.52006011e+00 -1.87967815e+00
+ -1.00800203e+00 -6.73981184e-02 -1.40260188e+00]
+close env.
+closed runner.
+  done in 38.8s (status: Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe'])
+
+--- running gen_2containers_patternB.json::001 ---
+transport item 0
+place item 0
+transport item 7
+place item 7
+transport item 8
+place item 8
+transport item 9
+place item 9
+transport item 1
+place item 1
+transport item 3
+place item 3
+transport item 4
+place item 4
+transport item 11
+place item 11
+transport item 12
+place item 12
+transport item 13
+place item 13
+transport item 14
+place item 14
+transport item 17
+place item 17
+transport item 19
+place item 19
+transport item 22
+place item 22
+transport item 21
+place item 21
+transport item 2
+place item 2
+transport item 25
+place item 25
+transport item 26
+place item 26
+transport item 27
+place item 27
+transport item 28
+place item 28
+transport item 5
+place item 5
+transport item 6
+place item 6
+transport item 10
+place item 10
+transport item 15
+place item 15
+transport item 33
+place item 33
+transport item 18
+place item 18
+transport item 20
+place item 20
+transport item 36
+place item 36
+transport item 23
+place item 23
+transport item 38
+place item 38
+transport item 39
+place item 39
+transport item 40
+place item 40
+transport item 16
+place item 16
+transport item 30
+place item 30
+transport item 31
+place item 31
+transport item 32
+place item 32
+transport item 29
+place item 29
+transport item 34
+place item 34
+transport item 35
+place item 35
+transport item 37
+place item 37
+transport item 41
+place item 41
+transport item 24
+place item 24
+item 0 not inside (hit boundary plane), [ 0.01605171 -0.01972214 -1.53605171 -1.88027786 -0.99670165 -1.4481259
+ -0.0218741 ]
+item 8 not inside (hit boundary plane), [ 0.01293815 -0.83385597 -1.53293815 -1.06614403 -0.4444716  -1.44476244
+ -0.02523756]
+item 1 not inside (hit boundary plane), [ 1.27091335e-05 -3.94903225e-01 -1.52001271e+00 -1.50509677e+00
+ -7.52907880e-01 -8.32008149e-01 -6.37991851e-01]
+item 4 not inside (hit boundary plane), [ 1.47550142e-05 -1.49003815e+00 -1.52001476e+00 -4.09961853e-01
+ -7.00566949e-03 -1.06322897e+00 -4.06771029e-01]
+item 2 not inside (hit boundary plane), [ 9.91368249e-06 -1.59648196e-01 -1.52000991e+00 -1.74035180e+00
+ -9.13143055e-01 -8.05313703e-01 -6.64686297e-01]
+item 5 not inside (hit boundary plane), [ 6.27573870e-06 -1.41566693e+00 -1.52000628e+00 -4.84333067e-01
+ -5.76664055e-02 -7.02870020e-01 -7.67129980e-01]
+item 6 not inside (hit boundary plane), [ 1.56739667e-05 -1.99664375e-02 -1.52001567e+00 -1.88003356e+00
+ -1.00827663e+00 -6.87306560e-02 -1.40126934e+00]
+item 7 not inside (hit boundary plane), [ 0.03977197 -0.01973719 -1.55977197 -1.88026281 -0.97932374 -1.44938555
+ -0.02061445]
+item 9 not inside (hit boundary plane), [ 0.01262677 -0.80171955 -1.53262677 -1.09828045 -0.46658783 -1.44477598
+ -0.02522402]
+item 3 not inside (hit boundary plane), [ 5.23060136e-05 -3.94412811e-01 -1.52005231e+00 -1.50558719e+00
+ -7.53212911e-01 -8.29295545e-01 -6.40704455e-01]
+item 11 not inside (hit boundary plane), [ 9.84004035e-06 -1.45801526e+00 -1.52000984e+00 -4.41984744e-01
+ -2.88201857e-02 -1.06387780e+00 -4.06122200e-01]
+item 22 not inside (hit boundary plane), [-0.75506166 -0.00498979 -0.76493834 -1.89501021 -1.5713349  -1.08631709
+ -0.38368291]
+item 27 not inside (hit boundary plane), [ 0.01072265 -0.37005473 -1.53072265 -1.52994527 -0.76199061 -1.05653072
+ -0.41346928]
+item 33 not inside (hit boundary plane), [-1.38600868e+00  1.60962251e-03 -1.33991316e-01 -1.90160962e+00
+ -2.03780083e+00 -1.40351754e+00 -6.64824638e-02]
+item 40 not inside (hit boundary plane), [ 1.04587850e-05 -6.70145120e-01 -1.52001046e+00 -1.22985488e+00
+ -5.65441189e-01 -7.99082869e-01 -6.70917131e-01]
+item 16 not inside (hit boundary plane), [ 1.94064981e-04 -6.03393005e-01 -1.52019406e+00 -1.29660699e+00
+ -6.10771883e-01 -7.89308856e-01 -6.80691144e-01]
+item 31 not inside (hit boundary plane), [ 1.93325306e-05 -6.74136078e-01 -1.52001933e+00 -1.22586392e+00
+ -5.62716434e-01 -1.25674401e-01 -1.34432560e+00]
+close env.
+closed runner.
+  done in 82.7s (status: The packing has been completed successfully.)
+
+--- running gen_2containers_priority.json::000 ---
+transport item 5
+place item 5
+transport item 0
+place item 0
+transport item 10
+place item 10
+transport item 20
+place item 20
+transport item 8
+place item 8
+transport item 30
+place item 30
+transport item 3
+place item 3
+transport item 35
+place item 35
+transport item 9
+place item 9
+transport item 17
+place item 17
+transport item 11
+place item 11
+transport item 21
+place item 21
+transport item 13
+place item 13
+transport item 33
+place item 33
+transport item 19
+place item 19
+transport item 4
+place item 4
+transport item 6
+place item 6
+transport item 14
+place item 14
+transport item 16
+place item 16
+transport item 31
+place item 31
+transport item 12
+place item 12
+transport item 15
+place item 15
+transport item 22
+place item 22
+transport item 23
+place item 23
+transport item 39
+place item 39
+transport item 18
+place item 18
+transport item 24
+place item 24
+transport item 27
+place item 27
+transport item 29
+place item 29
+transport item 32
+place item 32
+transport item 36
+place item 36
+transport item 38
+place item 38
+transport item 1
+place item 1
+transport item 28
+place item 28
+transport item 40
+place item 40
+transport item 34
+place item 34
+transport item 25
+place item 25
+transport item 26
+place item 26
+transport item 37
+place item 37
+transport item 2
+place item 2
+transport item 7
+place item 7
+item 5 not inside (hit boundary plane), [ 5.86373859e-06 -1.86117118e-02 -1.53000586e+00 -1.90138829e+00
+ -9.99536319e-01 -1.38978119e+00 -2.02188104e-02]
+item 0 not inside (hit boundary plane), [ 5.20408241e-05 -1.46556969e+00 -1.53005204e+00 -4.54430315e-01
+ -2.61728878e-02 -1.39299237e+00 -1.70076265e-02]
+item 10 not inside (hit boundary plane), [ 1.27367925e-05 -6.95061438e-01 -1.53001274e+00 -1.22493856e+00
+ -5.44501906e-01 -1.39430246e+00 -1.56975378e-02]
+item 36 not inside (hit boundary plane), [ 1.78847740e-05 -2.63049962e-02 -1.53001788e+00 -1.89369500e+00
+ -9.94352361e-01 -8.46675117e-01 -5.63324883e-01]
+item 38 not inside (hit boundary plane), [ 8.92328153e-06 -1.04736469e+00 -1.53000892e+00 -8.72635311e-01
+ -3.07519915e-01 -7.63703038e-01 -6.46296962e-01]
+item 8 not inside (hit boundary plane), [ 5.72772356e-06 -2.25506004e-02 -1.53000573e+00 -1.89744940e+00
+ -9.96886836e-01 -1.39349574e+00 -1.65042573e-02]
+item 3 not inside (hit boundary plane), [-3.14305665e-06 -6.98048130e-01 -1.52999686e+00 -1.22195187e+00
+ -5.42504589e-01 -1.39647453e+00 -1.35254707e-02]
+item 9 not inside (hit boundary plane), [-0.49975536 -0.03285165 -1.03024464 -1.88714835 -1.35975086 -1.40579642
+ -0.00420358]
+item 11 not inside (hit boundary plane), [-0.74973018 -0.03384017 -0.78026982 -1.88615983 -1.54405229 -1.40614522
+ -0.00385478]
+item 13 not inside (hit boundary plane), [-0.99963739 -0.03487029 -0.53036261 -1.88512971 -1.72827572 -1.40737374
+ -0.00262626]
+item 19 not inside (hit boundary plane), [-1.24957326 -0.03545607 -0.28042674 -1.88454393 -1.91281925 -1.40807471
+ -0.00192529]
+item 14 not inside (hit boundary plane), [-1.46787548 -0.0350902  -0.06212452 -1.8849098  -2.07459592 -1.40700776
+ -0.00299224]
+item 16 not inside (hit boundary plane), [ 0.04906207 -0.37996965 -1.57906207 -1.54003035 -0.72016201 -0.84625861
+ -0.56374139]
+item 31 not inside (hit boundary plane), [ 0.01132284 -0.68319396 -1.54132284 -1.23680604 -0.54411604 -0.79033558
+ -0.61966442]
+item 22 not inside (hit boundary plane), [ 2.48172108e-05 -4.06148479e-01 -1.53002482e+00 -1.51385152e+00
+ -7.38836854e-01 -7.63704794e-01 -6.46295206e-01]
+item 23 not inside (hit boundary plane), [ 1.83140739e-05 -6.84194576e-01 -1.53001831e+00 -1.23580542e+00
+ -5.51807622e-01 -5.19544535e-02 -1.35804555e+00]
+item 37 not inside (hit boundary plane), [-0.77130716 -0.00332192 -0.75869284 -1.91667808 -1.58054676 -0.83569586
+ -0.57430414]
+item 2 not inside (hit boundary plane), [-9.54846054e-01  9.06318016e-04 -5.75153946e-01 -1.92090632e+00
+ -1.71919876e+00 -8.58677262e-01 -5.51322738e-01]
+close env.
+closed runner.
+  done in 141.2s (status: The packing has been completed successfully.)
+
+--- running gen_shelf_patternA.json::000 ---
+transport item 3
+place item 3
+transport item 17
+place item 17
+transport item 21
+place item 21
+transport item 33
+place item 33
+transport item 8
+place item 8
+transport item 13
+place item 13
+transport item 5
+place item 5
+transport item 9
+place item 9
+transport item 11
+place item 11
+transport item 19
+place item 19
+transport item 20
+place item 20
+transport item 22
+place item 22
+transport item 23
+place item 23
+transport item 35
+place item 35
+transport item 39
+place item 39
+transport item 30
+place item 30
+transport item 0
+place item 0
+transport item 4
+place item 4
+transport item 6
+place item 6
+transport item 10
+place item 10
+not included. [3.57627873148747e-09, -0.6849999999999999, -1.2900000035762786, -0.6849999999999999, -0.18130934657855485, -0.5249999999999999, -0.48499999999999993]
+item 3 not inside (hit boundary plane), [ 2.11094494e-05 -1.89387348e-02 -1.53002111e+00 -1.90106127e+00
+ -9.99305058e-01 -1.38989345e+00 -2.01065511e-02]
+item 8 not inside (hit boundary plane), [ 2.25017165e-05 -8.43784863e-01 -1.53002250e+00 -1.07621514e+00
+ -4.44452478e-01 -1.37284660e+00 -3.71533977e-02]
+item 11 not inside (hit boundary plane), [ 1.20890846e-05 -1.69849155e-01 -1.53001209e+00 -1.75015085e+00
+ -8.97798399e-01 -7.78942738e-01 -6.31057262e-01]
+item 19 not inside (hit boundary plane), [ 1.38809565e-04 -1.29716800e+00 -1.53013881e+00 -6.22831996e-01
+ -1.39387914e-01 -8.44025892e-01 -5.65974108e-01]
+item 20 not inside (hit boundary plane), [ 6.54657385e-05 -1.69162886e-01 -1.53006547e+00 -1.75083711e+00
+ -8.98220538e-01 -5.19632515e-02 -1.35803675e+00]
+close env.
+closed runner.
+  done in 96.9s (status: Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe'])
+
+--- running gen_manyitems_patternA.json::000 ---
+transport item 19
+place item 19
+transport item 2
+place item 2
+transport item 76
+place item 76
+transport item 14
+place item 14
+transport item 50
+place item 50
+transport item 28
+place item 28
+transport item 80
+place item 80
+transport item 7
+place item 7
+transport item 3
+place item 3
+transport item 16
+place item 16
+transport item 58
+place item 58
+transport item 8
+place item 8
+transport item 79
+place item 79
+transport item 69
+place item 69
+transport item 44
+place item 44
+transport item 27
+place item 27
+transport item 73
+place item 73
+transport item 41
+place item 41
+transport item 25
+place item 25
+transport item 47
+place item 47
+transport item 66
+place item 66
+transport item 1
+place item 1
+transport item 71
+place item 71
+transport item 75
+place item 75
+not included. [4.649162332892587e-09, -0.661, -1.2690000046491623, -0.661, -0.16516519872877378, -0.5075, -0.4674999999999999]
+item 19 not inside (hit boundary plane), [ 9.84818151e-05 -1.54228055e-02 -1.53009848e+00 -1.90457719e+00
+ -1.00161288e+00 -1.39244083e+00 -1.75591719e-02]
+item 76 not inside (hit boundary plane), [ 1.75385736e-05 -1.40362235e+00 -1.53001754e+00 -5.16377649e-01
+ -6.78687036e-02 -1.36966311e+00 -4.03368927e-02]
+item 50 not inside (hit boundary plane), [ 9.31745746e-06 -1.46812036e+00 -1.53000932e+00 -4.51879640e-01
+ -2.44887312e-02 -1.08986992e+00 -3.20130079e-01]
+item 16 not inside (hit boundary plane), [-3.70441500e-05 -5.35760758e-01 -1.52996296e+00 -1.38423924e+00
+ -6.51695974e-01 -7.50770331e-01 -6.59229669e-01]
+item 8 not inside (hit boundary plane), [ 1.31476855e-05 -1.30376938e+00 -1.53001315e+00 -6.16230622e-01
+ -1.35040331e-01 -7.29345945e-01 -6.80654055e-01]
+item 79 not inside (hit boundary plane), [-3.34480116e-06 -5.56865393e-01 -1.52999666e+00 -1.36313461e+00
+ -6.37474525e-01 -7.23015212e-01 -6.86984788e-01]
+close env.
+closed runner.
+  done in 98.5s (status: Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe'])
+
+=== シーン別結果 ===
+scene                      | fill    | cog     | stability | placement | soft    | placed      | placed%  | fill_cnt% | opt[s]  | policy[s] | status                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sample_config.json::000    | 27.97   | 55.87   | 97.92     | 100.00    | 100.00  | 23/41       | 56.1     | 73.9      | 147.03  | 0.46      | Stopped in the middle. Did not satisfy ['i
+sample_config.json::001    | 25.26   | 56.64   | 97.85     | 100.00    | 100.00  | 25/42       | 59.5     | 72.0      | 0.00    | 5.15      | Stopped in the middle. Did not satisfy ['i
+gen_2containers_patternB.j | 19.76   | 59.52   | 98.37     | 100.00    | 100.00  | 42/42       | 100.0    | 59.5      | 0.00    | 3.89      | The packing has been completed successfull
+gen_2containers_priority.j | 18.24   | 62.84   | 96.87     | 100.00    | 100.00  | 41/41       | 100.0    | 56.1      | 119.72  | 0.18      | The packing has been completed successfull
+gen_shelf_patternA.json::0 | 28.20   | 56.70   | 97.93     | 100.00    | 100.00  | 20/41       | 48.8     | 75.0      | 91.22   | 0.39      | Stopped in the middle. Did not satisfy ['i
+gen_manyitems_patternA.jso | 36.27   | 56.45   | 98.07     | 100.00    | 100.00  | 24/83       | 28.9     | 75.0      | 90.46   | 0.25      | Stopped in the middle. Did not satisfy ['i
+
+=== 足切り閾値 感度分析(仮説ごとの突破可否・合成スコア) ===
+scene                      | count>=10       | count>=15       | count>=20       | count>=30%total | count>=50%total | volume>=30%container | volume>=50%container
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+sample_config.json::000    | O  76.4         | O  76.4         | O  76.4         | O  76.4         | O  76.4         | O  76.4         | X   5.6        
+sample_config.json::001    | O  75.9         | O  75.9         | O  75.9         | O  75.9         | O  75.9         | O  75.9         | X   5.1        
+gen_2containers_patternB.j | O  75.5         | O  75.5         | O  75.5         | O  75.5         | O  75.5         | O  75.5         | X   4.0        
+gen_2containers_priority.j | O  75.6         | O  75.6         | O  75.6         | O  75.6         | O  75.6         | O  75.6         | X   3.6        
+gen_shelf_patternA.json::0 | O  76.6         | O  76.6         | O  76.6         | O  76.6         | X   5.6         | O  76.6         | X   5.6        
+gen_manyitems_patternA.jso | O  78.2         | O  78.2         | O  78.2         | X   7.3         | X   7.3         | O  78.2         | O  78.2        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+突破シーン数                     | 6/6             | 6/6             | 6/6             | 5/6             | 4/6             | 6/6             | 1/6            
+合成スコア平均                    |  76.4           |  76.4           |  76.4           |  64.5           |  52.7           |  76.4           |  17.0          
+
+(参考) 足切りを考慮しない場合の合成スコア平均(全シーンclearedと仮定):  76.4
+最下位シーンの積載個数: gen_shelf_patternA.json::000 -> 20/41 個
+
+=== 平均 ===
+fill_score      : 25.95
+cog_score       : 58.00
+stability_score : 97.83
+placement_score : 100.00
+soft_item_score : 100.00
+num_placed_items: 65.6%
+fill_counted_ratio: 68.6%
+(scored 6/6 scenes)
+argv[0]=
+argv[0]=
+argv[0]=
+argv[0]=
+argv[0]=
+argv[0]=

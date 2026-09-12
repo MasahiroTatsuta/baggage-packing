@@ -1,0 +1,270 @@
+{
+  "label": "old6_after",
+  "module_path": "agents/mysolver/",
+  "repeats": 1,
+  "strict_margin": -0.005,
+  "loose_margin": 0.01,
+  "scene_labels": [
+    "sample_config.json::000",
+    "sample_config.json::001",
+    "gen_2containers_patternB.json::001",
+    "gen_2containers_priority.json::000",
+    "gen_shelf_patternA.json::000",
+    "gen_manyitems_patternA.json::000"
+  ],
+  "per_scene": {
+    "sample_config.json::000": {
+      "fill_strict": {
+        "mean": 27.971218195467095,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 41.93623820057819,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 55.869778183337274,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 97.91777901782736,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe']"
+      ]
+    },
+    "sample_config.json::001": {
+      "fill_strict": {
+        "mean": 26.03626303048268,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 32.45022479126525,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 50.118011147414364,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.061236999463,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe']"
+      ]
+    },
+    "gen_2containers_patternB.json::001": {
+      "fill_strict": {
+        "mean": 23.3892218504492,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 29.801387407924906,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 59.50178059821274,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.1118592322301,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "The packing has been completed successfully."
+      ]
+    },
+    "gen_2containers_priority.json::000": {
+      "fill_strict": {
+        "mean": 22.131090877509617,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 30.139312039802597,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 61.93109360334961,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.18990116701534,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "The packing has been completed successfully."
+      ]
+    },
+    "gen_shelf_patternA.json::000": {
+      "fill_strict": {
+        "mean": 25.226535335974763,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 29.939809573865936,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 48.475960269279206,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 97.99493569189147,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe']"
+      ]
+    },
+    "gen_manyitems_patternA.json::000": {
+      "fill_strict": {
+        "mean": 36.265683822413706,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 50.976382289287464,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 56.44872258334698,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.07455355763167,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe']"
+      ]
+    }
+  },
+  "per_run_suite_avg": [
+    {
+      "fill_strict": 26.83666885204951,
+      "fill_loose": 35.87389238378739,
+      "cog_score": 55.3908910641567,
+      "stability_score": 98.05837761100982,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    }
+  ],
+  "suite_stats": {
+    "fill_strict": {
+      "mean": 26.83666885204951,
+      "std": 0.0,
+      "n": 1
+    },
+    "fill_loose": {
+      "mean": 35.87389238378739,
+      "std": 0.0,
+      "n": 1
+    },
+    "cog_score": {
+      "mean": 55.3908910641567,
+      "std": 0.0,
+      "n": 1
+    },
+    "stability_score": {
+      "mean": 98.05837761100982,
+      "std": 0.0,
+      "n": 1
+    },
+    "placement_score": {
+      "mean": 100.0,
+      "std": 0.0,
+      "n": 1
+    },
+    "soft_item_score": {
+      "mean": 100.0,
+      "std": 0.0,
+      "n": 1
+    }
+  },
+  "elapsed_sec": 220.735102891922
+}

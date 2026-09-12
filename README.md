@@ -2,6 +2,10 @@
 
 NEDO Challenge コンテスト2「積付アルゴリズム」(SIGNATE)向けに開発した、空港手荷物を横空きコンテナへ自動積付けするエージェントの開発記録です。物理シミュレータ(PyBullet)上で合法手を保証しながら充填率・重心・安定性・優先荷物配置などの複数指標を最適化する探索アルゴリズムを、**仮説→検証→採否判定**のサイクルで38フェーズにわたり改善してきました。
 
+> **初めての方へ** — 全体像は **[`docs/SUMMARY.md`](docs/SUMMARY.md)** に、
+> 試した全軸の詳細は **[`docs/EXPERIMENT_LOG.md`](docs/EXPERIMENT_LOG.md)** にまとまっています。
+> 現在の到達点は **public 61.092**(2026-09-12)。本READMEはそれ以前のフェーズ順ハイライトです。
+
 本READMEは成果のハイライトです。各フェーズの詳細な仮説・実験・数値根拠は [`results/phase10_report.md`](results/phase10_report.md) 〜 [`results/phase36_report.md`](results/phase36_report.md) にすべて残しており、本文中の主張はすべてそこに1次データがあります(コードは評価基盤の性質上 `agents/mysolver/` を公開していますが、コンテスト公募要領そのものの転載は避けています)。
 
 > ### 開発体制について(重要)

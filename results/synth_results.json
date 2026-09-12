@@ -1,0 +1,19 @@
+{
+    "999": {
+        "evaluation": {
+            "fill_score": 4.741482601827055,
+            "num_placed_items": 0.95
+        },
+        "message": "ok",
+        "status": "success",
+        "place_states": {
+            "is_included": false,
+            "is_valid": false,
+            "is_placed_safe": false
+        },
+        "time_results": {
+            "optimization": 0.00029437899956974434,
+            "policy": 0.8502150240001356
+        }
+    }
+}

@@ -1,0 +1,234 @@
+{
+  "label": "cog_w3.6",
+  "module_path": "agents/mysolver/",
+  "repeats": 1,
+  "strict_margin": -0.005,
+  "loose_margin": 0.01,
+  "scene_labels": [
+    "suite_B01_1c_40_plain.json::000",
+    "suite_B02_1c_40_shelf.json::000",
+    "suite_B03_2c_80_prio.json::000",
+    "suite_B04_2c_80_noprio.json::000",
+    "suite_P04_B_1c_pre8_shelf.json::000"
+  ],
+  "per_scene": {
+    "suite_B01_1c_40_plain.json::000": {
+      "fill_strict": {
+        "mean": 24.290542768411886,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 34.711536804812404,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 63.44855818027318,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.39451078710184,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_B02_1c_40_shelf.json::000": {
+      "fill_strict": {
+        "mean": 15.505979395771,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 27.002303559877088,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 66.67497302739834,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.45979206127446,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_B03_2c_80_prio.json::000": {
+      "fill_strict": {
+        "mean": 20.163038061620533,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 31.884319109972207,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 61.43692585506356,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.27280892991261,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_B04_2c_80_noprio.json::000": {
+      "fill_strict": {
+        "mean": 22.052739385012536,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 31.23323040866728,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 67.50949820349791,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.385075356936,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_P04_B_1c_pre8_shelf.json::000": {
+      "fill_strict": {
+        "mean": 18.780470607261254,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_loose": {
+        "mean": 25.622621644295293,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 78.34617436051671,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.70687014982418,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_included', 'is_valid', 'is_placed_safe']"
+      ]
+    }
+  },
+  "per_run_suite_avg": [
+    {
+      "fill_strict": 20.158554043615442,
+      "fill_loose": 30.090802305524853,
+      "cog_score": 67.48322592534996,
+      "stability_score": 98.44381145700982,
+      "placement_score": 100.0,
+      "soft_item_score": 100.0
+    }
+  ],
+  "suite_stats": {
+    "fill_strict": {
+      "mean": 20.158554043615442,
+      "std": 0.0,
+      "n": 1
+    },
+    "fill_loose": {
+      "mean": 30.090802305524853,
+      "std": 0.0,
+      "n": 1
+    },
+    "cog_score": {
+      "mean": 67.48322592534996,
+      "std": 0.0,
+      "n": 1
+    },
+    "stability_score": {
+      "mean": 98.44381145700982,
+      "std": 0.0,
+      "n": 1
+    },
+    "placement_score": {
+      "mean": 100.0,
+      "std": 0.0,
+      "n": 1
+    },
+    "soft_item_score": {
+      "mean": 100.0,
+      "std": 0.0,
+      "n": 1
+    }
+  },
+  "elapsed_sec": 120.82849216461182
+}
