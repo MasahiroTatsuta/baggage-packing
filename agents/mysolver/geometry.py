@@ -445,9 +445,50 @@ def rect_overlap_ratio(cx1, cy1, hx1, hy1, cx2, cy2, hx2, hy2) -> float:
     return (ox * oy) / area1
 
 
-def transport_x_bounds(container: dict, half_x: float):
+# Phase101: 搬入スポーン x の下限を「高さに応じた実際の切り欠き面」から求めるフック。
+#
+# 既定 '0' は従来と完全に同一(ビット単位不変)。
+#
+# 背景(2026-09-12、3Dリプレイの観察から): 切り欠き面の実測法線は n=[-0.673, 0, -0.740]、
+# 代表点 p=[-0.96, 0, 0.418] で、**左下**の角を斜めに削る形状である。実際、x=-0.70 では
+# z<0.42 が内包×、z>=0.45 は内包OK。ところが従来の式は高さを一切見ず、全高に対して
+# 一律に左 cut_x(0.44m = コンテナ長の22%)を除外していた。
+#
+# 結果、z>0.42 の左側は「スポーンできないがスライドでなら入れる」袋小路になり、
+# 入口に1個置かれた瞬間に恒久的に封鎖される(実測: 空なら左ポケット9/9到達可能、
+# 入口x=-0.20に1個置くと0/9、33点中21点が同時に死ぬ)。3シーンのリプレイでも
+# 全コンテナで左端が空だった(A08 は左3割が丸ごと未使用)。
+#
+# 解放される体積は x∈[-0.81,-0.36] × 全奥行 × z∈[0.42,1.57] ≈ 0.75m^3
+# = コンテナ体積の約16%。これは「実行可能集合の拡大」であり、本番13提出で唯一
+# 前進したカテゴリ(last-resort +2.33)と同じ類型である。
+#
+# 下限は推測ではなく `cutcorner_boundary_x`(Phase81bで実装済み、inclusion_slack_batch と
+# 同一の式の閉形式解)で切り欠き平面から解析的に求めるので、validator に対して
+# 安全側であることは式の上で保証される。
+TRANSPORT_X_BY_HEIGHT = os.environ.get('MYSOLVER_TRANSPORT_X_BY_HEIGHT', '0') == '1'
+
+
+def transport_x_bounds(container: dict, half_x: float, half=None, world_z=None):
     length = container['length']; thickness = container['thickness']; cut_x = container['cut_x']
     ox = container['center'][0]
     x_min = -length / 2.0 + thickness + cut_x + half_x + START_MARGIN + ox
     x_max = length / 2.0 - thickness - half_x - START_MARGIN + ox
+    if TRANSPORT_X_BY_HEIGHT and half is not None and world_z is not None:
+        try:
+            idx = diagonal_face_indices(container)
+            if idx:
+                wall = -length / 2.0 + thickness + half_x + START_MARGIN + ox
+                zs = np.atleast_1d(np.asarray(world_z, dtype=np.float64))
+                lo = np.full(zs.shape, -np.inf)
+                for fi in idx:
+                    for k, z in enumerate(zs):
+                        b = cutcorner_boundary_x(container, np.asarray(half), float(z), fi)
+                        if b is not None:
+                            lo[k] = max(lo[k], b)
+                lo = np.maximum(lo, wall)              # 側壁より外へは出せない
+                lo = np.minimum(lo, x_min)             # 従来値より厳しくはしない(安全側)
+                return (lo if np.ndim(world_z) else float(lo[0])), x_max
+        except Exception:
+            pass
     return x_min, x_max

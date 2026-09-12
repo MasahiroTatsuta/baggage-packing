@@ -1296,8 +1296,12 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     ceiling_sweep = height + buffer - thickness - half[2] - geo.START_MARGIN
     sweep_z = np.minimum(ceiling_sweep, world_z + effective_start)
 
-    x_min_local, x_max_local = geo.transport_x_bounds(container, half[0])
-    x_min_local -= ox; x_max_local -= ox
+    # Phase101: スポーン x の下限は、切り欠きが左下の角を斜めに削る形状であるため
+    # 本来は高さ依存(z>cut_y 帯では左端まで使える)。TRANSPORT_X_BY_HEIGHT=1 のとき
+    # 掃引高さ sweep_z ごとに切り欠き平面から解析的に求める。既定OFFでは従来と同一。
+    x_min_local, x_max_local = geo.transport_x_bounds(container, half[0], half=half, world_z=sweep_z)
+    x_min_local = np.asarray(x_min_local) - ox
+    x_max_local -= ox
     start_x_local = np.clip(local_x, x_min_local, x_max_local)
     start_x_world = start_x_local + ox
 
