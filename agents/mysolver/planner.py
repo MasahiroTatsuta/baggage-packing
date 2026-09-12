@@ -195,6 +195,24 @@ LASTRESORT_MAX_LEVEL = int(os.environ.get('MYSOLVER_LASTRESORT_MAX_LEVEL', '3'))
 LASTRESORT_MIN_LEVEL = int(os.environ.get('MYSOLVER_LASTRESORT_MIN_LEVEL', '1'))
 # Phase99: last-resort の候補順位付けを「支持の質(sum_ratio)優先」にする。既定OFF。
 LASTRESORT_SUPPORT_FIRST = os.environ.get('MYSOLVER_LASTRESORT_SUPPORT_FIRST', '0') == '1'
+# Phase102: floor-first(Z方向の層規律)。既定OFF。
+#
+# 3Dリプレイの実測(results/trace_*.json、6シーン)で、**床占有率が全シーン最大54%、
+# 大半は32〜40%止まり**なのに、進捗25%の時点で最大到達高さが既に 1.0〜1.4m
+# (天井1.61m)に達していることが判明した。床を3分の1しか使わずに天井まで積んでいる。
+# 例: C02 は進捗25%で maxZ=1.39 / 床占有 17.3%。唯一完走する A06 だけが序盤
+# maxZ=0.47 と低く保っている。早期に立った塔は自由空間を縦に分断し、支持面を
+# 細切れにして残りの置き場を先に潰す(A08 の 19/140 という即死の仕方と整合)。
+#
+# 実装は既存のY層規律(Y_SLICE_COUNT)と同じ「最終段で全開放」の型にする:
+# 床着地の候補が1つでも合法なら床に限定し、1つも無ければ従来どおり全高から選ぶ。
+# **実行可能集合は狭まらない**(床候補ゼロなら挙動不変)。着地高さは
+# `_evaluate_candidates` 内で決まるため、candidate_xy 段では絞れずここで行う。
+# 探索の追加コストもゼロ(既に計算済みの on_floor 配列で legal をマスクするだけ)。
+#
+# 分類上は「再ランク付け」であり本番12本中1本も効いていないカテゴリだが、
+# Z方向の規律は一度も試されていない(Phase9 の4分割・wallmode の適応分割はどちらもY方向)。
+FLOOR_FIRST = os.environ.get('MYSOLVER_FLOOR_FIRST', '0') == '1'
 LASTRESORT_SUPPORT_FIRST_W = float(os.environ.get('MYSOLVER_LASTRESORT_SUPPORT_FIRST_W', '1000.0'))
 LASTRESORT_L2_THRESHOLDS = (0.25, 0.3, 0.30)
 LASTRESORT_L3_MIN_RATIO = float(os.environ.get('MYSOLVER_LASTRESORT_L3_MIN_RATIO', '0.0'))
@@ -1320,6 +1338,13 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
                                      margin_xy=_mxy)
 
     legal = base_legal & legal1 & legal2
+    if FLOOR_FIRST and relax_support == 0:
+        # 床着地が1つでも合法なら床に限定。無ければ何もしない(=従来と同一)。
+        # last-resort(relax_support>0)では適用しない —— あちらは「確定死を救う」
+        # 局面であり、選択肢を減らしてはならない。
+        _fl = legal & on_floor
+        if np.any(_fl):
+            legal = _fl
     if not np.any(legal):
         if stats is not None:
             survivors = base_legal.copy()
