@@ -213,6 +213,35 @@ LASTRESORT_SUPPORT_FIRST = os.environ.get('MYSOLVER_LASTRESORT_SUPPORT_FIRST', '
 # 分類上は「再ランク付け」であり本番12本中1本も効いていないカテゴリだが、
 # Z方向の規律は一度も試されていない(Phase9 の4分割・wallmode の適応分割はどちらもY方向)。
 FLOOR_FIRST = os.environ.get('MYSOLVER_FLOOR_FIRST', '0') == '1'
+# Phase104: last-resort の候補を「重心が支持多角形の内側にあるもの」に絞るフィルタ。既定OFF。
+#
+# 動機: A05 の死亡配置を解剖したところ、支持比率 0.111(支持体1個・接触11%)の片持ちで
+# 1.06m の高所に置かれ、沈降で転倒して44個を失っていた(`is_valid ✓ / is_placed_safe ✕`)。
+# Lv3 は `sum_ratio > 0` で実質ノーガードなので、こうした配置を止める手段が無かった。
+#
+# なぜ閾値や sum_ratio ランク付けと機序が違うか:
+#   - `sum_ratio`(接触面積比)は代理量にすぎない。片持ち11%は落ちるべきだが、
+#     CoG を挟む2つの小さな支持(面積比は小さいが力学的に安定)は通すべきで、
+#     面積比ではこの2つを区別できない。実際 `LASTRESORT_SUPPORT_FIRST` は
+#     重み 3.0 / 10.0 / 1000 のすべてで挙動が完全に一致し(26シーン×6指標=156項目)、
+#     本番でも -2.27 だった(Phase99/103)。
+#   - 「接触点が張る支持多角形の内側に重心がある」は剛体静的安定の必要条件そのもので、
+#     代理ではない。表現の階層が違う。
+#
+# なぜ Phase18 で効かなかったものが今は効きうるか:
+#   Phase18 は同じ幾何代理(`geo.stacking_instability_risk`)を測ったが、当時は候補legality
+#   (`MIN_UNION_SUPPORT_RATIO` 等)の方が厳しく、CoG 判定は「122回の積み上げ全てで
+#   hull 境界から正の余裕」= 一度も抵触せず寄与が恒等的にゼロだった。その後 閾値は
+#   緩2(0.55->0.35)まで緩められ、last-resort Lv3 に至っては `sum_ratio > 0` で
+#   実質ノーガードになっている。当時ゼロだった発火が、今は確実に起きる。
+#
+# 実行可能集合を狭めない型にする: CoG が hull 内の候補が1つでもあればそれに限定し、
+# 1つも無ければ従来どおり(=救出機会を失わない)。floor-first と同じ構造。
+LASTRESORT_COG_FILTER = os.environ.get('MYSOLVER_LASTRESORT_COG_FILTER', '0') == '1'
+# hull 境界から内側へこれだけ余裕があることを要求する[m]。0.0 なら「内側にあればよい」。
+LASTRESORT_COG_MIN_MARGIN = float(os.environ.get('MYSOLVER_LASTRESORT_COG_MIN_MARGIN', '0.0'))
+# 凸包計算は候補ごとの Python ループになるためコスト上限を設ける(スコア上位のみ評価)。
+LASTRESORT_COG_MAX_EVAL = int(os.environ.get('MYSOLVER_LASTRESORT_COG_MAX_EVAL', '64'))
 LASTRESORT_SUPPORT_FIRST_W = float(os.environ.get('MYSOLVER_LASTRESORT_SUPPORT_FIRST_W', '1000.0'))
 LASTRESORT_L2_THRESHOLDS = (0.25, 0.3, 0.30)
 LASTRESORT_L3_MIN_RATIO = float(os.environ.get('MYSOLVER_LASTRESORT_L3_MIN_RATIO', '0.0'))
@@ -1385,6 +1414,34 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     # これは「どの荷物をどの順で置くか」の分布を一切変えない —— 救出する1手の
     # 置き場所の質だけを上げる。ローカルスイートの構成に依存しない(= oc_cf のような
     # 分布的変更が転移しなかったのに対し、last-resort と同じ因果的に普遍な変更)。
+    if relax_support > 0 and LASTRESORT_COG_FILTER and np.any(legal):
+        # 重心(底面中心で近似)が支持多角形の内側にある候補だけに絞る。
+        # 1つも無ければ legal は変更しない(= 救出機会を失わない)。
+        _idx = np.flatnonzero(legal)
+        if _idx.size > LASTRESORT_COG_MAX_EVAL:
+            _idx = _idx[np.argsort(-scores[_idx])[:LASTRESORT_COG_MAX_EVAL]]
+        _keep = np.zeros(legal.shape, dtype=bool)
+        for _i in _idx:
+            if on_floor[_i]:
+                _keep[_i] = True          # 床/棚はCoGを常に覆う剛体面。無条件に安定側
+                continue
+            _pts = []
+            for _top, _touch, _xl, _xh, _yl, _yh, _ow, _oh, _fbd in cache:
+                if not _touch[_i] or abs(_top - landing_top[_i]) > SUPPORT_LEVEL_TOL:
+                    continue
+                if _xh[_i] - _xl[_i] <= 1e-6 or _yh[_i] - _yl[_i] <= 1e-6:
+                    continue
+                _pts.extend([(_xl[_i], _yl[_i]), (_xl[_i], _yh[_i]),
+                             (_xh[_i], _yl[_i]), (_xh[_i], _yh[_i])])
+            if not _pts:
+                continue
+            _hull = geo.convex_hull_2d(np.array(_pts))
+            if geo.signed_distance_to_convex_polygon(
+                    _hull, (world_x[_i], world_y[_i])) >= LASTRESORT_COG_MIN_MARGIN:
+                _keep[_i] = True
+        if np.any(_keep):
+            legal = _keep
+
     if relax_support > 0 and LASTRESORT_SUPPORT_FIRST:
         # sum_ratio(底面が支持面に乗っている割合)を主キーにする。スコアは同点時の
         # タイブレークとして効くよう、十分小さい係数で加える。
