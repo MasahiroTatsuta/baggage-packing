@@ -242,6 +242,41 @@ LASTRESORT_COG_FILTER = os.environ.get('MYSOLVER_LASTRESORT_COG_FILTER', '0') ==
 LASTRESORT_COG_MIN_MARGIN = float(os.environ.get('MYSOLVER_LASTRESORT_COG_MIN_MARGIN', '0.0'))
 # 凸包計算は候補ごとの Python ループになるためコスト上限を設ける(スコア上位のみ評価)。
 LASTRESORT_COG_MAX_EVAL = int(os.environ.get('MYSOLVER_LASTRESORT_COG_MAX_EVAL', '64'))
+
+# ---------------------------------------------------------------------------
+# Phase105: decoder(候補解を具体的な積付へ変換する決定的規則)の差し替え。既定 'score'。
+#
+# 根拠(文献): "The Decoder, Not the Metaheuristic: A Systematic Benchmark of 3D Bin
+# Packing with Compatibility Constraints" (MDPI Algorithms 2026, 19(9):707、225インスタンス)
+#   - placement decoder の選択が、メタヒューリスティクスの選択よりも packing quality への
+#     影響が大きい
+#   - decoder-embedded filtering は別建ての制約処理を不要にする
+#   - **constraint density が第一の性能モデレータで、Kendall's W が 0.69 -> 0.08 へ低下**
+#     (制約が密になるほど手法間の順位一致が崩壊する)
+#
+# 本プロジェクトの実測と完全に整合する: メタヒューリスティクス(BRKGA / ALNS / beam /
+# MCTS / LDBC / CDR)は全滅した一方、decoder の変更(last-resort)だけが +2.33 だった。
+# また W の低下は「ローカルA/Bが予測能力を失った(転移率 1.46 -> 0.20 -> -0.09)」現象の
+# 文献レベルの説明になっている(本問題は sudden death が4種ある極端に制約密な設定)。
+#
+# 'score' : 従来。fill + contact + support + back_term - corridor_penalty 等の argmax。
+# 'dblf'  : Deepest-Bottom-Left-Fill。合法候補のうち「最深(y最大) -> 最下(z最小) ->
+#           最左(x最小)」の辞書式で選ぶ。スコアを一切使わない純粋な first-fit 系 decoder。
+#
+# 注意: 'dblf' は corridor_penalty(重み6.0、±3で-5前後の鋭いリッジ)を含む
+# 90フェーズ分のスコア調整を全て捨てる。文献は「decoder の選択が効く」と言っているだけで
+# 「DBLF がチューニング済みスコアに勝つ」とは言っていない。大きな賭けである。
+# 'dblf_hard': ソフト荷物だけ 'score'、それ以外は 'dblf'。
+#   本番実測(Phase105): 'dblf' は 60.672(-0.42)だったが、内訳は
+#   fill +1.30 / cog +0.99 / stability +1.76 と5指標中3つで主枠を上回り、
+#   負けは soft_item -7.95 のほぼ一点だった(cog/stability が上がっているので
+#   足切り由来ではない = ソフト荷物が実際に多く潰されている)。
+#   ソフト品は _strategy_volume_desc で最後尾に回るため、DBLF が最深・最下へ
+#   詰め込むとタイトな隙間に押し込まれ、揺らし試験で接触を受けやすい。
+#   forbidden_hit はハード制約として生きているが、沈降・傾きによる接触は防げない
+#   (Phase9 が PRIORITY_CLEARANCE を導入したのと同じ問題)。
+#   荷物の属性による分岐なので、シーン構成への過適合にはならない。
+DECODER = os.environ.get('MYSOLVER_DECODER', 'score').strip()
 LASTRESORT_SUPPORT_FIRST_W = float(os.environ.get('MYSOLVER_LASTRESORT_SUPPORT_FIRST_W', '1000.0'))
 LASTRESORT_L2_THRESHOLDS = (0.25, 0.3, 0.30)
 LASTRESORT_L3_MIN_RATIO = float(os.environ.get('MYSOLVER_LASTRESORT_L3_MIN_RATIO', '0.0'))
@@ -280,6 +315,23 @@ PRIORITY_CLEARANCE_Z = 0.05
 #      再ランク付け(supfirst -2.27 / 定数掃引10本全滅)とは結果が明確に分かれている。
 LASTRESORT_KEEP_PRIORITY_CLEARANCE = os.environ.get(
     'MYSOLVER_LASTRESORT_KEEP_PRIORITY_CLEARANCE', '1') == '1'
+# Phase107: ソフト荷物まわりの立入禁止帯。既定 0.0 = 無効(従来と完全に同一)。
+#
+# 根拠(本番実測): 純粋 DBLF(Phase105)は public 60.672(-0.42)で、fill +1.30 /
+# stability +1.76 / cog +0.99 と5指標中3つで主枠を上回った。負けは soft_item -7.95 の
+# ほぼ一点(cog/stability が上がっているので足切り由来ではなく、ソフト荷物が実際に
+# 多く潰されている)。DBLF が最深・最下へ詰め込むため、最後尾に回るソフト品が
+# タイトな隙間に押し込まれ、揺らし試験で接触を受けやすい。
+#
+# decoder を混ぜる解法(dblf_hard)は失敗した —— soft_item は 62.25 -> 67.75 と回復したが
+# 配置数 -1.04pp と cog/stability の悪化が上回り public 59.606(-1.49)。
+# 空間パターンの一貫性が壊れるため。**decoder は純粋なまま、保護だけ足す**のが本筋。
+#
+# `forbidden_hit` は「非ソフトをソフトの真上に置く」を禁じるが、沈降・傾きで乗り上げる分は
+# 防げない。Phase9 が優先荷物に対してまさにこの問題を見つけて PRIORITY_CLEARANCE を
+# 導入したのと同じ構図であり、その対称形をソフト荷物にも与える。
+SOFT_CLEARANCE_XY = float(os.environ.get('MYSOLVER_SOFT_CLEARANCE_XY', '0.0'))
+SOFT_CLEARANCE_Z = float(os.environ.get('MYSOLVER_SOFT_CLEARANCE_Z', '0.0'))
 # Phase14: 搬入経路の詰まり(fail_transport_y)対策 —— 「階段状スカイライン」の選好。
 #
 # 荷物は必ず手前(y=-width/2)から入り、直置き面(床・棚上面)の 0〜50mm 上に底面が来る候補は
@@ -1278,6 +1330,17 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
                                                margin_xy=PRIORITY_CLEARANCE_XY, margin_z=PRIORITY_CLEARANCE_Z)
             base_legal = base_legal & ~too_close
 
+    # Phase107: ソフト荷物まわりの立入禁止帯(PRIORITY_CLEARANCE の対称形)。
+    # 既定 0.0 では box_overlap_batch が従来の接触判定と同一になるため no-op。
+    if SOFT_CLEARANCE_XY > 0.0 and not item.get('is_soft', False):
+        _minf = world_pos - half[None, :]
+        _maxf = world_pos + half[None, :]
+        for _c, _oh, _sp, _ss, _shelf in supports:
+            if not _ss:
+                continue
+            base_legal = base_legal & ~geo.box_overlap_batch(
+                _minf, _maxf, _c, _oh, margin_xy=SOFT_CLEARANCE_XY, margin_z=SOFT_CLEARANCE_Z)
+
     if not np.any(base_legal):
         if stats is not None:
             if not np.any(support_ok):
@@ -1446,8 +1509,17 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
         # sum_ratio(底面が支持面に乗っている割合)を主キーにする。スコアは同点時の
         # タイブレークとして効くよう、十分小さい係数で加える。
         scores = np.minimum(sum_ratio, 1.0) * LASTRESORT_SUPPORT_FIRST_W + scores * 1e-6
-    scores = np.where(legal, scores, -np.inf)
-    best_i = int(np.argmax(scores))
+    _use_dblf = (DECODER == 'dblf') or (DECODER == 'dblf_hard' and not item.get('is_soft', False))
+    if _use_dblf and np.any(legal):
+        # Deepest-Bottom-Left-Fill: 最深(y最大) -> 最下(z最小) -> 最左(x最小) の辞書式。
+        # np.lexsort は最後のキーが主キー。決定的(同値は入力順で安定)。
+        _li = np.flatnonzero(legal)
+        _ord = np.lexsort((local_x[_li], world_z[_li], -local_y[_li]))
+        best_i = int(_li[_ord[0]])
+        scores = np.where(legal, scores, -np.inf)
+    else:
+        scores = np.where(legal, scores, -np.inf)
+        best_i = int(np.argmax(scores))
     if not legal[best_i]:
         return None
 

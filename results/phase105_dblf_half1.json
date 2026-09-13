@@ -1,0 +1,715 @@
+{
+  "label": "dblf_h1",
+  "module_path": "agents/mysolver/",
+  "repeats": 1,
+  "optimize_budget": 135.0,
+  "scene_labels": [
+    "suite_A01_1c_40_plain.json::000",
+    "suite_A02_1c_80_plain.json::000",
+    "suite_A03_1c_40_shelf.json::000",
+    "suite_A04_2c_80_noprio.json::000",
+    "suite_A05_2c_80_prio.json::000",
+    "suite_A06_1c_40_small.json::000",
+    "suite_A07_1c_40_bulky.json::000",
+    "suite_A08_2c_140_extreme.json::000",
+    "suite_B01_1c_40_plain.json::000",
+    "suite_B02_1c_40_shelf.json::000",
+    "suite_B03_2c_80_prio.json::000",
+    "suite_B04_2c_80_noprio.json::000",
+    "suite_C01_1c_40_shelf.json::000"
+  ],
+  "per_scene": {
+    "suite_A01_1c_40_plain.json::000": {
+      "fill_score": {
+        "mean": 28.62655087028222,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 47.590079225677805,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 97.96144093358447,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.575,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 23.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 40.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.6956521739130435,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_A02_1c_80_plain.json::000": {
+      "fill_score": {
+        "mean": 24.920213996789602,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 66.89020887412273,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 97.48755210427078,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 66.66666666666667,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.375,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 30.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 80.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.7333333333333333,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_A03_1c_40_shelf.json::000": {
+      "fill_score": {
+        "mean": 30.88314481078676,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 58.080082873481246,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 97.29152843566521,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.65,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 26.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 40.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.8076923076923077,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_A04_2c_80_noprio.json::000": {
+      "fill_score": {
+        "mean": 20.85818416431743,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 53.96490310476742,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 97.82369643722508,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 87.5,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.45,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 36.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 80.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.6944444444444444,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_A05_2c_80_prio.json::000": {
+      "fill_score": {
+        "mean": 33.47003776663498,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 55.24420790559809,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.27883205067204,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.45,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 36.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 80.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.7222222222222222,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_A06_1c_40_small.json::000": {
+      "fill_score": {
+        "mean": 13.276591449512052,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 69.2674232230804,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 97.65264110868844,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 1.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 40.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 40.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.725,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "The packing has been completed successfully."
+      ]
+    },
+    "suite_A07_1c_40_bulky.json::000": {
+      "fill_score": {
+        "mean": 39.27720989594147,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 53.033762874299704,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.57285033936694,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.3,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 12.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 40.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.6666666666666666,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_A08_2c_140_extreme.json::000": {
+      "fill_score": {
+        "mean": 29.4048094123848,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 54.891439862870264,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.23759895371396,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.19285714285714287,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 27.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 140.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.6296296296296297,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_B01_1c_40_plain.json::000": {
+      "fill_score": {
+        "mean": 23.21256673361657,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 62.39822588889188,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 94.65605926186001,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.6,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 24.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 40.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.625,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_B02_1c_40_shelf.json::000": {
+      "fill_score": {
+        "mean": 23.46728700877334,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 59.28407069576941,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.341524540765,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.5,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 20.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 40.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.65,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_B03_2c_80_prio.json::000": {
+      "fill_score": {
+        "mean": 19.33114800288297,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 64.18093766322521,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.2915363977819,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.3,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 24.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 80.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.625,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    },
+    "suite_B04_2c_80_noprio.json::000": {
+      "fill_score": {
+        "mean": 22.615250178688367,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 64.67423043087612,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 97.99686943963194,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 100.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.4625,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 37.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 80.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.5945945945945946,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_placed_safe']"
+      ]
+    },
+    "suite_C01_1c_40_shelf.json::000": {
+      "fill_score": {
+        "mean": 32.74072855179105,
+        "std": 0.0,
+        "n": 1
+      },
+      "cog_score": {
+        "mean": 52.967969550205254,
+        "std": 0.0,
+        "n": 1
+      },
+      "stability_score": {
+        "mean": 98.3014824496957,
+        "std": 0.0,
+        "n": 1
+      },
+      "placement_score": {
+        "mean": 75.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "soft_item_score": {
+        "mean": 85.71428571428572,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items": {
+        "mean": 0.575,
+        "std": 0.0,
+        "n": 1
+      },
+      "num_placed_items_abs": {
+        "mean": 23.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "total_items": {
+        "mean": 40.0,
+        "std": 0.0,
+        "n": 1
+      },
+      "fill_counted_ratio": {
+        "mean": 0.782608695652174,
+        "std": 0.0,
+        "n": 1
+      },
+      "statuses": [
+        "Stopped in the middle. Did not satisfy ['is_valid', 'is_placed_safe']"
+      ]
+    }
+  },
+  "per_run_suite_avg": [
+    {
+      "fill_score": 26.314132526338582,
+      "cog_score": 58.65134939791273,
+      "stability_score": 97.76104711176319,
+      "placement_score": 94.55128205128206,
+      "soft_item_score": 98.9010989010989
+    }
+  ],
+  "suite_stats": {
+    "fill_score": {
+      "mean": 26.314132526338582,
+      "std": 0.0,
+      "n": 1,
+      "min_significant_diff_2std": 0.0
+    },
+    "cog_score": {
+      "mean": 58.65134939791273,
+      "std": 0.0,
+      "n": 1,
+      "min_significant_diff_2std": 0.0
+    },
+    "stability_score": {
+      "mean": 97.76104711176319,
+      "std": 0.0,
+      "n": 1,
+      "min_significant_diff_2std": 0.0
+    },
+    "placement_score": {
+      "mean": 94.55128205128206,
+      "std": 0.0,
+      "n": 1,
+      "min_significant_diff_2std": 0.0
+    },
+    "soft_item_score": {
+      "mean": 98.9010989010989,
+      "std": 0.0,
+      "n": 1,
+      "min_significant_diff_2std": 0.0
+    }
+  },
+  "elapsed_sec": 1700.8883352279663
+}

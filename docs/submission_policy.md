@@ -1578,6 +1578,77 @@ floor-first と同じ「該当があれば絞る、無ければ従来どおり�
 現在 61.092 なので **+7.3**。
 
 
+
+### 14-17. Phase105-107: decoder 置換(DBLF) —— 外部調査で唯一残っていた軸
+
+2026-09-13、ユーザーの指示で「本当に Deep Research でやるべき内容は残っていないか」を
+5つの角度で web 調査した。**上流のデッドロック(真の詰み249個)を解く手法はどの角度からも
+出てこなかった**が、1本だけ未着手の軸が見つかった。
+
+#### 調査で得られた最大の収穫 —— 本プロジェクトの結論が文献レベルで裏付けられた
+
+**"The Decoder, Not the Metaheuristic: A Systematic Benchmark of 3D Bin Packing with
+Compatibility Constraints"** (MDPI *Algorithms* 2026, 19(9):707、225インスタンス):
+
+| 文献の主張 | 本プロジェクトの実測 |
+|---|---|
+| placement decoder の選択がメタヒューリスティクスの選択より packing quality に効く | BRKGA / ALNS / beam / MCTS / LDBC / CDR は全滅、decoder 変更の last-resort だけ +2.33 |
+| decoder-embedded filtering は別建ての制約処理を不要にする | `legal = base_legal & legal1 & legal2` が正しい場所 |
+| **constraint density が第一のモデレータで Kendall's W が 0.69 -> 0.08 へ低下** | **ローカル転移率 1.46 -> 0.20 -> −0.09** |
+
+3行目が重要: **「ローカル A/B が予測能力を失った」のは測定設計の欠陥ではなく、この問題
+クラスの構造的性質**である。制約が密な問題では手法間の順位付け自体が不安定になる。
+本問題は sudden death が4種ある極端に制約密な設定。
+
+**"Operationally Guided Placement-Aware Learning for Industrial Online 3D BPP"**
+(arXiv 2607.28257) にも「a high-quality placement omitted during generation cannot be
+recovered by the ranker」とあり、生成側 > ランキング側 という本プロジェクトの結論と一致。
+
+#### 本番結果
+
+| zip | decoder | public | vs 主枠 |
+|---|---|---:|---:|
+| **`..._lr_ordcount`(主枠)** | score(argmax) | **61.092** | — |
+| `..._lr_oc_dblf` | **DBLF**(最深->最下->最左の辞書式 first-fit) | 60.672 | −0.42 |
+| `..._lr_oc_dblfhard` | ソフト品のみ score、他は DBLF | 59.606 | −1.49 |
+
+サブスコアの内訳:
+
+| 指標 | ordcount | dblf | dblf_hard |
+|---|---:|---:|---:|
+| num_placed | 0.6679 | 0.6673 | 0.6575 |
+| fill | 38.79 | **40.09** | 39.09 |
+| cog | 63.68 | **64.67** | 61.03 |
+| stability | 77.20 | **78.96** | 75.14 |
+| placement | 68.55 | 66.85 | 67.05 |
+| soft_item | 70.20 | **62.25** | 67.75 |
+
+**DBLF は5指標中3つ(fill +1.30 / cog +0.99 / stability +1.76)で主枠を上回り、配置数も
+ほぼ互角(−0.07pp)。負けは `soft_item` −7.95 のほぼ一点。** `cog`/`stability` が上がって
+いるので足切り由来ではなく、**ソフト荷物が実際に多く潰されている**。DBLF が最深・最下へ
+詰め込むため、`_strategy_volume_desc` で最後尾に回るソフト品がタイトな隙間に押し込まれ、
+揺らし試験で接触を受けやすいと解釈できる。
+
+**decoder を混ぜる解法(`dblf_hard`)は失敗した。** `soft_item` は 62.25 -> 67.75 と
+狙いどおり部分回復したが、配置数が −1.04pp 落ち、`cog`/`stability` も dblf より悪化して
+public −1.49。ローカルでも配置数 786 -> 769(−17)で、A06 は 40/40 完走 -> 32 に落ちた。
+**decoder は一貫した空間パターンを作るものであり、エピソード途中で2種類を混ぜると
+どちらのパターンも成立しない。** ローカルの配置数はこの回だけ方向を正しく当てた。
+
+#### 派生: Phase107(測定中)
+
+`dblf` の負けが `soft_item` 一点に集中していることから、**decoder は純粋 DBLF のまま
+ソフト保護だけを足す**版を実装した(`MYSOLVER_SOFT_CLEARANCE_XY/_Z`、既定 0.0 = 無効)。
+`PRIORITY_CLEARANCE`(Phase9)の対称形をソフト荷物に与える。
+
+`forbidden_hit` は「非ソフトをソフトの真上に置く」を禁じるが、**沈降・傾きで乗り上げる分は
+防げない** —— Phase9 が優先荷物でまさにこの問題を発見して立入禁止帯を導入したのと同じ構図。
+
+注意: **`soft_item` の改善はローカルでは判定できない**(ローカルは足切り未適用のため全
+バリアントが 97〜99.5 に張り付く。本番は 62〜70)。ローカルで見られるのは
+「立入禁止帯が配置数をどれだけ削るか」だけである。
+
+
 ---
 
 ## 変更ファイル
