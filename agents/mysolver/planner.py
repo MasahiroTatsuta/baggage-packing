@@ -332,6 +332,142 @@ LASTRESORT_KEEP_PRIORITY_CLEARANCE = os.environ.get(
 # 導入したのと同じ構図であり、その対称形をソフト荷物にも与える。
 SOFT_CLEARANCE_XY = float(os.environ.get('MYSOLVER_SOFT_CLEARANCE_XY', '0.0'))
 SOFT_CLEARANCE_Z = float(os.environ.get('MYSOLVER_SOFT_CLEARANCE_Z', '0.0'))
+
+# ---------------------------------------------------------------------------
+# Phase108: MACS(Maximize-Accessible-Convex-Space)型の候補評価。既定OFF。
+#
+# 外部Deep Research(2026-09-13)の施策2。Hu, Xu, Chen, Gong ら (TAP-Net, arXiv:2009.01469
+# §4.4)の MACS は「置いた後、大きな将来荷物が入る単一連結凸空間がどれだけ残るか」を
+# 候補ごとに評価して最良を選ぶ。EMS(Empty Maximal Space)の断片化をペナルティにする。
+#
+# 実装: wallbuild.py の maximal-space コア(v9 で `_overlap` の index バグを修正済み、
+# tools/test_maximal_space.py で単体テスト済み)を流用する。ただし
+# `init_maximal_spaces` は cutcorner を「x最小側・z最大側の楔」として近似しており、
+# 実測(斜め面の法線 n=[-0.673,0,-0.740]、代表点 p=[-0.96,0,0.418] = **左下**の角)と
+# 食い違うため、ここでは z 最小側に読み替えて自前で組む。
+#
+# コスト: maximal space の構築はコンテナごとに1回キャッシュ(_landing_support_cache と
+# 同じ増分キャッシュ方式)。候補ごとの評価は上位 MACS_MAX_EVAL 件に限定する。
+MACS = os.environ.get('MYSOLVER_MACS', '0') == '1'
+MACS_MAX_EVAL = int(os.environ.get('MYSOLVER_MACS_MAX_EVAL', '32'))
+# maximal space 1つ × 候補1件あたりの計上ユニット。CANDIDATE_BUILD_COST(18.2)と同じ桁感。
+MACS_UNIT_COST = float(os.environ.get('MYSOLVER_MACS_UNIT_COST', '20.0'))
+
+# ---------------------------------------------------------------------------
+# Phase109: corridor reservation(施策1)。既定OFF。
+#
+# 外部Deep Research の施策1: 「配置を決めるたびに『将来の荷物が通るべき通路
+# (コンテナ前面から各未充填セルへのL字経路の和集合)』を記録し、予約通路を潰す候補を避ける」。
+#
+# 既存の `_corridor_excess`(Phase14、重み6.0)は**既配置障害物**の天面に対する判定で、
+# 「まだ空いているセルへの経路」は見ていない(時間方向に近視眼的)。本施策はそこを補う。
+#
+# 実装: maximal empty space S ごとに、前面(y=-W/2)から S へ至るL字経路の外接箱
+#   corridor(S) = [S.x0, S.x1] x [-W/2, S.y1] x [S.z0, S.z1]
+# を考え、候補箱がこれと交差すれば「S への通路を塞ぐ」とみなす。
+# 評価値 = 置いた後も通路が生きている空き空間の**体積合計**(大きいほど将来に有利)。
+CORRIDOR_RESERVE = os.environ.get('MYSOLVER_CORRIDOR_RESERVE', '0') == '1'
+CORRIDOR_RESERVE_MAX_EVAL = int(os.environ.get('MYSOLVER_CORRIDOR_RESERVE_MAX_EVAL', '32'))
+CORRIDOR_RESERVE_MIN_VOL = float(os.environ.get('MYSOLVER_CORRIDOR_RESERVE_MIN_VOL', '0.01'))
+
+# Phase108/109 の安全弁: MACS / corridor_reserve は候補ごとに空間分割するため、
+# 1回の `_evaluate_candidates` が「数ms相当」という SearchBudget の前提を壊す。
+# 実測(tools/phase63_policy_timing.py): ローカル policy max は
+#   ベースライン A08 0.505s / A05 0.623s  ->  MACS有効 0.580s / 0.809s (最大 +0.186s)
+# 本番の policy は 6.17〜6.35s(POLICY_HARD_WALL=6.0 の壁に張り付き)で、ローカル比 約10倍。
+# したがって +0.186s x 10 = +1.9s -> 本番 8.07s となり **policy_timeout(8s)の真上**。
+# 超えるとランダム手を返して即死するため、壁時計で余裕を残して打ち切る。
+# (hard_deadline 自体が既存の壁時計安全弁なので、設計上の一貫性は保たれる。
+#  ここが発火すると結果はマシン速度依存になるが、発火しなければ完全に決定的。)
+HEAVY_EVAL_TIME_RESERVE = float(os.environ.get('MYSOLVER_HEAVY_EVAL_TIME_RESERVE', '1.5'))
+
+
+def _heavy_eval_allowed(budget) -> bool:
+    """MACS / corridor_reserve のような重い候補評価を、いま開始してよいか。"""
+    if budget.exhausted():
+        return False
+    dl = getattr(budget, 'hard_deadline', None)
+    if dl is None:
+        p = getattr(budget, 'parent', None)
+        dl = getattr(p, 'hard_deadline', None) if p is not None else None
+    if dl is not None and time.perf_counter() > dl - HEAVY_EVAL_TIME_RESERVE:
+        return False
+    return True
+
+
+def _reachable_empty_volume(container, spaces, box):
+    """box を置いた後も「前面からL字経路で到達できる」空き空間の体積合計。"""
+    from . import wallbuild as _wb
+    W = container['width']; cy = container['center'][1]
+    y_entry = cy - W / 2.0
+    total = 0.0
+    for sp in spaces:
+        v = _wb._vol(sp)
+        if v < CORRIDOR_RESERVE_MIN_VOL:
+            continue
+        # この空き空間へ至るL字経路の外接箱(前面から奥へ)
+        corr = (sp[0], sp[1], y_entry, sp[3], sp[4], sp[5], sp[6])
+        # box が通路と交差し、かつ box がその空き空間より手前にあるなら塞ぐ
+        if _wb._overlap(corr, box) and box[2] < sp[5]:
+            continue
+        total += v
+    return total
+
+
+def _macs_spaces(container):
+    """コンテナ内の maximal space 群(container-local x / world y,z)。増分キャッシュ付き。"""
+    from . import wallbuild as _wb
+    items = container.get('packed_items', [])
+    cache = container.get('_macs_cache')
+    if cache is not None and cache['src'] is items and cache['n'] == len(items):
+        return cache['spaces']
+    L = container['length']; W = container['width']; H = container['height']
+    th = container.get('thickness', 0.0)
+    cy = container['center'][1]; cz = container['center'][2]
+    x0, y0, z0 = -L / 2.0 + th, cy - W / 2.0 + th, cz - H / 2.0 + th
+    x1, y1, z1 = L / 2.0 - th, cy + W / 2.0 - th, cz + H / 2.0
+    spaces = [(0, x0, y0, z0, x1, y1, z1)]
+    obstacles = []
+    cut_x = container.get('cut_x', 0.0) or 0.0
+    cut_y = container.get('cut_y', 0.0) or 0.0
+    if cut_x > 1e-6 and cut_y > 1e-6:
+        # 切り欠きは**左下**(x最小・z最小)。wallbuild の init とは向きが違う。
+        obstacles.append((0, x0, y0, z0, x0 + cut_x, y1, z0 + cut_y))
+    ox = container['center'][0]
+    for ab in geo.static_obstacles(container):
+        c_, h_ = np.asarray(ab[0], float), np.asarray(ab[1], float)
+        obstacles.append((0, c_[0] - ox - h_[0], c_[1] - h_[1], c_[2] - h_[2],
+                          c_[0] - ox + h_[0], c_[1] + h_[1], c_[2] + h_[2]))
+    for it in items:
+        if it.get('pos') is None:
+            continue
+        pos, hf = geo.item_world_aabb(it)
+        obstacles.append((0, pos[0] - ox - hf[0], pos[1] - hf[1], pos[2] - hf[2],
+                          pos[0] - ox + hf[0], pos[1] + hf[1], pos[2] + hf[2]))
+    for box in obstacles:
+        nxt = []
+        for sp in spaces:
+            nxt.extend(_wb._split_space(sp, box))
+        spaces = _wb._prune(nxt)
+    container['_macs_cache'] = {'src': items, 'n': len(items), 'spaces': spaces}
+    return spaces
+
+
+def _macs_remaining(spaces, box):
+    """box を置いた後に残る「最大の単一凸空き空間」の体積。大きいほど将来に有利。"""
+    from . import wallbuild as _wb
+    best = 0.0
+    for sp in spaces:
+        if not _wb._overlap(sp, box):
+            v = _wb._vol(sp)
+            if v > best:
+                best = v
+            continue
+        for sub in _wb._split_space(sp, box):
+            v = _wb._vol(sub)
+            if v > best:
+                best = v
+    return best
 # Phase14: 搬入経路の詰まり(fail_transport_y)対策 —— 「階段状スカイライン」の選好。
 #
 # 荷物は必ず手前(y=-width/2)から入り、直置き面(床・棚上面)の 0〜50mm 上に底面が来る候補は
@@ -1477,6 +1613,48 @@ def _evaluate_candidates(container, item, half, obstacles, supports, candidate_x
     # これは「どの荷物をどの順で置くか」の分布を一切変えない —— 救出する1手の
     # 置き場所の質だけを上げる。ローカルスイートの構成に依存しない(= oc_cf のような
     # 分布的変更が転移しなかったのに対し、last-resort と同じ因果的に普遍な変更)。
+    if CORRIDOR_RESERVE and np.any(legal) and _heavy_eval_allowed(budget):
+        # 「置いた後も前面から到達できる空き空間の体積合計」で並べ替える。
+        try:
+            _sp = _macs_spaces(container)
+            _ci2 = np.flatnonzero(legal)
+            if _ci2.size > CORRIDOR_RESERVE_MAX_EVAL:
+                _ci2 = _ci2[np.argsort(-scores[_ci2])[:CORRIDOR_RESERVE_MAX_EVAL]]
+            _reach = np.empty(_ci2.size)
+            for _k, _j in enumerate(_ci2):
+                _reach[_k] = _reachable_empty_volume(container, _sp, (0,
+                    local_x[_j] - half[0], world_y[_j] - half[1], world_z[_j] - half[2],
+                    local_x[_j] + half[0], world_y[_j] + half[1], world_z[_j] + half[2]))
+            budget.spend(MACS_UNIT_COST * len(_sp) * max(1, _ci2.size))
+            _pk = int(_ci2[np.lexsort((-scores[_ci2], -_reach))[0]])
+            _mm = np.zeros(legal.shape, dtype=bool); _mm[_pk] = True
+            legal = _mm
+        except Exception:
+            pass
+
+    if MACS and np.any(legal) and _heavy_eval_allowed(budget):
+        # 上位 MACS_MAX_EVAL 件を「置いた後に残る最大凸空き空間」で並べ替える。
+        # 同値は通常スコアでタイブレーク(安定ソート)。
+        try:
+            _sp = _macs_spaces(container)
+            _mi = np.flatnonzero(legal)
+            if _mi.size > MACS_MAX_EVAL:
+                _mi = _mi[np.argsort(-scores[_mi])[:MACS_MAX_EVAL]]
+            _rem = np.empty(_mi.size)
+            for _k, _j in enumerate(_mi):
+                _rem[_k] = _macs_remaining(_sp, (0,
+                    local_x[_j] - half[0], world_y[_j] - half[1], world_z[_j] - half[2],
+                    local_x[_j] + half[0], world_y[_j] + half[1], world_z[_j] + half[2]))
+            # MACS の計算量をユニット予算に計上する(壁時計ではないので決定的)。
+            # これが無いと「1回の評価は数ms相当」という SearchBudget の前提が壊れ、
+            # policy_timeout(8s)を超えてランダム手→即死するリスクがある。
+            budget.spend(MACS_UNIT_COST * len(_sp) * max(1, _mi.size))
+            _pick = int(_mi[np.lexsort((-scores[_mi], -_rem))[0]])
+            _m = np.zeros(legal.shape, dtype=bool); _m[_pick] = True
+            legal = _m
+        except Exception:
+            pass
+
     if relax_support > 0 and LASTRESORT_COG_FILTER and np.any(legal):
         # 重心(底面中心で近似)が支持多角形の内側にある候補だけに絞る。
         # 1つも無ければ legal は変更しない(= 救出機会を失わない)。
